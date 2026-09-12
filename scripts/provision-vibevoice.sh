@@ -4,7 +4,7 @@
 # Model weights (~2-4 GB) download from Hugging Face on FIRST render.
 set -euo pipefail
 
-DATA_DIR="$HOME/Library/Application Support/com.darkmatter.system-design-roulette"
+DATA_DIR="$HOME/Library/Application Support/com.darkmatter.principia-desk"
 VENV="$DATA_DIR/vibevoice-venv"
 
 command -v uv >/dev/null || { echo "uv required: brew install uv"; exit 1; }

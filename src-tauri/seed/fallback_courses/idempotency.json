@@ -1,0 +1,104 @@
+{
+  "slug": "idempotency",
+  "kind": "remediation",
+  "title": "Idempotency, refreshed where retries meet money",
+  "markdown": "## Why this matters\n\nThis refresher exists because a later lesson found a gap: a retry that charged a card twice, a consumer that processed a message again after a crash, or a \"create\" endpoint that returned a duplicate on a timeout. Each is the same gap: a request was safe to send once and unsafe to send again, and nothing made the second attempt harmless. You do not need the whole delivery-guarantees chapter; you need to know which operations are naturally idempotent, how to make the others idempotent with a key, and where the key must be stored.\n\n## The simple version\n\nThink of a light switch versus a push button on a counter. Flipping the switch to \"on\" twice leaves it on: that is idempotent. Pressing \"add one\" twice adds two: that is not. Most real requests are push buttons, and the network will press them twice whenever a reply is lost. An idempotency key turns a push button into a switch: the server remembers \"this press already happened\" and returns the same answer. The analogy breaks at memory: the switch remembers its position for free, while the server must store the key and the outcome atomically with the effect, or a crash between the two recreates the problem.\n\n## Core mechanics\n\n`PUT` with a full representation and `DELETE` are idempotent by definition; `POST` that creates or charges is not. A client generates a unique key per logical operation, sends it with every attempt, and the server stores the key together with the result in the same transaction as the side effect. A repeat with the same key returns the stored result; a repeat with the same key but a different payload is rejected. Keys expire after a window long enough to outlast any retry policy.\n\nConsumers of at-least-once queues use the same idea with the message identifier: record the identifier in the same transaction as the processing effect, and skip messages whose identifier is already recorded. Exactly-once delivery does not exist across independent systems; exactly-once effect is what idempotent processing provides.\n\n## Failure modes\n\nStoring the key after the effect, or in a different store, leaves a window where a crash duplicates the effect. Deriving the key from the payload hash makes two legitimately identical orders collide. Retrying a non-idempotent request without a key \"because it usually works\" produces the rare duplicate that is hardest to reproduce. Treating a 5xx as \"the request did not happen\" is wrong: the effect may have been applied before the reply was lost.\n\n## Runnable experiment\n\nRun this with `node` and predict every line. It models a charge endpoint with and without a key store, using a lost reply to trigger a retry.\n\n```js\nconst ledger = []; const seen = new Map();\nfunction chargeNaive(amount) { ledger.push(amount); return { charged: amount }; }\nfunction chargeIdempotent(key, amount) {\n  if (seen.has(key)) return seen.get(key);           // repeat: same answer, no new effect\n  const result = { charged: amount }; ledger.push(amount); seen.set(key, result); // same \"transaction\"\n  return result;\n}\nchargeNaive(10); chargeNaive(10);                    // reply lost, client retried\nconsole.log(ledger.length);                          // 2: charged twice\nledger.length = 0;\nchargeIdempotent('order-77', 10); chargeIdempotent('order-77', 10);\nconsole.log(ledger.length, seen.get('order-77'));    // 1 { charged: 10 }\n```\n\nNow move the `seen.set` line before `ledger.push` and imagine a crash between them: the key says \"done\" while the ledger is empty. Then move it after and imagine the crash again: the ledger has the charge but the key is missing, so a retry charges again. Only the same transaction closes both windows.\n\n## Practical exercise\n\nTake one non-idempotent endpoint or consumer you own. Add an idempotency key (or use the message identifier), store it in the same transaction as the effect, reject same-key-different-payload requests, and choose an expiry longer than the longest retry schedule. Write a test that sends the same request three times with one simulated lost reply and asserts a single effect and identical responses.\n",
+  "resources": [
+    {
+      "title": "Idempotent HTTP methods",
+      "url": "https://developer.mozilla.org/en-US/docs/Glossary/Idempotent",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "The Idempotency-Key HTTP header field (IETF draft)",
+      "url": "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Stripe API: Idempotent requests",
+      "url": "https://docs.stripe.com/api/idempotent_requests",
+      "type": "documentation",
+      "why": "A production design for keys, replay and payload mismatch."
+    }
+  ],
+  "key_takeaways": [
+    "A lost reply causes a retry; an idempotency key makes the retry return the same result without a new effect.",
+    "Store the key and the outcome in the same transaction as the side effect.",
+    "Exactly-once effect comes from idempotent processing, not from delivery guarantees."
+  ],
+  "exercise": {
+    "title": "Make one endpoint safe to retry",
+    "instructions": "Add an idempotency key or message identifier to one non-idempotent operation, store it with the effect in one transaction, reject same-key-different-payload requests, choose an expiry longer than any retry schedule, and test three sends with one lost reply for a single effect and identical responses.",
+    "starter_code": "// test sketch\nconst key = crypto.randomUUID();\nconst first = await charge({ key, amount: 10 });\nconst retry = await charge({ key, amount: 10 });   // simulated lost reply\nassert.deepEqual(retry, first);\nassert.equal(ledger.filter((e) => e.key === key).length, 1);\nawait assert.rejects(charge({ key, amount: 11 }));  // same key, different payload\n",
+    "deliverable": "The change, the expiry choice with its justification, and the passing retry test.",
+    "hints": [
+      "Generate the key on the client per logical operation, not per attempt.",
+      "A payload hash is not a key: identical legitimate orders would collide.",
+      "Treat a 5xx or timeout as 'unknown outcome', which is exactly when the key matters."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Which request is idempotent by definition?",
+      "kind": "mcq",
+      "choices": [
+        "POST /orders that creates an order",
+        "PUT /profile with the full representation",
+        "POST /charges",
+        "POST /emails/send"
+      ],
+      "correct_answer": "PUT /profile with the full representation",
+      "explanation": "A full-representation PUT applied twice leaves the same state.",
+      "section": "Core mechanics",
+      "learning_objective": "Recognize naturally idempotent operations"
+    },
+    {
+      "prompt": "Where must the idempotency key and its stored result be written?",
+      "kind": "mcq",
+      "choices": [
+        "In a cache after the effect",
+        "In the same transaction as the side effect",
+        "On the client only",
+        "In the request log"
+      ],
+      "correct_answer": "In the same transaction as the side effect",
+      "explanation": "Any gap between recording the key and applying the effect reopens the duplicate window.",
+      "section": "Core mechanics",
+      "learning_objective": "Store keys atomically with effects"
+    },
+    {
+      "prompt": "A queue consumer crashes after processing a message but before acknowledging it. What prevents a duplicate effect on redelivery?",
+      "kind": "mcq",
+      "choices": [
+        "Exactly-once delivery by the broker",
+        "Recording the message identifier in the same transaction as the effect and skipping recorded ones",
+        "Retrying faster",
+        "Processing messages in parallel"
+      ],
+      "correct_answer": "Recording the message identifier in the same transaction as the effect and skipping recorded ones",
+      "explanation": "Exactly-once effect is achieved by the consumer, not by the transport.",
+      "section": "Core mechanics",
+      "learning_objective": "Make consumers idempotent"
+    },
+    {
+      "prompt": "A client treats a gateway timeout as 'the charge did not happen' and retries without a key. Explain what can go wrong and the correct handling.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The server may have applied the charge and lost only the reply, so the retry charges again. A timeout means unknown outcome; the client must retry with the same idempotency key so the server returns the stored result if the charge happened, or applies it once if it did not.",
+      "explanation": "Timeouts are unknown outcomes; keys make retries safe.",
+      "section": "Failure modes",
+      "learning_objective": "Handle unknown outcomes with keys"
+    },
+    {
+      "prompt": "Why is hashing the request payload a poor idempotency key, and what should the key be instead?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Two legitimately identical requests, such as a customer ordering the same item twice on purpose, would hash to the same key and the second would be treated as a replay of the first. The key should be a unique identifier generated per logical operation by the client, stored with the outcome and given an expiry longer than any retry schedule.",
+      "explanation": "Keys identify operations, not payload contents.",
+      "section": "Failure modes",
+      "learning_objective": "Choose a correct idempotency key"
+    }
+  ]
+}

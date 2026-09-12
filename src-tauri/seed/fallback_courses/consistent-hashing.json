@@ -1,15 +1,46 @@
 {
   "slug": "consistent-hashing",
+  "kind": "advanced",
   "title": "Consistent hashing and virtual nodes",
-  "markdown": "## Why this matters\n\nAny system that spreads keys across N nodes — caches, distributed databases, message partitions — must answer: what happens when N changes? Naive `hash(key) mod N` remaps nearly every key when a node joins or leaves, which at scale means a self-inflicted cache wipe or a rebalancing storm. Consistent hashing is the standard fix and a building block you will reuse in countless designs.\n\n## Core mechanics\n\n### The ring\nMap the hash space (say 0 to 2^64-1) onto a conceptual ring. Hash each node onto the ring; hash each key onto the ring; a key belongs to the first node clockwise from it. When a node joins, it takes keys only from its clockwise successor; when it leaves, its keys go only to its successor. Expected fraction of keys that move: K/N — the theoretical minimum.\n\n### The variance problem\nWith one point per node, the gaps between nodes are wildly uneven — some nodes own several times their fair share. Worse, a departing node dumps its entire range onto one successor.\n\n### Virtual nodes\nHash each physical node onto the ring at many points (typically 100-1000 \"vnodes\"). Benefits: (1) load variance shrinks roughly with the square root of the vnode count; (2) a leaving node's ranges scatter across many successors, spreading the rebalancing load; (3) heterogeneous hardware gets proportional vnode counts (a 2x machine gets 2x vnodes). Cost: the ring's routing table grows (N × vnodes entries), and range scans across owners get more fragmented.\n\n### Implementation sketch\nA sorted array or tree of (hash, node) pairs; lookup = binary search for the first entry ≥ hash(key), wrapping at the end. O(log(N·V)) per lookup, trivially cacheable.\n\n### Alternatives worth knowing\n- **Rendezvous (HRW) hashing**: for each key, score every node with hash(key, node) and pick the max. No ring, perfectly uniform, minimal movement — but O(N) per lookup unless layered.\n- **Jump consistent hash**: O(1), zero memory, beautifully uniform — but only supports numbered buckets added/removed at the end, so it fits storage shard counts, not arbitrary node churn.\n- **Maglev hashing**: Google's lookup-table variant optimized for load balancers — O(1) lookups with minimal disruption on backend changes.\n\n## Trade-offs and failure modes\n\n- Vnode count is a dial: more vnodes = smoother distribution but bigger routing tables and more fragmented ranges. Cassandra's default moved from 256 to 16 as clusters grew — high vnode counts hurt repair and streaming.\n- Consistent hashing balances *key counts*, not *load*: one celebrity key still overwhelms its owner (hot partition). Fixes live above the ring: key salting, request-level caching, or splitting hot keys.\n- Ring membership must itself be consistent: if two routers disagree about membership (gossip lag), the same key routes to different nodes — design for brief divergence (read repair, hinted handoff).\n\n## Real-world example\n\nAmazon's Dynamo paper popularized the ring with vnodes; Cassandra and Riak inherited it. DynamoDB-style systems pair the ring with replication: a key is stored on its owner plus the next R-1 distinct physical nodes clockwise (skipping vnodes of the same machine — an easy bug to introduce).\n\n## Interview framing\n\nLead with the mod-N failure (\"adding one node remaps (N-1)/N of all keys\"), then the ring, then immediately volunteer vnodes — interviewers wait to see if you know single-point rings are unbalanced. Close with the hot-key caveat: consistent hashing solves *placement*, not *load skew*.\n\n## Key takeaways\n\n- mod-N remaps almost everything on membership change; the ring remaps only K/N keys.\n- Virtual nodes fix load variance and scatter rebalancing across the cluster.\n- Replication must skip vnodes of the same physical machine.\n- Consistent hashing balances placement, not load — hot keys need separate treatment.",
-  "resources": [],
+  "markdown": "## Why this matters\n\nAny system that spreads keys across N nodes, caches, distributed databases, message partitions, must answer: what happens when N changes? Naive `hash(key) mod N` remaps nearly every key when a node joins or leaves, which at scale means a self-inflicted cache wipe or a rebalancing storm. Consistent hashing is the standard fix and a building block you will reuse in countless designs.\n\n## The simple version\n\nImagine a circular parking lot with numbered spots, and every car (key) is assigned to \"the first open spot clockwise from where its license plate number lands.\" If a parking attendant (node) goes home for the day, only the cars that were assigned to *that attendant's stretch* of the lot need reassigning, everyone else stays put. Compare that to a much worse rule: \"total attendants working today decides everyone's spot by a formula\" (`hash(key) mod N`), the moment one attendant leaves, the formula changes and *almost every car* gets reassigned, even ones that had nothing to do with the attendant who left.\n\n```mermaid\nflowchart LR\n  subgraph ring [The ring]\n    N1[Node A] --> N2[Node B]\n    N2 --> N3[Node C]\n    N3 --> N1\n  end\n  Key[\"key's hash lands here\"] -. first clockwise .-> N2\n  N2 -. \"if B leaves, only B's keys move\" .-> N3\n```\n\nWhere the analogy breaks: with only one \"spot\" per attendant, the stretches of lot each one covers are wildly uneven by luck of the draw, some attendants end up covering a huge arc, others a tiny one. Real parking lots don't self-correct this; consistent hashing does, by giving each attendant many scattered spots instead of one (**virtual nodes**), which averages out the uneven coverage and, as a bonus, means a departing attendant's cars scatter across *many* remaining attendants instead of dumping the whole load on just one neighbor.\n\nThe analogy breaks for hot keys: parking spaces count ownership, while one popular key can account for most requests even on an evenly populated ring.\n\n## Core mechanics\n\n### The ring\nMap the hash space (say 0 to 2^64-1) onto a conceptual ring. Hash each node onto the ring; hash each key onto the ring; a key belongs to the first node clockwise from it. When a node joins, it takes keys only from its clockwise successor; when it leaves, its keys go only to its successor. Expected fraction of keys that move: K/N, the theoretical minimum.\n\n### The variance problem\nWith one point per node, the gaps between nodes are wildly uneven, some nodes own several times their fair share. Worse, a departing node dumps its entire range onto one successor.\n\n### Virtual nodes\nHash each physical node onto the ring at many points (typically 100-1000 \"vnodes\"). Benefits: (1) load variance shrinks roughly with the square root of the vnode count; (2) a leaving node's ranges scatter across many successors, spreading the rebalancing load; (3) heterogeneous hardware gets proportional vnode counts (a 2x machine gets 2x vnodes). Cost: the ring's routing table grows (N × vnodes entries), and range scans across owners get more fragmented.\n\n### Implementation sketch\nA sorted array or tree of (hash, node) pairs; lookup = binary search for the first entry ≥ hash(key), wrapping at the end. O(log(N·V)) per lookup, trivially cacheable.\n\n### Alternatives worth knowing\n- **Rendezvous (HRW) hashing**: for each key, score every node with hash(key, node) and pick the max. No ring, perfectly uniform, minimal movement, but O(N) per lookup unless layered.\n- **Jump consistent hash**: O(1), zero memory, beautifully uniform, but only supports numbered buckets added/removed at the end, so it fits storage shard counts, not arbitrary node churn.\n- **Maglev hashing**: Google's lookup-table variant optimized for load balancers, O(1) lookups with minimal disruption on backend changes.\n\n## Trade-offs and failure modes\n\n- Vnode count is a dial: more vnodes = smoother distribution but bigger routing tables and more fragmented ranges. Cassandra's default moved from 256 to 16 as clusters grew, high vnode counts hurt repair and streaming.\n- Consistent hashing balances *key counts*, not *load*: one celebrity key still overwhelms its owner (hot partition). Fixes live above the ring: key salting, request-level caching, or splitting hot keys.\n- Ring membership must itself be consistent: if two routers disagree about membership (gossip lag), the same key routes to different nodes, design for brief divergence (read repair, hinted handoff).\n\n## Real-world example\n\nAmazon's Dynamo paper popularized the ring with vnodes; Cassandra and Riak inherited it. DynamoDB-style systems pair the ring with replication: a key is stored on its owner plus the next R-1 distinct physical nodes clockwise (skipping vnodes of the same machine, an easy bug to introduce).\n\n## Interview framing\n\nLead with the mod-N failure (\"adding one node remaps (N-1)/N of all keys\"), then the ring, then immediately volunteer vnodes, interviewers wait to see if you know single-point rings are unbalanced. Close with the hot-key caveat: consistent hashing solves *placement*, not *load skew*.\n\n## Key takeaways\n\n- mod-N remaps almost everything on membership change; the ring remaps only K/N keys.\n- Virtual nodes fix load variance and scatter rebalancing across the cluster.\n- Replication must skip vnodes of the same physical machine.\n- Consistent hashing solves placement, not load skew, hot keys need separate treatment.\n\n## Runnable experiment\n\nRun with Node.js. The key numbers stand in for stable hash outputs. Identify the interval whose owner changes after adding point 35. Compare with key modulo 3 and key modulo 4, then add unequal traffic weights to the keys.\n\n```js\nconst keys = Array.from({ length: 12 }, (_, n) => n * 7);\nconst owner = (key, ring) => ring.find(point => point >= key) ?? ring[0];\nconst before = [20, 50, 80];\nconst after = [20, 35, 50, 80];\nconsole.table(keys.map(key => ({ key, before: owner(key, before), after: owner(key, after) })));\n```\n\n## Practical exercise\n\nImplement a consistent-hash ring supporting `addNode`, `removeNode`, and `getNode(key)`, backed by a sorted array of (hash, nodeId) pairs. First run it with 1 vnode per physical node across 5 nodes and 10,000 random keys, and measure the max/min key-count ratio across nodes. Then rerun with 100 vnodes per node and compare the ratio. Finally, remove one node in each configuration and measure what fraction of keys changed owner.\n\nDeliverable: A printed max/min load ratio for both vnode counts, plus the fraction of keys remapped after removing a node from each, with a sentence on why more vnodes narrowed the ratio.\n\n## Sources\n\n- [Primary reference 1: www.allthingsdistributed.com](https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf)\n- [Primary reference 2: redis.io](https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/)\n- [Primary reference 3: aws.amazon.com](https://aws.amazon.com/builders-library/caching-challenges-and-strategies/)\n",
+  "resources": [
+    {
+      "title": "Primary reference 1: www.allthingsdistributed.com",
+      "url": "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf",
+      "type": "paper",
+      "why": "Supports the mechanisms and failure assumptions explored in this lesson."
+    },
+    {
+      "title": "Primary reference 2: redis.io",
+      "url": "https://redis.io/docs/latest/operate/oss_and_stack/reference/cluster-spec/",
+      "type": "documentation",
+      "why": "Supports the mechanisms and failure assumptions explored in this lesson."
+    },
+    {
+      "title": "Primary reference 3: aws.amazon.com",
+      "url": "https://aws.amazon.com/builders-library/caching-challenges-and-strategies/",
+      "type": "documentation",
+      "why": "Supports the mechanisms and failure assumptions explored in this lesson."
+    }
+  ],
   "key_takeaways": [
     "hash(key) mod N remaps nearly all keys when N changes; a hash ring remaps only K/N.",
     "Virtual nodes shrink load variance and spread a departed node's range across many successors.",
     "Vnode count trades distribution smoothness against routing-table size and range fragmentation.",
     "Replica placement must skip vnodes belonging to the same physical node.",
-    "Consistent hashing solves placement, not load skew — celebrity keys still create hot partitions."
+    "Consistent hashing solves placement, not load skew, celebrity keys still create hot partitions."
   ],
+  "exercise": {
+    "title": "Build a tiny hash ring and measure the difference vnodes make",
+    "instructions": "Implement a consistent-hash ring supporting `addNode`, `removeNode`, and `getNode(key)`, backed by a sorted array of (hash, nodeId) pairs. First run it with 1 vnode per physical node across 5 nodes and 10,000 random keys, and measure the max/min key-count ratio across nodes. Then rerun with 100 vnodes per node and compare the ratio. Finally, remove one node in each configuration and measure what fraction of keys changed owner.",
+    "starter_code": "function hash(str) {\n  // simple deterministic string hash for the exercise; not cryptographic\n  let h = 0;\n  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;\n  return h >>> 0;\n}\n\nclass HashRing {\n  constructor(vnodesPerNode = 1) {\n    this.vnodesPerNode = vnodesPerNode;\n    this.ring = []; // sorted [{ hash, node }]\n  }\n  addNode(node) {\n    for (let v = 0; v < this.vnodesPerNode; v++) {\n      this.ring.push({ hash: hash(`${node}#${v}`), node });\n    }\n    this.ring.sort((a, b) => a.hash - b.hash);\n  }\n  removeNode(node) {\n    this.ring = this.ring.filter((entry) => entry.node !== node);\n  }\n  getNode(key) {\n    const h = hash(key);\n    const entry = this.ring.find((e) => e.hash >= h) ?? this.ring[0];\n    return entry.node;\n  }\n}\n\n// TODO: build two rings (1 vnode vs 100 vnodes per node), assign 10,000\n// keys to each, measure the max/min node load ratio, then remove one node\n// from each and measure the fraction of keys that changed owner.\n",
+    "deliverable": "A printed max/min load ratio for both vnode counts, plus the fraction of keys remapped after removing a node from each, with a sentence on why more vnodes narrowed the ratio.",
+    "hints": [
+      "Use a linear find() for clarity first; a real implementation would binary-search the sorted ring for O(log n) lookups.",
+      "To measure 'fraction of keys that changed owner' after removeNode, snapshot getNode(key) for all 10,000 keys before and after, then count differences.",
+      "The load-ratio gap between 1 vnode and 100 vnodes per node should be dramatic, if it isn't, double check the hash function has enough spread across your key set."
+    ]
+  },
   "questions": [
     {
       "prompt": "A node leaves a consistent-hash ring that has NO virtual nodes. What happens to its keys?",
@@ -21,7 +52,9 @@
         "Half go to the predecessor and half to the successor"
       ],
       "correct_answer": "They all move to the single clockwise successor, doubling its load",
-      "explanation": "Without vnodes, one node owns one contiguous arc, and the whole arc transfers to its successor — the rebalancing hotspot that virtual nodes exist to fix."
+      "explanation": "The misconception: assuming the ring always spreads a departure's load evenly. Without vnodes, one node owns one contiguous arc, like one parking attendant's whole stretch of the lot, and the entire arc transfers to its single clockwise successor, the exact hotspot virtual nodes exist to fix.",
+      "section": "The variance problem",
+      "learning_objective": "without vnodes, a departing node's whole range dumps onto one successor"
     },
     {
       "prompt": "Why does consistent hashing NOT solve the hot partition (celebrity key) problem?",
@@ -33,14 +66,41 @@
         "It does solve it, by spreading requests across replicas"
       ],
       "correct_answer": "Because it balances where keys live, not how much traffic each key receives",
-      "explanation": "Placement uniformity and load uniformity are different problems: one key with 100k req/s still lands on one owner. Salting, caching, or key splitting address load skew."
+      "explanation": "The misconception: assuming uniform key placement implies uniform load. Placement uniformity and load uniformity are different problems, one parking spot can still get a hundred times more visitors than its neighbor even though the lot is evenly laid out. Salting, caching, or key splitting address load skew, not placement.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "consistent hashing balances placement, not per-key traffic load"
     },
     {
       "prompt": "Your cluster replicates each key to 3 nodes by walking clockwise from the key's position and taking the next 3 vnodes. What bug does this have and how do you fix it?",
       "kind": "free",
       "choices": null,
       "correct_answer": "Consecutive vnodes can belong to the same physical machine, so the three 'replicas' may land on fewer than three physical nodes, silently reducing fault tolerance. Fix: walk clockwise taking vnodes but skip any whose physical node (or rack/zone for stronger placement) is already in the replica set, until you have 3 distinct machines.",
-      "explanation": "The distinct-physical-node (and ideally distinct-rack) constraint is the classic vnode replication gotcha from the Dynamo lineage."
+      "explanation": "The misconception: assuming 'next 3 vnodes clockwise' automatically means 3 distinct machines. The distinct-physical-node (and ideally distinct-rack) constraint is the classic vnode replication gotcha from the Dynamo lineage, several parking spots in a row can belong to the same attendant.",
+      "section": "Alternatives worth knowing",
+      "learning_objective": "replica placement must skip vnodes belonging to the same physical node"
+    },
+    {
+      "prompt": "Every node owns the same number of keys, but one key receives half of all requests. What does this show?",
+      "kind": "mcq",
+      "choices": [
+        "Hash functions cannot be deterministic",
+        "Balanced ownership does not guarantee balanced request load",
+        "Replication is impossible",
+        "All keys must move"
+      ],
+      "correct_answer": "Balanced ownership does not guarantee balanced request load",
+      "explanation": "Virtual nodes improve assignment granularity but do not divide the traffic of one unsplittable hot key by themselves.",
+      "section": "Core mechanics",
+      "learning_objective": "Separate key distribution from workload skew"
+    },
+    {
+      "prompt": "On a ring with nodes at 20, 50 and 80, ownership uses the first clockwise node. A node is added at 35. Which keys change owner and why?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Keys in the interval greater than 20 and at most 35 change owner from 50 to 35; other clockwise successors remain the same.",
+      "explanation": "Only the interval newly claimed by the added node has a different successor under this assignment rule.",
+      "section": "Core mechanics",
+      "learning_objective": "Trace membership changes on a concrete hash ring"
     }
   ]
 }

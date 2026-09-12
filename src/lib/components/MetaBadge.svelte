@@ -25,7 +25,7 @@
     font-size: 11px;
     background: var(--node-bg);
     border: 1px solid;
-    border-radius: 99px;
+    border-radius: var(--radius-detail);
     padding: 4px 12px;
     display: inline-flex;
     align-items: center;

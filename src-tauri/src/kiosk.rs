@@ -9,6 +9,60 @@ fn home_dir() -> Option<std::path::PathBuf> {
         .map(std::path::PathBuf::from)
 }
 
+/// Name of the release token. Creating a file with this name in any of the
+/// places below frees a locked desk within one refocus tick.
+pub const UNLOCK_TOKEN: &str = "principia-unlock";
+/// The token name used before the rename. A stick prepared then still works.
+pub const LEGACY_UNLOCK_TOKEN: &str = "sdr-unlock";
+
+/// Longest a lock may hold before it releases itself. A study session lasts
+/// well under an hour; a lock still standing after this is a stuck app, not a
+/// lesson, and a machine must never be held hostage by one.
+pub const MAX_LOCK: std::time::Duration = std::time::Duration::from_secs(3 * 3600);
+
+/// Places a release token is accepted. The home directory is the documented
+/// one and needs a shell; the removable volumes exist so a locked machine can
+/// be freed with no terminal at all, by plugging in a stick that carries a
+/// file named `principia-unlock` at its root.
+fn token_roots() -> Vec<std::path::PathBuf> {
+    let mut roots: Vec<std::path::PathBuf> = home_dir().into_iter().collect();
+    roots.push(std::env::temp_dir());
+    #[cfg(target_os = "macos")]
+    let mounts = ["/Volumes"];
+    #[cfg(target_os = "linux")]
+    let mounts = ["/media", "/run/media", "/mnt"];
+    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
+    let mounts: [&str; 0] = [];
+    for mount in mounts {
+        if let Ok(entries) = std::fs::read_dir(mount) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                // A per-user layer (/run/media/<user>/<stick>) sits one deeper.
+                if let Ok(inner) = std::fs::read_dir(&path) {
+                    roots.extend(inner.flatten().map(|e| e.path()));
+                }
+                roots.push(path);
+            }
+        }
+    }
+    #[cfg(target_os = "windows")]
+    roots.extend(('D'..='Z').map(|drive| std::path::PathBuf::from(format!("{drive}:\\"))));
+    roots
+}
+
+/// The first release token that exists, if any.
+fn token_in(roots: &[std::path::PathBuf]) -> Option<std::path::PathBuf> {
+    roots
+        .iter()
+        .flat_map(|root| [root.join(UNLOCK_TOKEN), root.join(LEGACY_UNLOCK_TOKEN)])
+        .find(|path| path.exists())
+}
+
+/// Whether the desk is disarmed by a release token right now.
+pub fn release_token() -> Option<std::path::PathBuf> {
+    token_in(&token_roots())
+}
+
 /// Silence the room when the lock engages: pause every scriptable media
 /// player that's running, remember the system mute state, then mute.
 /// Best-effort and platform-specific — failures are logged and ignored.
@@ -85,7 +139,7 @@ fn restore_media(state: &AppState) {
 }
 
 #[cfg(target_os = "macos")]
-mod mac {
+pub(crate) mod mac {
     use objc2::msg_send;
     use objc2::runtime::AnyObject;
 
@@ -116,6 +170,15 @@ mod mac {
 
     pub unsafe fn raise_window(ns_window: *mut AnyObject) {
         let _: () = msg_send![ns_window, setLevel: SCREEN_SAVER_WINDOW_LEVEL];
+        let behavior = CAN_JOIN_ALL_SPACES | STATIONARY | FULL_SCREEN_AUXILIARY;
+        let _: () = msg_send![ns_window, setCollectionBehavior: behavior];
+        let _: () = msg_send![ns_window, orderFrontRegardless];
+    }
+
+    /// One level above the kiosk, so the recovery console shows over a
+    /// locked desk and its blankers.
+    pub unsafe fn raise_console(ns_window: *mut AnyObject) {
+        let _: () = msg_send![ns_window, setLevel: SCREEN_SAVER_WINDOW_LEVEL + 1];
         let behavior = CAN_JOIN_ALL_SPACES | STATIONARY | FULL_SCREEN_AUXILIARY;
         let _: () = msg_send![ns_window, setCollectionBehavior: behavior];
         let _: () = msg_send![ns_window, orderFrontRegardless];
@@ -154,15 +217,25 @@ pub enum KioskLevel {
 
 pub fn configured_level(state: &AppState) -> KioskLevel {
     let conn = state.db.0.lock().unwrap();
-    match crate::db::get_config(&conn, "kiosk_level").ok().flatten().as_deref() {
+    match crate::db::get_config(&conn, "kiosk_level")
+        .ok()
+        .flatten()
+        .as_deref()
+    {
         Some("advisory") => KioskLevel::Advisory,
         Some("firm") => KioskLevel::Firm,
         _ => KioskLevel::Hard,
     }
 }
 
-/// Engage the kiosk lock on the main window and start the refocus loop.
+/// Engage the kiosk lock at the globally configured level.
 pub fn engage(app: &AppHandle, state: &AppState) {
+    engage_at(app, state, configured_level(state))
+}
+
+/// Engage the kiosk lock on the main window at an explicit level and start
+/// the refocus loop. The focus coordinator chooses the level per session.
+pub fn engage_at(app: &AppHandle, state: &AppState, level: KioskLevel) {
     if state.debug_day {
         log::info!("debug-day: kiosk engagement skipped");
         state.locked.store(true, Ordering::SeqCst);
@@ -174,12 +247,19 @@ pub fn engage(app: &AppHandle, state: &AppState) {
         log::warn!("kiosk engage refused: frontend not ready (white-screen guard)");
         return;
     }
+    if let Some(token) = release_token() {
+        log::warn!("kiosk engage refused: release token at {}", token.display());
+        return;
+    }
     if state.locked.swap(true, Ordering::SeqCst) {
         return;
     }
-    let level = configured_level(state);
     log::info!("kiosk engaging at level {level:?}");
     let Some(window) = app.get_webview_window("main") else {
+        state.locked.store(false, Ordering::SeqCst);
+        log::warn!("kiosk engage deferred: main window unavailable");
+        // A focus coordinator retries from its captured class/session owner.
+        // Never fall back to the retired daily routine after a missing window.
         return;
     };
     if level == KioskLevel::Advisory {
@@ -273,16 +353,17 @@ pub fn engage(app: &AppHandle, state: &AppState) {
             .inner_size(size.width as f64 / scale, size.height as f64 / scale)
             .build();
             match built {
-                Ok(w) => {
+                Ok(_window) => {
                     #[cfg(target_os = "macos")]
                     {
-                        let w2 = w.clone();
-                        let _ = w.run_on_main_thread(move || {
-                            let _ = objc2::exception::catch(std::panic::AssertUnwindSafe(|| unsafe {
-                                if let Ok(ptr) = w2.ns_window() {
-                                    mac::raise_window(ptr as *mut objc2::runtime::AnyObject);
-                                }
-                            }));
+                        let w2 = _window.clone();
+                        let _ = _window.run_on_main_thread(move || {
+                            let _ =
+                                objc2::exception::catch(std::panic::AssertUnwindSafe(|| unsafe {
+                                    if let Ok(ptr) = w2.ns_window() {
+                                        mac::raise_window(ptr as *mut objc2::runtime::AnyObject);
+                                    }
+                                }));
                         });
                     }
                 }
@@ -295,21 +376,42 @@ pub fn engage(app: &AppHandle, state: &AppState) {
     let app2 = app.clone();
     tauri::async_runtime::spawn(async move {
         let my_pid = std::process::id() as i32;
+        let engaged_at = std::time::Instant::now();
         loop {
             tokio::time::sleep(std::time::Duration::from_millis(300)).await;
             let state = app2.state::<AppState>();
             if !state.locked.load(Ordering::SeqCst) {
                 break;
             }
-            // Dev back door: unlock immediately if ~/sdr-unlock exists.
-            if let Some(home) = home_dir() {
-                if home.join("sdr-unlock").exists() {
-                    log::warn!("~/sdr-unlock present, releasing kiosk");
-                    release(&app2, &state);
-                    break;
-                }
+            // Release token: a file named principia-unlock in the home directory, the
+            // temporary directory or at the root of any mounted volume.
+            if let Some(token) = release_token() {
+                log::warn!("release token at {}, releasing kiosk", token.display());
+                release(&app2, &state);
+                break;
             }
-            let Some(window) = app2.get_webview_window("main") else { continue };
+            // Dead man's switch: no lesson runs this long, so a lock still
+            // standing is a stuck app. Let the machine go.
+            if engaged_at.elapsed() >= MAX_LOCK {
+                log::error!(
+                    "kiosk held for {} minutes, releasing on the dead man's switch",
+                    engaged_at.elapsed().as_secs() / 60
+                );
+                release(&app2, &state);
+                break;
+            }
+            let Some(window) = app2.get_webview_window("main") else {
+                continue;
+            };
+            // The recovery console is ours and sits above the desk on
+            // purpose; leave the keyboard with it.
+            if app2
+                .get_webview_window(crate::recovery::WINDOW)
+                .and_then(|console| console.is_focused().ok())
+                .unwrap_or(false)
+            {
+                continue;
+            }
             #[cfg(target_os = "macos")]
             {
                 let win = window.clone();
@@ -366,12 +468,26 @@ pub fn release(app: &AppHandle, state: &AppState) {
 }
 
 /// Verify the escape phrase (constant-time-ish), enforce attempt lockout.
+fn retain_recent_failures(failures: &mut Vec<i64>, now: i64) -> usize {
+    failures.retain(|timestamp| now - *timestamp < 60);
+    failures.len()
+}
+
+fn escape_phrase_matches(typed: &str, expected: &str) -> bool {
+    let a = typed.trim().as_bytes();
+    let b = expected.trim().as_bytes();
+    let mut diff = a.len() ^ b.len();
+    for i in 0..a.len().min(b.len()) {
+        diff |= (a[i] ^ b[i]) as usize;
+    }
+    diff == 0
+}
+
 pub fn verify_escape(state: &AppState, typed: &str) -> Result<bool, String> {
     let now = chrono::Utc::now().timestamp();
     {
         let mut fails = state.escape_failures.lock().unwrap();
-        fails.retain(|t| now - *t < 60);
-        if fails.len() >= 3 {
+        if retain_recent_failures(&mut fails, now) >= 3 {
             return Err("too many attempts, wait 60 seconds".into());
         }
     }
@@ -382,16 +498,90 @@ pub fn verify_escape(state: &AppState, typed: &str) -> Result<bool, String> {
             .flatten()
             .unwrap_or_default()
     };
-    let a = typed.trim().as_bytes();
-    let b = expected.trim().as_bytes();
-    let mut diff = a.len() ^ b.len();
-    for i in 0..a.len().min(b.len()) {
-        diff |= (a[i] ^ b[i]) as usize;
+    if expected.trim().len() < 40 {
+        return Err("escape phrase is not safely configured".into());
     }
-    if diff == 0 {
+    if escape_phrase_matches(typed, &expected) {
+        state.escape_failures.lock().unwrap().clear();
         Ok(true)
     } else {
         state.escape_failures.lock().unwrap().push(now);
         Ok(false)
+    }
+}
+
+#[cfg(test)]
+mod escape_tests {
+    use super::{escape_phrase_matches, retain_recent_failures};
+
+    #[test]
+    fn phrase_comparison_requires_exact_trimmed_content() {
+        assert!(escape_phrase_matches(" exact phrase ", "exact phrase"));
+        assert!(!escape_phrase_matches("exact phrase!", "exact phrase"));
+        assert!(!escape_phrase_matches("", "exact phrase"));
+    }
+
+    #[test]
+    fn escape_rate_limit_only_counts_the_last_minute() {
+        let mut failures = vec![10, 50, 89, 90];
+        assert_eq!(retain_recent_failures(&mut failures, 100), 3);
+        assert_eq!(failures, vec![50, 89, 90]);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+
+    fn scratch(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "principia-kiosk-{}-{}-{:x}",
+            name,
+            std::process::id(),
+            rand::random::<u64>()
+        ));
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn a_release_token_is_found_in_any_accepted_place() {
+        let home = scratch("home");
+        let stick = scratch("stick");
+        let roots = vec![home.clone(), stick.clone()];
+        assert!(token_in(&roots).is_none());
+
+        // A stick plugged into a locked machine frees it without a terminal.
+        fs::write(stick.join(UNLOCK_TOKEN), b"").unwrap();
+        assert_eq!(token_in(&roots), Some(stick.join(UNLOCK_TOKEN)));
+
+        // The documented home file keeps working and wins when both exist.
+        fs::write(home.join(UNLOCK_TOKEN), b"").unwrap();
+        assert_eq!(token_in(&roots), Some(home.join(UNLOCK_TOKEN)));
+
+        // Removing the tokens re-arms the desk.
+        fs::remove_file(home.join(UNLOCK_TOKEN)).unwrap();
+        fs::remove_file(stick.join(UNLOCK_TOKEN)).unwrap();
+        assert!(token_in(&roots).is_none());
+
+        // A directory of that name counts too: it is still an explicit signal.
+        fs::create_dir(stick.join(UNLOCK_TOKEN)).unwrap();
+        assert!(token_in(&roots).is_some());
+        fs::remove_dir_all(home).unwrap();
+        fs::remove_dir_all(stick).unwrap();
+    }
+
+    #[test]
+    fn the_searched_places_include_the_home_directory_and_removable_media() {
+        let roots = token_roots();
+        assert!(roots.contains(&std::env::temp_dir()));
+        if let Some(home) = home_dir() {
+            assert!(roots.contains(&home), "the documented home file must work");
+        }
+        assert!(
+            MAX_LOCK <= std::time::Duration::from_secs(6 * 3600),
+            "a lock may never outlive a working day"
+        );
     }
 }

@@ -1,0 +1,8 @@
+# Reviews route to the maintainer by default.
+* @dark-matter08
+
+# The lock and the ways out change only with a second look.
+/src-tauri/src/kiosk.rs @dark-matter08
+/src-tauri/src/enforcement.rs @dark-matter08
+/src-tauri/src/recovery.rs @dark-matter08
+/src-tauri/src/storage/migrations/ @dark-matter08

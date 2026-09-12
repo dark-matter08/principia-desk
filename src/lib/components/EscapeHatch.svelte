@@ -21,7 +21,7 @@
     });
     if (ok) {
       open = false;
-      await app.refresh();
+      await app.escaped();
     } else if (!error) {
       error = 'phrase does not match';
       typed = '';
@@ -42,7 +42,10 @@
     <div class="hatch-panel">
       <div class="hatch-head mono">
         <span class="bg-tag">BREAK GLASS</span>
-        <span class="hatch-warn">circuit breaker — trips streak to 0, marks today skipped</span>
+        <span class="hatch-warn">
+          circuit breaker: releases the lock: a focused class lesson is paused with its work
+          kept, an in-progress daily session is marked skipped
+        </span>
       </div>
       <svg class="phrase-svg" viewBox="0 0 640 28" preserveAspectRatio="xMidYMid meet">
         <text x="320" y="19" text-anchor="middle">{phrase}</text>
@@ -50,7 +53,7 @@
       <input
         class="mono"
         type="text"
-        placeholder="type the phrase above exactly — paste disabled"
+        placeholder="type the phrase above exactly; paste disabled"
         bind:value={typed}
         onpaste={noPaste}
         onkeydown={(e) => e.key === 'Enter' && attempt()}
@@ -80,7 +83,7 @@
     gap: 6px;
     background: rgba(31, 19, 22, 0.92);
     border: 1px dashed #793030;
-    border-radius: 999px;
+    border-radius: var(--radius-detail);
     color: #d8918e;
     font-size: 10px;
     letter-spacing: 1px;
@@ -96,7 +99,7 @@
   .hatch-panel {
     background: #1f1316;
     border: 1px dashed #793030;
-    border-radius: 10px;
+    border-radius: var(--radius-panel);
     padding: 14px;
     display: flex;
     flex-direction: column;
@@ -111,7 +114,7 @@
     font-size: 9px;
     color: var(--led-err);
     border: 1px solid #793030;
-    border-radius: 4px;
+    border-radius: var(--radius-detail);
     padding: 3px 6px;
     letter-spacing: 1px;
     white-space: nowrap;

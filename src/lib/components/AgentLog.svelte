@@ -13,7 +13,7 @@
 </script>
 
 <div class="alog mono" bind:this={el}>
-  <div class="alog-head">AGENT_LOG — tail -f</div>
+  <div class="alog-head">AGENT_LOG · tail -f</div>
   {#if lines.length === 0}
     <div class="aline dim">waiting for agent output…</div>
   {/if}
@@ -30,7 +30,7 @@
     overflow-y: auto;
     background: var(--bg);
     border: 1px solid var(--node-border);
-    border-radius: 8px;
+    border-radius: var(--radius-panel);
     padding: 10px 14px;
     text-align: left;
   }

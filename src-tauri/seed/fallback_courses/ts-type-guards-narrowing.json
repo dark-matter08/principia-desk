@@ -1,0 +1,104 @@
+{
+  "slug": "ts-type-guards-narrowing",
+  "kind": "retrieval",
+  "title": "Type guards, narrowing and discriminated unions: retrieval check",
+  "markdown": "## Recall before you check\n\nThis retrieval pass revisits narrowing without re-teaching it. Before opening the check, say in your own words how `typeof`, `instanceof`, `in` and equality checks narrow a union in control flow; how a discriminant property with literal types drives a `switch`; what a user-defined type predicate (`value is T`) and an assertion function (`asserts value is T`) promise; and where narrowing stops: callbacks, mutable captured variables, and property access through optional chains.\n\n## What to bring back\n\n- A discriminated union needs one property whose type is a distinct literal in every member; narrowing on it selects the member.\n- `typeof x === 'object'` still admits `null`; check `x !== null` before `in`.\n- A type predicate narrows at call sites but is only as honest as its body; the compiler does not verify it.\n- An assertion function throws instead of returning false and narrows the rest of the block.\n- Aliased conditions (`const ok = typeof x === 'string'`) narrow when `ok` is a const and `x` is not reassigned.\n- Exhaustiveness: after every case is handled, the subject is `never`; assign it in `default` to catch new members.\n\nAnswer from memory first, then read the feedback.\n",
+  "resources": [
+    {
+      "title": "Narrowing",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    },
+    {
+      "title": "Discriminated unions",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html#discriminated-unions",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    },
+    {
+      "title": "Control flow analysis of aliased conditions",
+      "url": "https://www.typescriptlang.org/docs/handbook/release-notes/typescript-4-4.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "A discriminant is a property with a distinct literal type in every union member.",
+    "Type predicates narrow at call sites but are trusted, not verified.",
+    "Narrowing is control-flow analysis inside one function and stops at callbacks."
+  ],
+  "exercise": null,
+  "questions": [
+    {
+      "prompt": "Which property makes `{ kind: 'ok'; value: number } | { kind: 'err'; message: string }` a discriminated union?",
+      "kind": "mcq",
+      "choices": [
+        "value",
+        "message",
+        "kind",
+        "None; unions cannot be discriminated"
+      ],
+      "correct_answer": "kind",
+      "explanation": "kind has a distinct literal type in each member, so checking it selects the member.",
+      "section": "Retrieval",
+      "learning_objective": "Identify a discriminant property"
+    },
+    {
+      "prompt": "After `if (typeof x === 'object')`, what can `x` still be that breaks `'id' in x`?",
+      "kind": "mcq",
+      "choices": [
+        "undefined",
+        "null",
+        "a number",
+        "a string"
+      ],
+      "correct_answer": "null",
+      "explanation": "typeof null is 'object'; add x !== null before using in.",
+      "section": "Retrieval",
+      "learning_objective": "Remember the null pitfall of typeof"
+    },
+    {
+      "prompt": "What does the compiler verify about `function isUser(v: unknown): v is User`?",
+      "kind": "mcq",
+      "choices": [
+        "That the body checks every User property",
+        "Only that the body returns a boolean; the claim itself is trusted",
+        "That v is never null",
+        "That User has no optional properties"
+      ],
+      "correct_answer": "Only that the body returns a boolean; the claim itself is trusted",
+      "explanation": "A type predicate is a promise the author makes; a wrong body narrows wrongly.",
+      "section": "Retrieval",
+      "learning_objective": "State what type predicates guarantee"
+    },
+    {
+      "prompt": "Which construct narrows the rest of a block by throwing when the check fails?",
+      "kind": "mcq",
+      "choices": [
+        "A type predicate returning false",
+        "An assertion function declared with asserts v is T",
+        "A satisfies expression",
+        "A const assertion"
+      ],
+      "correct_answer": "An assertion function declared with asserts v is T",
+      "explanation": "asserts functions narrow after the call because control continues only if they did not throw.",
+      "section": "Retrieval",
+      "learning_objective": "Use assertion functions"
+    },
+    {
+      "prompt": "Why does narrowing `let x: string | number` inside an `if` not apply inside a callback passed to `setTimeout`?",
+      "kind": "mcq",
+      "choices": [
+        "Callbacks cannot read outer variables",
+        "The callback is another function and x may be reassigned before it runs",
+        "setTimeout requires any",
+        "Unions cannot be narrowed in closures"
+      ],
+      "correct_answer": "The callback is another function and x may be reassigned before it runs",
+      "explanation": "Control-flow narrowing does not cross function boundaries for mutable variables.",
+      "section": "Retrieval",
+      "learning_objective": "Recognize where narrowing stops"
+    }
+  ]
+}

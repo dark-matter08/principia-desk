@@ -1,0 +1,45 @@
+name: Bug report
+description: Something the desk did that it should not have, or did not do that it should.
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Settings › the version in the menu bar icon, or the tag you built from.
+      placeholder: v0.1.0
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options:
+        - A lesson (writing, reading, practice, check)
+        - Classes, starting points or the curriculum
+        - Study times, appointments or the alarm
+        - Enforcement, the lock or a way out
+        - A tutor or runner
+        - Settings, search or recovery
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps
+      description: What you did, in order.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened instead
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: For a lesson that failed to prepare, the run from the Logs page. Remove anything personal.
+      render: text

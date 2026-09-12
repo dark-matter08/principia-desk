@@ -1,0 +1,110 @@
+{
+  "slug": "fa-domain-boundaries",
+  "kind": "beginner",
+  "title": "Domain-oriented frontend boundaries and public feature contracts",
+  "markdown": "## Why this matters\n\nA frontend that begins as a tidy set of `components`, `hooks`, and `utils` folders often becomes hard to change because one user capability is scattered across every technical layer. The problem is not the number of files. It is that the architecture does not show which product capability owns behavior, data, and change.\n\n## The simple version\n\nImagine a department store organized by object type: every shelf in one room, every price label in another, and every cash register in a third. Each department has to visit the whole building to change a display. A domain-oriented frontend is organized more like independent departments: checkout keeps its UI, rules, API adapter, and tests close together while shared building services stay truly shared.\n\nWhere the analogy breaks: frontend domains still meet in one page, one accessibility tree, and often one JavaScript runtime. Boundaries reduce coupling; they do not remove coordination.\n\n## Core mechanics\n\nA useful boundary owns a product vocabulary, public entry point, state transitions, server contract adapter, and tests. Other domains import only that public surface. Generic UI primitives, observability, authentication plumbing, and generated API contracts can live in platform packages, but a `shared` folder must not become a dependency landfill.\n\n```mermaid\nflowchart LR\n  Route[Route composition] --> Catalog[Catalog public API]\n  Route --> Cart[Cart public API]\n  Catalog --> CatalogAdapter[Catalog API adapter]\n  Cart --> CartAdapter[Cart API adapter]\n  Catalog --> DesignSystem[Design system]\n  Cart --> DesignSystem\n  Catalog -. forbidden .-> CartInternal[Cart internals]\n```\n\nThe important edge is the forbidden one: route composition may coordinate domains, but one domain must not reach into another domain's internal store or component tree.\n\n## Mental model\n\nUse three questions: who owns this behavior, what is the smallest stable public contract, and what change should remain local? A boundary is successful when a feature change edits mostly one domain and its contract tests.\n\n## Runnable experiment\n\nChoose one feature in an existing app. Draw its import graph and mark imports that cross feature ownership. Add a package export map or lint rule that permits only `@app/cart` while rejecting `@app/cart/internal/*`. Run the build to expose accidental coupling.\n\n## Production architecture lens\n\nSuppose eight teams ship a commerce application with 120 routes. A technical-layer structure makes checkout changes touch global stores, generic hooks, API clients, and shared components owned by four teams. Move toward domain packages incrementally: define a public facade around existing checkout behavior, route new code through it, add a no-restricted-imports rule, then move internals behind the facade. Track cross-domain import count, build-graph fan-out, and lead time for checkout changes. Roll back by keeping the facade stable while implementation files move.\n\n## Trade-offs and failure modes\n\nChoose domain packages when product capabilities have distinct ownership and change independently. Keep a simpler feature-folder modular monolith when one small team changes everything together. Split deployment only when release independence is a measured bottleneck; package boundaries are cheaper than micro-frontends and solve most code-ownership problems first.\n\nFailure modes include an enormous `shared` package, circular domain imports, duplicated platform concerns, and public APIs that expose internal state objects. The signal to revisit a boundary is persistent two-way imports or changes that repeatedly require coordinated releases.\n\n## Migration and observability\n\nStart with dependency rules, not a rewrite. Record cross-boundary imports and package build fan-out in CI. Add contract tests at API adapters and interaction tests at route composition. Ownership metadata should identify a team for each public package and production dashboard.\n\n## Practical exercise\n\nCreate a domain package facade and a dependency rule that prevents consumers from importing its internals. Write a short ADR explaining why a modular monolith is sufficient now and what evidence would justify independent deployment later.\n\n## Key takeaways\n\n- Organize around product change and ownership rather than technical file types.\n- A domain exposes a small public contract and hides stores, adapters, and components behind it.\n- Route composition coordinates domains without merging their internals.\n- Package boundaries usually deliver most scaling benefits before micro-frontends are justified.",
+  "resources": [
+    {
+      "title": "Enforce Module Boundaries",
+      "url": "https://nx.dev/docs/features/enforce-module-boundaries",
+      "type": "maintainer documentation",
+      "why": "Shows enforceable project tags and dependency constraints rather than relying on folder conventions."
+    },
+    {
+      "title": "Enforce Module Boundaries ESLint Rule",
+      "url": "https://nx.dev/docs/technologies/eslint/eslint-plugin/guides/enforce-module-boundaries",
+      "type": "maintainer documentation",
+      "why": "Documents the concrete JavaScript/TypeScript import-policy mechanism."
+    },
+    {
+      "title": "Project Dependency Rules",
+      "url": "https://nx.dev/docs/concepts/decisions/project-dependency-rules",
+      "type": "maintainer documentation",
+      "why": "Provides examples for separating feature, UI, and utility dependency directions."
+    },
+    {
+      "title": "Tag in Multiple Dimensions",
+      "url": "https://nx.dev/docs/guides/enforce-module-boundaries/tag-multiple-dimensions",
+      "type": "maintainer documentation",
+      "why": "Explains how scope, type, stability, and runtime boundaries combine."
+    }
+  ],
+  "key_takeaways": [
+    "Architecture should make product ownership and change locality visible.",
+    "Public package contracts prevent cross-domain implementation coupling.",
+    "A modular monolith is the default until independent deployment has measurable value."
+  ],
+  "exercise": {
+    "title": "Enforce one frontend domain boundary",
+    "instructions": "Pick a feature such as cart, search, or onboarding. Define one public `index.ts` that exports only the components, commands, and types consumers need. Add an ESLint boundary rule or package export map that rejects imports from its internals. Write an ADR with the owner, permitted dependencies, migration sequence, rollback, and the evidence that would justify independent deployment.\n\nAcceptance criteria: CI fails on a forbidden deep import; at least one real consumer uses only the public facade; the public API does not expose the feature's store shape; ownership is explicit; and before/after dependency-graph evidence shows reduced cross-domain fan-out.",
+    "starter_code": "// packages/cart/src/index.ts\nexport { CartButton } from './ui/CartButton';\nexport { addItem } from './application/addItem';\nexport type { CartSummary } from './contract';\n\n// Consumers may import @app/cart, never @app/cart/internal/*\n",
+    "deliverable": "A public feature facade, one automated boundary rule, and a short ADR describing ownership and future split criteria.",
+    "hints": [
+      "Begin from the product capability, not from an existing `components` or `utils` folder.",
+      "If consumers need the feature's whole store shape, the public contract is probably leaking implementation.",
+      "Measure forbidden cross-domain imports before and after the change."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "A checkout change repeatedly edits files in global `components`, `hooks`, `stores`, and `api` folders. What is the strongest architectural signal?",
+      "kind": "mcq",
+      "choices": [
+        "The product capability is split across technical layers instead of owning a cohesive boundary",
+        "The app needs a separate deployment for every component",
+        "Hooks should be replaced with classes",
+        "All files should move into one shared package"
+      ],
+      "correct_answer": "The product capability is split across technical layers instead of owning a cohesive boundary",
+      "explanation": "The misconception is treating folder neatness as change locality. A domain boundary keeps the UI, rules, adapter, and tests for one capability close enough that most changes stay under one owner; a separate deployment is a later organizational decision, not the first fix.",
+      "section": "Core mechanics",
+      "learning_objective": "organize boundaries around product change and ownership"
+    },
+    {
+      "prompt": "Which dependency should a boundary rule reject?",
+      "kind": "mcq",
+      "choices": [
+        "A route importing the cart package's public facade",
+        "The cart package importing a design-system button",
+        "The catalog domain importing the cart domain's internal store",
+        "A cart adapter importing a generated API contract"
+      ],
+      "correct_answer": "The catalog domain importing the cart domain's internal store",
+      "explanation": "The misconception is assuming reuse makes every import legitimate. Internal stores encode ownership and implementation details; consumers should coordinate through the cart's public contract so that cart can change without a cascade.",
+      "section": "Mental model",
+      "learning_objective": "cross-domain consumers use public contracts, not internals"
+    },
+    {
+      "prompt": "When is a micro-frontend split justified more strongly than package boundaries in one deployment?",
+      "kind": "mcq",
+      "choices": [
+        "When the repository has more than 100 components",
+        "When teams need measured release independence and coordinated deployments are the bottleneck",
+        "Whenever two frameworks appear in prototypes",
+        "When developers prefer different folder names"
+      ],
+      "correct_answer": "When teams need measured release independence and coordinated deployments are the bottleneck",
+      "explanation": "The misconception is equating codebase size with deployment topology. Micro-frontends buy release and ownership independence at substantial runtime and governance cost, so adopt them when coordination is the measured bottleneck rather than as preventive complexity.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "distribution requires organizational and release pressure"
+    },
+    {
+      "prompt": "The catalog domain imports the cart store to display item count, and both teams now need coordinated releases. Design an incremental fix without a big-bang rewrite.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Define a small cart-owned read contract or composition-level view model, put it behind the cart public facade, migrate catalog consumers, and add an import rule that blocks new internal-store access. Measure remaining forbidden edges and keep a compatibility adapter until all consumers move.",
+      "explanation": "The misconception is choosing between leaving the leak and rewriting both domains. A stable facade plus an enforced strangler migration reduces coupling while keeping releases reversible.",
+      "section": "Migration and observability",
+      "learning_objective": "migrate cross-domain store coupling through a stable public contract"
+    },
+    {
+      "prompt": "A proposed `shared` package contains checkout rules, catalog DTOs, analytics wrappers, and generic buttons. Explain how you would split ownership and dependency direction.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Move checkout rules and catalog DTO adapters back to their owning domains, keep genuinely cross-cutting platform wrappers and UI primitives in narrowly named packages, and enforce one-way dependencies with tags or import rules. Each public package needs an owner and contract tests.",
+      "explanation": "The misconception is treating reuse as proof that code has no domain owner. A broad shared package hides coupling; narrow platform contracts and domain ownership make change direction visible.",
+      "section": "Production architecture lens",
+      "learning_objective": "prevent shared packages from becoming unowned dependency landfills"
+    }
+  ]
+}

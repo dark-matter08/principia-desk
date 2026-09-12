@@ -1,0 +1,110 @@
+{
+  "slug": "js-atomics-sharedarraybuffer",
+  "kind": "capstone",
+  "title": "Capstone lab: a measured shared-memory worker pipeline with a rollback note",
+  "markdown": "## Why this matters\n\nThe capstone extends the browser-performance case study with a real concurrency decision. A page needs to process a stream of numeric frames without stalling input. Workers with `postMessage` copy each frame; a `SharedArrayBuffer` with `Atomics` lets the main thread and workers coordinate over one buffer without copies. The lab asks you to build both, measure them under load, and write the diagnosis and the rollback so a teammate could reverse the decision.\n\n## The simple version\n\nThink of a shared whiteboard between rooms: everyone can write and read at once, so a protocol decides who writes where and how a reader knows a line is complete. `Atomics.store` and `Atomics.load` are pen strokes that cannot be torn in half; `Atomics.wait` and `Atomics.notify` let a worker sleep on a cell until someone writes it. The analogy breaks at memory ordering: without atomics, one thread can observe writes in a different order than they were made, and a plain read of a \"ready\" flag can see the flag before the data it guards. The flag itself must be atomic and set last.\n\n## The lab\n\nShared memory needs cross-origin isolation. Run the setup in an isolated directory; it creates a static page, a worker, and a small dev server that sends the two required headers. Record the browser and version you test with; header names and availability are stated as of 2026.\n\n```bash\nlab=$(mktemp -d) && cd \"$lab\" || exit 1\ncat > server.mjs <<'JS'\nimport { createServer } from 'node:http'; import { readFile } from 'node:fs/promises'; import { extname } from 'node:path';\nconst types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript' };\ncreateServer(async (req, res) => {\n  const file = req.url === '/' ? 'index.html' : req.url.slice(1);\n  try {\n    const body = await readFile(file);\n    res.writeHead(200, { 'Content-Type': types[extname(file)] ?? 'application/octet-stream',\n      'Cross-Origin-Opener-Policy': 'same-origin', 'Cross-Origin-Embedder-Policy': 'require-corp' });\n    res.end(body);\n  } catch { res.writeHead(404).end(); }\n}).listen(8080, () => console.log('http://localhost:8080'));\nJS\nprintf '<!doctype html><script type=\"module\" src=\"main.js\"></script><pre id=\"out\"></pre>\\n' > index.html\nprintf 'lab at %s\\n' \"$lab\"\n```\n\n## Core mechanics\n\n`main.js` creates one `SharedArrayBuffer` holding a ring of frames plus a control `Int32Array` with a write index, a read index and a \"frames ready\" cell. Workers spin up from `worker.js`, `Atomics.wait` on the ready cell, process the frame at the read index, and `Atomics.add` a completion counter. The main thread writes the frame data first and only then `Atomics.store`s the new write index and `Atomics.notify`s the waiters; the data is published by the atomic write of the index, which is what makes the ordering observable and correct.\n\nThe comparison pipeline sends each frame with `postMessage` (optionally transferring the buffer). Both pipelines report frames per second and the main thread's longest task, measured with `performance.now` around each dispatch and with a `PerformanceObserver` for `longtask` entries. `crossOriginIsolated` must be `true` or the shared version cannot run; the page shows which pipeline is active and why.\n\n## Runnable experiment\n\nPredict each line, then run the server with `node server.mjs` and open the page.\n\n```js\n// in the page console after loading main.js\nconsole.log(crossOriginIsolated);            // true: both headers were sent\nconst sab = new SharedArrayBuffer(16); const ctrl = new Int32Array(sab);\nAtomics.store(ctrl, 0, 1); console.log(Atomics.load(ctrl, 0)); // 1\nconsole.log(Atomics.notify(ctrl, 0, 1));      // 0: no worker is waiting on this cell yet\n```\n\nThen remove the `Cross-Origin-Embedder-Policy` header from the server, reload, and record what `crossOriginIsolated` and `new SharedArrayBuffer(16)` do now.\n\n## Failure modes\n\nReading the frame data after a plain (non-atomic) flag read can observe stale bytes. `Atomics.wait` is not allowed on the main thread in browsers; only workers may block. Cross-origin isolation blocks embedding of resources that do not opt in with CORP or CORS, so a page that loads third-party images may break; the rollback note must list what stopped loading. A pipeline that wins on throughput but doubles the main thread's longest task has failed the responsiveness constraint.\n\n## Practical exercise\n\nDeliver the case-study extension: both pipelines behind one switch; a measurement table (frames per second, longest task, memory) for a fixed workload on a fixed device; a diagnosis naming which mechanism explains each difference; the ordering argument for the shared version (why the index write publishes the data); and a rollback note listing the isolation headers, what they broke, and the exact steps to return to the `postMessage` pipeline.\n",
+  "resources": [
+    {
+      "title": "Atomics",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    },
+    {
+      "title": "SharedArrayBuffer and security requirements",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    },
+    {
+      "title": "Cross-Origin-Embedder-Policy",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cross-Origin-Embedder-Policy",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    },
+    {
+      "title": "Long Tasks API",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/PerformanceLongTaskTiming",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "Publish shared data with an atomic index write after the data; readers load that index atomically.",
+    "Shared memory needs cross-origin isolation; record what the headers break and how to roll back.",
+    "Judge the pipeline by responsiveness and throughput together, on a fixed device and workload."
+  ],
+  "exercise": {
+    "title": "Deliver the measured pipeline comparison",
+    "instructions": "Build the postMessage and shared-memory pipelines behind one switch, measure frames per second, longest task and memory on a fixed workload and device, write the diagnosis and the ordering argument, and a rollback note listing the isolation headers, what they broke and the steps back.",
+    "starter_code": "// worker.js (sketch)\nlet ctrl, frames;\nself.onmessage = ({ data }) => {\n  ctrl = new Int32Array(data.control); frames = new Float32Array(data.frames);\n  for (;;) {\n    Atomics.wait(ctrl, 0, 0);            // sleep until a frame index is published\n    const index = Atomics.load(ctrl, 0);   // atomic read publishes the frame written before it\n    process(frames.subarray(index * 1024, (index + 1) * 1024));\n    Atomics.add(ctrl, 1, 1);               // completion counter\n    Atomics.store(ctrl, 0, 0);\n  }\n};\n",
+    "deliverable": "Two pipelines behind a switch, a measurement table, a diagnosis with the ordering argument, and a rollback note.",
+    "hints": [
+      "Set the ready index last with Atomics.store; the data it guards must be written before it.",
+      "Use a PerformanceObserver for longtask entries rather than eyeballing the frame rate.",
+      "Test the rollback: remove the headers and confirm the postMessage pipeline still runs."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Why must the frame data be written before the atomic store of the ready index?",
+      "kind": "mcq",
+      "choices": [
+        "Atomics.store is slower",
+        "The atomic write publishes prior writes; a reader that loads the index atomically then sees the data",
+        "Workers cannot read data written after the index",
+        "Float32Array requires it"
+      ],
+      "correct_answer": "The atomic write publishes prior writes; a reader that loads the index atomically then sees the data",
+      "explanation": "Memory ordering: the atomic index write is the publication point for the data before it.",
+      "section": "Core mechanics",
+      "learning_objective": "Order shared-memory writes correctly"
+    },
+    {
+      "prompt": "`crossOriginIsolated` is false and `new SharedArrayBuffer(16)` fails. What is missing?",
+      "kind": "mcq",
+      "choices": [
+        "A worker",
+        "The Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers on the document",
+        "HTTPS only",
+        "A Content Security Policy"
+      ],
+      "correct_answer": "The Cross-Origin-Opener-Policy and Cross-Origin-Embedder-Policy headers on the document",
+      "explanation": "Shared memory requires cross-origin isolation, established by those two headers.",
+      "section": "The lab",
+      "learning_objective": "Enable cross-origin isolation"
+    },
+    {
+      "prompt": "Which thread may call `Atomics.wait` in a browser?",
+      "kind": "mcq",
+      "choices": [
+        "The main thread only",
+        "Workers; the main thread is not allowed to block",
+        "Any thread",
+        "None; wait is Node-only"
+      ],
+      "correct_answer": "Workers; the main thread is not allowed to block",
+      "explanation": "Blocking the main thread would freeze the page, so browsers forbid it there.",
+      "section": "Failure modes",
+      "learning_objective": "Know where blocking waits are allowed"
+    },
+    {
+      "prompt": "The shared-memory pipeline doubles frames per second but the longest main-thread task grows from 12 ms to 80 ms. Is it the better pipeline? Explain.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Not by the case study's constraints: responsiveness is a stated requirement, and an 80 ms longest task means visible input delay. The diagnosis should name what the main thread now does per frame (for example the dispatch loop or copying into the shared buffer), fix or bound it, and only then compare throughput; otherwise the rollback to postMessage is the correct decision.",
+      "explanation": "Throughput does not outrank responsiveness in the case study.",
+      "section": "Practical exercise",
+      "learning_objective": "Weigh throughput against responsiveness with evidence"
+    },
+    {
+      "prompt": "What must the rollback note contain for a teammate to reverse the shared-memory decision safely?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The two isolation headers that were added and where they are set, the third-party resources or embeds that stopped loading under isolation, the switch that selects the postMessage pipeline, the exact steps to remove the headers and redeploy, and the measurements that justified the original decision so the reversal can be judged against them.",
+      "explanation": "A rollback note lists headers, breakage, the switch and the steps.",
+      "section": "Practical exercise",
+      "learning_objective": "Write a usable rollback note"
+    }
+  ]
+}

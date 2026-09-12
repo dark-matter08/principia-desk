@@ -1,0 +1,52 @@
+---
+import Base from "../layouts/Base.astro";
+import Section from "../components/Section.astro";
+import { getSite } from "../lib/content";
+
+// The whole page is a walk over the content schema. Nothing here knows a
+// single sentence of the copy.
+const site = getSite();
+const faq = site.sections.find((s) => s.kind === "faq");
+
+const software = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: site.name,
+  alternateName: "System Design Roulette",
+  description: site.description,
+  url: site.url,
+  image: new URL("/og.png", site.url).toString(),
+  applicationCategory: "EducationalApplication",
+  operatingSystem: "macOS 13+",
+  softwareVersion: site.version,
+  license: "https://opensource.org/licenses/MIT",
+  isAccessibleForFree: true,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  downloadUrl: site.releases,
+  codeRepository: site.repo,
+  author: { "@type": "Person", name: "Nde Che Lucien", url: "https://ndelucien.com" },
+  featureList: [
+    "Nine classes with personal starting points and placement checks",
+    "Lessons written by your own AI tutor from primary documentation",
+    "Durable study appointments with per-day start and length",
+    "Enforcement per class with five documented ways out",
+    "Build your own class from a brief",
+    "PDF and CSV export of lessons",
+  ],
+};
+const faqLd = faq && faq.kind === "faq"
+  ? {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: faq.items.map((it) => ({
+        "@type": "Question",
+        name: it.q,
+        acceptedAnswer: { "@type": "Answer", text: it.a.replace(/<[^>]+>/g, "") },
+      })),
+    }
+  : null;
+const jsonLd = [software, faqLd].filter(Boolean);
+---
+<Base title={`${site.name} · ${site.tagline}`} description={site.description} path="/" jsonLd={jsonLd}>
+  {site.sections.map((s) => <Section section={s} />)}
+</Base>

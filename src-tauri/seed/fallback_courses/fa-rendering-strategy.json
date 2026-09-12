@@ -1,0 +1,116 @@
+{
+  "slug": "fa-rendering-strategy",
+  "kind": "advanced",
+  "title": "Choosing CSR, SSR, SSG, streaming, and islands per route",
+  "markdown": "## Why this matters\n\nRendering is not one application-wide switch between SPA and SSR. A public article, a personalized dashboard, and a browser-only editor have different latency, caching, interactivity, security, and resilience constraints. Treating all routes alike usually ships too much JavaScript or creates needless server complexity.\n\n## The simple version\n\nThink of a restaurant menu, a made-to-order meal, and a table-side flambé. The menu can be printed ahead of time, the meal is prepared on request in the kitchen, and only the final interactive step must happen beside the customer. Static generation, server rendering, and client execution serve similarly different jobs.\n\nWhere the analogy breaks: a web route can mix these modes. Its shell may be cached HTML, product data may stream from a server, and one small control may hydrate in the browser.\n\n## Core mechanics\n\nStatic rendering moves work to build or revalidation time. Request-time SSR moves it to a server request and can stream useful HTML before all data resolves. Client rendering runs after JavaScript downloads and executes. Islands or leaf client boundaries hydrate only interactive regions. React Server Components are one framework mechanism for keeping component code and data access on the server; they are not a browser primitive and should not be prescribed outside an RSC-capable framework.\n\n```mermaid\nflowchart LR\n  Request --> RoutePolicy{Route constraints}\n  RoutePolicy --> Static[Static or revalidated HTML]\n  RoutePolicy --> Server[Request-time server render]\n  RoutePolicy --> Client[Client-only render]\n  Static --> Islands[Hydrate interactive islands]\n  Server --> Stream[Stream boundaries]\n  Stream --> Islands\n```\n\nRead the diagram as a per-route decision followed by a smaller per-component interactivity decision.\n\n## Mental model\n\nPlace work at the earliest location that has the data and trust required, while shipping the least browser code that preserves the interaction. Re-evaluate with four measurements: TTFB, LCP, INP, and transferred/executed JavaScript.\n\n## Runnable experiment\n\nUse a production build and browser DevTools to compare two versions of one route. In the first, mark the route's top-level component as client-rendered. In the second, keep data and non-interactive markup on the server and move only a filter control to a client leaf. Compare JavaScript transfer, main-thread execution, LCP, and interaction behavior with JavaScript disabled.\n\n## Production architecture lens\n\nConsider a marketplace with 10 million anonymous product-page visits per day, personalized prices after login, and an interactive image gallery. Cache the shared product shell at the edge, fetch personalized price through a private boundary, and hydrate only the gallery and purchasing controls. A dashboard route may use request-time rendering for authorization and stream independent panels, while a canvas editor may remain client-heavy because its state and rendering loop live in the browser.\n\nRecord the decision per route in a small rendering manifest: data volatility, personalization, cache scope, interactivity, SEO, offline need, and fallback. Ownership belongs with the route team; platform owns measurement and safe defaults.\n\n## Trade-offs and failure modes\n\nChoose static output when content is shareable and staleness is bounded. Choose request-time rendering when authorization or fresh data is needed before first paint. Choose client rendering for browser-native, highly interactive workspaces where server HTML contributes little. Use server components or islands when they measurably reduce client code without obscuring data and mutation boundaries.\n\nFailure modes include leaking personalized data into a shared cache, waterfalls hidden behind server abstractions, oversized client boundaries, hydration mismatches, and streaming fallbacks that cause layout shift. The signal to revisit is route-level field data, not a framework slogan.\n\n## Migration and observability\n\nMigrate one route at a time behind a flag. Preserve domain logic outside rendering-specific modules so the route can move between strategies. Monitor cache hit rate, TTFB, LCP, INP, JS bytes, hydration errors, and server error rate by route and release. Roll back the route policy without rewriting the feature.\n\n## Practical exercise\n\nCreate a rendering decision record for three routes and implement one boundary reduction. Capture before/after evidence from a production build and explain which metric justified the change.\n\n## Key takeaways\n\n- Choose rendering per route, then choose interactivity per component boundary.\n- Server-first is a means to reduce browser work, not a universal framework mandate.\n- Cache scope and personalization are security boundaries as well as performance choices.\n- Keep domain logic independent so rendering decisions remain reversible.",
+  "resources": [
+    {
+      "title": "Islands architecture",
+      "url": "https://docs.astro.build/en/concepts/islands/",
+      "type": "framework documentation",
+      "why": "Defines client and server islands with explicit hydration boundaries."
+    },
+    {
+      "title": "Partial Prerendering",
+      "url": "https://nextjs.org/docs/15/app/getting-started/partial-prerendering",
+      "type": "framework documentation",
+      "why": "Shows a static shell combined with streamed dynamic boundaries."
+    },
+    {
+      "title": "Next.js caching",
+      "url": "https://nextjs.org/docs/app/getting-started/caching",
+      "type": "framework documentation",
+      "why": "Documents current cache components, explicit cache policy, and streaming behavior."
+    },
+    {
+      "title": "React Server Components",
+      "url": "https://react.dev/reference/rsc/server-components",
+      "type": "framework documentation",
+      "why": "Distinguishes stable component semantics from still-evolving bundler and framework APIs."
+    },
+    {
+      "title": "Interaction to Next Paint",
+      "url": "https://web.dev/articles/inp",
+      "type": "browser-vendor guidance",
+      "why": "Provides a user-facing responsiveness metric for validating client-work reductions."
+    }
+  ],
+  "key_takeaways": [
+    "Rendering strategy is a per-route architecture decision.",
+    "Keep client boundaries as small as the required interaction allows.",
+    "Measure real route behavior and keep rendering choices reversible."
+  ],
+  "exercise": {
+    "title": "Build a route rendering decision matrix",
+    "instructions": "Choose a public content route, an authenticated dashboard, and an interactive workspace. For each, record data volatility, personalization, cache scope, SEO, offline need, and required browser interactivity. Select static, request-time server, client, or a mixed strategy and state the metric that would make you reconsider. Then reduce one client boundary in a production build.\n\nAcceptance criteria: every route has an explicit cache/privacy scope; personalized data cannot enter a public cache; compare production JavaScript transfer and execution; capture TTFB, LCP, and INP or lab proxies; document the failure fallback; and write a flag-based rollback path.",
+    "starter_code": "export const routeRendering = {\n  product: { mode: 'static+islands', cache: 'public', reconsiderWhen: 'price becomes request-private' },\n  dashboard: { mode: 'request+stream', cache: 'private', reconsiderWhen: 'TTFB p75 > 800ms' },\n  editor: { mode: 'client', cache: 'shell', reconsiderWhen: 'initial JS > budget' },\n} as const;\n",
+    "deliverable": "A three-route rendering matrix plus before/after production-build evidence for one smaller client boundary.",
+    "hints": [
+      "Separate the route's first useful view from controls that truly require browser state.",
+      "A personalized response must not enter a public shared cache.",
+      "Measure production output; development-mode bundle behavior is misleading."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "A marketing route is mostly stable content with one interactive pricing toggle. What is the strongest default?",
+      "kind": "mcq",
+      "choices": [
+        "Static or revalidated HTML with a small hydrated toggle boundary",
+        "Client-render the entire route because one control is interactive",
+        "Request-time render every visit and disable caching",
+        "Move the pricing toggle into a micro-frontend"
+      ],
+      "correct_answer": "Static or revalidated HTML with a small hydrated toggle boundary",
+      "explanation": "The misconception is letting one interactive leaf dictate the whole route's rendering mode. Precompute the shareable content and hydrate only the control that needs browser state, reducing transfer and execution without losing interaction.",
+      "section": "Core mechanics",
+      "learning_objective": "choose route output separately from interactive leaf hydration"
+    },
+    {
+      "prompt": "Why is React Server Components not a universal web architecture recommendation?",
+      "kind": "mcq",
+      "choices": [
+        "It is a framework-integrated mechanism with serialization and server-client boundary costs",
+        "It cannot render HTML",
+        "It always ships more JavaScript than client rendering",
+        "Browsers removed support for server-rendered pages"
+      ],
+      "correct_answer": "It is a framework-integrated mechanism with serialization and server-client boundary costs",
+      "explanation": "The misconception is treating a framework mechanism as a browser primitive. RSC can keep code and data work off the client in a compatible framework, but it introduces a server/client protocol and constraints that must earn their complexity.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "separate framework mechanisms from browser architecture principles"
+    },
+    {
+      "prompt": "Which measurement set best tests whether moving a route server-first helped users?",
+      "kind": "mcq",
+      "choices": [
+        "Route TTFB, LCP, INP, JavaScript transfer/execution, and error rate",
+        "Only the source file line count",
+        "Only the number of server components",
+        "Only the framework build duration"
+      ],
+      "correct_answer": "Route TTFB, LCP, INP, JavaScript transfer/execution, and error rate",
+      "explanation": "The misconception is using architecture labels as proof of performance. Server work can reduce browser JavaScript while worsening latency or reliability, so route-level field and operational measurements must verify the trade.",
+      "section": "Migration and observability",
+      "learning_objective": "validate rendering choices with route-level user and server evidence"
+    },
+    {
+      "prompt": "A shared edge cache stores an SSR product page that embeds each signed-in user's negotiated price. Explain the failure and redesign the boundaries.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The response mixes private data with a public cache key and can leak one user's price to another. Keep the shared product shell publicly cacheable, move price behind a private request or non-shared server boundary, vary any private cache on the complete identity/authorization context, and test for cross-user leakage.",
+      "explanation": "The misconception is treating rendering and cache policy as only performance decisions. Personalization changes the trust boundary; public caching is unsafe unless the response is truly identical for all users.",
+      "section": "Production architecture lens",
+      "learning_objective": "separate public route output from private personalized data"
+    },
+    {
+      "prompt": "A server-component migration cuts shipped JavaScript by 35% but raises p75 TTFB from 500 ms to 1.4 s. What decision process should the team follow?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Measure the resulting LCP, INP, error rate, and regional/server cost rather than declaring either metric decisive. Profile server waterfalls and cacheability, move only suitable boundaries server-side, run a controlled rollout, and keep a route-level rollback until field evidence shows a net user benefit.",
+      "explanation": "The misconception is treating less JavaScript or server-first architecture as an automatic win. Rendering moves work between systems; the correct choice follows end-to-end user and operational evidence.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "evaluate rendering migrations with end-to-end user and operational trade-offs"
+    }
+  ]
+}

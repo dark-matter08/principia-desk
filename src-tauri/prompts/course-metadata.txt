@@ -1,0 +1,14 @@
+Create the structured study material for the supplied completed lesson. Return only one valid JSON object. Do not return a markdown field or rewrite the lesson body. Use the course context and supplied lesson as the authority; do not add new mechanisms or sources.
+
+Required schema (each placeholder must be replaced by a real value):
+{
+  "title": "A concise lesson title",
+  "resources": [{"title":"Source title","url":"https://exact-url-cited-in-lesson","type":"docs","why":"What it supports"}],
+  "key_takeaways": ["A specific mechanism or decision learned"],
+  "exit_questions": [{"prompt":"A scenario-based question","choices":["First complete answer","Second complete answer","Third complete answer","Fourth complete answer"],"correct_answer":"First complete answer","explanation":"Name the misconception and explain the correct mental model.","section":"Core mechanics","learning_objective":"The specific mechanism being checked"}],
+  "exercise": {"title":"Practical task","instructions":"**You will produce:** one sentence.\n\n### Steps\n1. One action, at most 30 words.\n2. …\n\n### Done when\n- One observable acceptance criterion.\n- …","starter_code":null,"deliverable":"A sentence saying what done looks like.","hints":["A useful starting hint"]}
+}
+
+Include exactly FIVE complete exit_questions, distributed across the lesson's major sections. Each choices array has exactly FOUR distinct, nonempty answer strings. correct_answer must copy the FULL TEXT of the correct choice exactly; never return just a letter, number, index, or shortened paraphrase. Each question must have a nonempty prompt, explanation, section and learning_objective. Explanations name the misconception, restate the correct mental model, and stay under four sentences. Do not output the placeholder question above.
+
+The exercise must match the lesson's Practical exercise section and cumulative artifact, and fit the practice minutes the lesson states. Instructions are Markdown in exactly this shape: a first line `**You will produce:**` naming the one artifact; a `### Steps` heading with a numbered list of 3–5 steps, each one concrete action of at most 30 words, in the order to do them; a `### Done when` heading with a bulleted list of 3–5 observable acceptance criteria a learner can tick. No other prose, no time-boxing sentence, at least 60 words in total. Provide a nonempty deliverable (one sentence saying what done looks like) and 1–3 nonempty hints, ordered from vaguest to most direct. Starter code is optional. Resources may only use exact URLs actually cited in the supplied lesson; use an empty array if there are none. Escape strings correctly, including quotes, backslashes and newlines.

@@ -1,36 +1,46 @@
 [package]
-name = "system-design-roulette"
+name = "principia-desk"
 version = "0.1.0"
-description = "Daily forced system-design learning sessions"
+description = "A study desk for learning subjects from their foundations"
 authors = ["darkmatter"]
 edition = "2021"
 
 [lib]
-name = "system_design_roulette_lib"
+name = "principia_desk_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+serde_json = "1"
 
 [dependencies]
-tauri = { version = "2", features = ["protocol-asset"] }
+tauri = { version = "2", features = ["protocol-asset", "tray-icon", "macos-private-api"] }
 tauri-plugin-opener = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-rusqlite = { version = "0.32", features = ["bundled"] }
+quick-xml = "0.39.4"
+sha2 = "0.10.9"
+rusqlite = { version = "0.32", features = ["bundled", "backup"] }
 tokio = { version = "1", features = ["process", "time", "macros", "rt-multi-thread", "io-util"] }
 chrono = "0.4"
 thiserror = "2"
 rand = "0.8"
 log = "0.4"
 env_logger = "0.11"
+reqwest = { version = "0.13.4", default-features = false, features = ["json", "rustls"] }
+tauri-plugin-global-shortcut = "2"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6", features = ["exception"] }
 objc2-foundation = "0.3"
 objc2-app-kit = { version = "0.3", features = [
     "NSWindow",
+    "NSPanel",
     "NSApplication",
     "NSScreen",
     "NSWorkspace",

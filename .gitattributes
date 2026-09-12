@@ -1,0 +1,15 @@
+# Curriculum fingerprints and migration checksums hash these files byte for
+# byte, and the stored values must agree on every platform, so text files are
+# checked out with LF everywhere regardless of the local autocrlf setting.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.icns binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.db binary

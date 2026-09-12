@@ -1,0 +1,206 @@
+{
+  "slug": "principia-desk",
+  "name": "Principia Desk",
+  "tagline": "A study desk that keeps its appointments",
+  "description": "Principia Desk is a free, open-source macOS study desk: classes with a personal starting point, lessons your own AI tutor writes from primary documentation, study times that ring, and enforcement you choose per class and can always escape.",
+  "url": "https://principia.ndelucien.com",
+  "repo": "https://github.com/dark-matter08/system-design-roulette",
+  "releases": "https://github.com/dark-matter08/system-design-roulette/releases/latest",
+  "version": "0.1.0",
+  "nav": [
+    { "label": "How it works", "href": "/#day" },
+    { "label": "Classes", "href": "/#classes" },
+    { "label": "Enforcement", "href": "/#trust" },
+    { "label": "Install", "href": "/#install" },
+    { "label": "Changelog", "href": "/changelog" },
+    { "label": "GitHub", "href": "https://github.com/dark-matter08/system-design-roulette" },
+    { "label": "Download", "href": "https://github.com/dark-matter08/system-design-roulette/releases/latest", "primary": true }
+  ],
+  "sections": [
+    {
+      "kind": "hero",
+      "key": "hero",
+      "kicker": "Free · open source · macOS",
+      "title": "A study desk that keeps its appointments.",
+      "deck": "Pick a class, set a starting point and a study time. At that time the desk rings, a lesson your own AI tutor wrote from primary documentation is already waiting, and the screen is yours again when the check is done. Understand deeply, practice daily.",
+      "links": [
+        { "label": "Download for macOS", "href": "https://github.com/dark-matter08/system-design-roulette/releases/latest", "primary": true },
+        { "label": "Read the source", "href": "https://github.com/dark-matter08/system-design-roulette" }
+      ],
+      "facts": ["MIT licence", "your keys stay in the Keychain", "nine classes, and your own", "every lock has five ways out"],
+      "figure": { "src": "/shots/today.png", "alt": "The Today page of Principia Desk: a countdown ring to the next class, the study pulse with a streak and a half-year contribution map, and the class agenda", "caption": "today · the countdown, the pulse and the week's appointments" }
+    },
+    {
+      "kind": "steps",
+      "key": "day",
+      "kicker": "What a day looks like",
+      "title": "The lesson is written before the bell.",
+      "lede": "Nothing here waits for you to feel like it. A study time is an appointment; the desk prepares for it ahead and holds the door open.",
+      "items": [
+        { "title": "The desk prepares", "body": "Twenty minutes before a study time, the tutor plans the next topic on your route, fetches the sources the curriculum names and writes the lesson, sized to the minutes you gave that day." },
+        { "title": "It rings", "body": "A notification and an alarm that snoozes but never dismisses. The menu bar says what is due. Nothing rings until the lesson is actually ready." },
+        { "title": "You read", "body": "Point form with reading hints, labelled callouts, diagrams, and a section rail that stays in view. Fourteen minutes of a thirty-minute session." },
+        { "title": "You practise", "body": "A stepper of concrete steps and a done-when, with a workspace that saves every keystroke and a tutor you can ask about this lesson." },
+        { "title": "You are checked", "body": "Questions grounded in what you just read. What stuck is marked; what did not comes back as retrieval on a later day. Then the desk lets go." }
+      ]
+    },
+    {
+      "kind": "classes",
+      "key": "classes",
+      "kicker": "Nine classes, and your own",
+      "title": "Every class starts where you already are.",
+      "lede": "Start from scratch, declare a stage with the topics you know, or take a placement check that samples every stage three times. The result is a personal path, revised whenever you change your mind.",
+      "items": [
+        { "code": "LB", "name": "Linux Bash", "field": "the interactive shell" },
+        { "code": "BS", "name": "Bash Scripting", "field": "reusable tools" },
+        { "code": "JS", "name": "JavaScript & Browser", "field": "runtime and platform" },
+        { "code": "TS", "name": "TypeScript", "field": "types as design" },
+        { "code": "FA", "name": "Frontend Architecture", "field": "state, rendering, boundaries" },
+        { "code": "DT", "name": "Developer Tooling", "field": "bundlers, parsers, protocols" },
+        { "code": "SD", "name": "System Design", "field": "distributed systems" },
+        { "code": "DE", "name": "German", "field": "A1 to B2, 40 scenarios" },
+        { "code": "IT", "name": "Italian", "field": "A1 to B2, 40 scenarios" }
+      ],
+      "note": "Each engineering course is a curriculum of topics with stages, prerequisites and two or more primary sources per topic. Lessons are taught from pages the desk fetched from those sources, not from a model's memory."
+    },
+    {
+      "kind": "showcase",
+      "key": "lesson",
+      "kicker": "Lessons on one runtime",
+      "title": "Written for the session you gave it.",
+      "body": [
+        "A lesson is sized to its study time: <strong>fourteen minutes of reading, ten of practice, six of check</strong> at thirty minutes; longer days hold several whole topics with a short break between them and retrieval on earlier topics afterwards.",
+        "Every lesson names its sources and cites them. A page that could not be fetched is said so, and the reading list keeps the link the curriculum meant, marked as unreachable, rather than inventing one.",
+        "Everything is saved as you go: the reading position, the practice steps you ticked, the answers you have not submitted yet. Close the lid and come back."
+      ],
+      "figure": { "src": "/shots/lesson.png", "alt": "A Principia Desk lesson on the CAP theorem: the session stepper, reading hints per section, a key-idea callout and the section rail", "caption": "classroom · system-design · a thirty-minute session" },
+      "flip": false,
+      "links": []
+    },
+    {
+      "kind": "features",
+      "key": "features",
+      "kicker": "What the desk does",
+      "title": "Built to be honest about progress.",
+      "lede": "Declared familiarity never awards completion. A skipped check is a skipped check. The denominators on the curriculum are the ones you would want if you were paying for this.",
+      "items": [
+        { "icon": "bot", "title": "Your own tutor", "body": "Claude Code, Codex, Cursor Agent or Gemini CLI you are already signed in to; a key for Anthropic, OpenAI, Google, OpenRouter, Groq, Mistral or DeepSeek; or Ollama on this machine. A tutor per class if you like." },
+        { "icon": "globe", "title": "Primary sources, fetched", "body": "Each course allows a set of documentation hosts. The desk fetches the pages, hands the tutor only what it retrieved, and falls back to mirrors when a host goes dark." },
+        { "icon": "compass", "title": "Placement that measures every stage", "body": "Three questions per stage, so no stage is skipped on a lucky answer. Unit challenges let you check out of what you already know, on evidence." },
+        { "icon": "clock", "title": "Study times with their own shape", "body": "Each weekday on a rule can have its own start and its own length. Appointments are durable: due at their time, missed once the day passes, made up or skipped by you." },
+        { "icon": "pulse", "title": "Retrieval and bridges", "body": "Topics come back when their review is due, without a provider. A failed check on a topic whose prerequisite you set aside proposes a short bridge lesson." },
+        { "icon": "file", "title": "Lessons you can keep", "body": "Any lesson downloads as a PDF or a CSV with its questions, filed by class under Documents. Your profile exports and imports whole." },
+        { "icon": "bell", "title": "Always on, never nagging", "body": "A menu bar desk that says what is due and what comes next. A launch agent wakes the desk at every study time, and on wake or next login if it missed one." },
+        { "icon": "pen", "title": "Classes of your own", "body": "Tell the desk what you want to be able to do. The tutor drafts the curriculum, reads it back, writes the question bank; you edit until it reads right and enrol like any class." },
+        { "icon": "terminal", "title": "Logs you can read", "body": "Every line a runner reports while preparing a lesson is kept for thirty days, run by run, so a failed preparation has a cause you can see." }
+      ]
+    },
+    {
+      "kind": "showcase",
+      "key": "builder",
+      "kicker": "Your own classes",
+      "title": "Say what you want to be able to do. The tutor writes the course.",
+      "body": [
+        "A brief in your own words: a title, the outcome, what you already know, the documentation you trust. The tutor returns four stages and twelve to thirty-six topics, each with an outcome, the mechanisms, a production scenario, misconceptions and two primary sources, <strong>held to the same validator as the bundled curricula</strong>.",
+        "Edit every topic on a card. Ask the tutor to read the draft back. Fetch every source. Have it write a placement bank. Publish, and the class is any class: study times, lessons prepared ahead, retrieval, PDFs, enforcement.",
+        "Export a class as one file and hand it to someone else's desk."
+      ],
+      "figure": { "src": "/shots/builder.png", "alt": "The class builder in Principia Desk: the Review step with a curriculum editor, topic cards grouped by stage and the validator's objections on a rail", "caption": "classes · new class · review" },
+      "flip": true,
+      "links": [{ "label": "How a class is built", "href": "https://github.com/dark-matter08/system-design-roulette/blob/main/docs/CUSTOM_CLASSES.md" }]
+    },
+    {
+      "kind": "trust",
+      "key": "trust",
+      "kicker": "Enforcement you choose",
+      "title": "A lock you set for yourself, and can always undo.",
+      "lede": "Each class carries a focus policy. The strict one blocks Cmd+Tab, Force Quit and logout while a lesson holds the desk, so it must never be the only thing between you and your own machine. There are five ways out, and none of them needs a terminal.",
+      "levels": [
+        { "name": "Advisory", "body": "The window comes to the front at the study time. Nothing is blocked." },
+        { "name": "Focused", "body": "Full screen above the menu bar, focus snaps back, other displays are sealed, media is paused. Force Quit still works." },
+        { "name": "Strict", "body": "Also blocks Cmd+Tab, Force Quit, logout and shutdown while the lesson holds the desk." }
+      ],
+      "ways": [
+        { "title": "Finish the check", "body": "The ordinary way. The lesson ends and the desk lets go." },
+        { "title": "Break glass", "body": "A long phrase you set during onboarding, rendered non-copyable. Typing it pauses the lesson with its work kept and releases the lock." },
+        { "title": "The recovery console", "body": "A system-wide key combination opens a console above every window, even a blank one. Four commands in order (<code>unlock</code>, <code>confirm</code>, <code>phrase</code>, <code>release</code>) end the session; five presses in ten seconds release it even if the console cannot open." },
+        { "title": "A release token", "body": "A file named <code>principia-unlock</code> in your home folder, in <code>/tmp</code>, or at the root of any mounted volume. Keep a USB stick by the desk." },
+        { "title": "The dead man's switch", "body": "A lock lets go by itself after three hours, whatever the app believes. No lesson runs that long." }
+      ],
+      "note": "The kiosk refuses to engage until the interface reports ready, so a broken build cannot hold a lock. This rule has a history: an early version of the roulette bricked a colleague's laptop until he booted into Recovery. <strong>Every release since is held to it.</strong>"
+    },
+    {
+      "kind": "showcase",
+      "key": "recovery",
+      "kicker": "Settings · recovery",
+      "title": "The ways out, where you can always read them.",
+      "body": [
+        "Onboarding teaches the recovery console with a walkthrough that plays the four commands through. Settings keeps the same guide, with the keys as they read on this machine and whether the system took the combination.",
+        "The README documents every route, including the ones for a build so broken it cannot draw a window."
+      ],
+      "figure": { "src": "/shots/recovery.png", "alt": "The Recovery section of Principia Desk settings: the key combination as keycaps, the four-command ladder, a replayable walkthrough console and the exits that need no console", "caption": "settings · 03 recovery" },
+      "flip": false,
+      "links": [{ "label": "Ways out, in the README", "href": "https://github.com/dark-matter08/system-design-roulette#ways-out-of-a-locked-session" }]
+    },
+    {
+      "kind": "install",
+      "key": "install",
+      "kicker": "Install",
+      "title": "Ten minutes to the first appointment.",
+      "lede": "The desk is a signed-nothing open-source app: download the bundle from the release, or build it from source. It talks to your tutor, to the documentation hosts a course allows, and to nothing else.",
+      "requirements": [
+        "macOS 13 or later (Windows and Linux build and run without enforcement)",
+        "A tutor: a CLI you are signed in to, a provider key, or Ollama with a chat model",
+        "To build: Rust 1.80+ and Node 20+"
+      ],
+      "steps": [
+        { "title": "Download and open", "body": "Get the latest release. The bundle is not notarised yet, so the first launch is right-click › Open.", "code": "" },
+        { "title": "Set up", "body": "Four steps: the tutor, an optional search engine for tutors that cannot browse, your break-glass phrase with the recovery walkthrough, deploy.", "code": "" },
+        { "title": "Choose a class and a starting point", "body": "From scratch, a stage you declare, or the placement check. Add a study time. The class activates.", "code": "" },
+        { "title": "Or build from source", "body": "Everything the release does, on your machine.", "code": "git clone https://github.com/dark-matter08/system-design-roulette.git\ncd system-design-roulette\nnpm install\nnpm run tauri dev" }
+      ],
+      "links": [
+        { "label": "Latest release", "href": "https://github.com/dark-matter08/system-design-roulette/releases/latest", "primary": true },
+        { "label": "Build instructions", "href": "https://github.com/dark-matter08/system-design-roulette#install" }
+      ]
+    },
+    {
+      "kind": "faq",
+      "key": "faq",
+      "kicker": "Questions",
+      "title": "Things people ask first.",
+      "items": [
+        { "q": "Is it free?", "a": "Yes. MIT licence, no account, no telemetry. You pay your tutor's provider, if it charges, or run Ollama for nothing." },
+        { "q": "Where does my data live?", "a": "In a SQLite database under <code>~/Library/Application Support/com.darkmatter.principia-desk/</code>, backed up before every schema upgrade. Keys live in the macOS Keychain." },
+        { "q": "What does the tutor see?", "a": "The topic, its curriculum brief, your goal, your progress on that class and the pages the desk fetched. Never your keys, your escape phrase or other classes." },
+        { "q": "Can I really always get out of a lock?", "a": "Yes. Five documented routes, none needing a terminal, and the kiosk refuses to engage at all until the interface has reported ready. See the Enforcement section above." },
+        { "q": "Does it work on Windows or Linux?", "a": "It builds and runs. The lock, the launch agent and the menu bar are macOS today; help on the others is welcome." },
+        { "q": "Can I make a class for something you do not ship?", "a": "Yes. Classes › New class. Your tutor drafts the curriculum, you edit it, the desk validates and publishes it. Export it as a file to share." },
+        { "q": "What became of System Design Roulette?", "a": "This. Same database, same visual character, a different shape: classes you schedule instead of one daily roulette. The <a href=\"/changelog\">changelog</a> tells it." },
+        { "q": "How do I report a lockout bug?", "a": "Privately, as <a href=\"https://github.com/dark-matter08/system-design-roulette/blob/main/SECURITY.md\" rel=\"noopener\">SECURITY.md</a> asks. Ordinary bugs go in the issue tracker." }
+      ]
+    },
+    {
+      "kind": "cta",
+      "key": "go",
+      "title": "Make room for learning.",
+      "body": "One class, one study time, and the desk does the rest. It is open source; read it before you trust it.",
+      "links": [
+        { "label": "Download for macOS", "href": "https://github.com/dark-matter08/system-design-roulette/releases/latest", "primary": true },
+        { "label": "Star on GitHub", "href": "https://github.com/dark-matter08/system-design-roulette" }
+      ]
+    }
+  ],
+  "footer": {
+    "note": "Principia Desk · MIT · made by Nde Che Lucien",
+    "links": [
+      { "label": "GitHub", "href": "https://github.com/dark-matter08/system-design-roulette" },
+      { "label": "Changelog", "href": "/changelog" },
+      { "label": "Contributing", "href": "https://github.com/dark-matter08/system-design-roulette/blob/main/CONTRIBUTING.md" },
+      { "label": "Security", "href": "https://github.com/dark-matter08/system-design-roulette/blob/main/SECURITY.md" },
+      { "label": "Privacy", "href": "/privacy" },
+      { "label": "Licence", "href": "/licence" },
+      { "label": "ndelucien.com", "href": "https://ndelucien.com" }
+    ]
+  }
+}

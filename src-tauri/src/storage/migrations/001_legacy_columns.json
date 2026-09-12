@@ -1,0 +1,102 @@
+[
+  {
+    "table": "concepts",
+    "column": "tier",
+    "sql": "ALTER TABLE concepts ADD COLUMN tier INTEGER NOT NULL DEFAULT 0"
+  },
+  {
+    "table": "concepts",
+    "column": "prereqs_json",
+    "sql": "ALTER TABLE concepts ADD COLUMN prereqs_json TEXT NOT NULL DEFAULT '[]'"
+  },
+  {
+    "table": "sessions",
+    "column": "session_type",
+    "sql": "ALTER TABLE sessions ADD COLUMN session_type TEXT NOT NULL DEFAULT 'lesson'"
+  },
+  {
+    "table": "sessions",
+    "column": "plan_reason",
+    "sql": "ALTER TABLE sessions ADD COLUMN plan_reason TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "table": "concepts",
+    "column": "focus",
+    "sql": "ALTER TABLE concepts ADD COLUMN focus TEXT NOT NULL DEFAULT 'system-design'"
+  },
+  {
+    "table": "concepts",
+    "column": "brief_json",
+    "sql": "ALTER TABLE concepts ADD COLUMN brief_json TEXT NOT NULL DEFAULT '{}'"
+  },
+  {
+    "table": "sessions",
+    "column": "focus",
+    "sql": "ALTER TABLE sessions ADD COLUMN focus TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "table": "mastery",
+    "column": "last_assessed_date",
+    "sql": "ALTER TABLE mastery ADD COLUMN last_assessed_date TEXT"
+  },
+  {
+    "table": "exit_questions",
+    "column": "round",
+    "sql": "ALTER TABLE exit_questions ADD COLUMN round INTEGER NOT NULL DEFAULT 1"
+  },
+  {
+    "table": "exit_questions",
+    "column": "section",
+    "sql": "ALTER TABLE exit_questions ADD COLUMN section TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "table": "exit_questions",
+    "column": "learning_objective",
+    "sql": "ALTER TABLE exit_questions ADD COLUMN learning_objective TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "table": "exercise_drafts",
+    "column": "completed",
+    "sql": "ALTER TABLE exercise_drafts ADD COLUMN completed INTEGER NOT NULL DEFAULT 0"
+  },
+  {
+    "table": "exercise_drafts",
+    "column": "reflection",
+    "sql": "ALTER TABLE exercise_drafts ADD COLUMN reflection TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "table": "language_sessions",
+    "column": "classroom_slot_id",
+    "sql": "ALTER TABLE language_sessions ADD COLUMN classroom_slot_id INTEGER"
+  },
+  {
+    "table": "classroom_programs",
+    "column": "learning_goal",
+    "sql": "ALTER TABLE classroom_programs ADD COLUMN learning_goal TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "table": "classroom_programs",
+    "column": "target_weekly_minutes",
+    "sql": "ALTER TABLE classroom_programs ADD COLUMN target_weekly_minutes INTEGER NOT NULL DEFAULT 0"
+  },
+  {
+    "table": "classroom_schedule_slots",
+    "column": "source",
+    "sql": "ALTER TABLE classroom_schedule_slots ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'"
+  },
+  {
+    "table": "classroom_sessions",
+    "column": "exercise_draft",
+    "sql": "ALTER TABLE classroom_sessions ADD COLUMN exercise_draft TEXT NOT NULL DEFAULT ''"
+  },
+  {
+    "table": "classroom_sessions",
+    "column": "exercise_completed",
+    "sql": "ALTER TABLE classroom_sessions ADD COLUMN exercise_completed INTEGER NOT NULL DEFAULT 0"
+  },
+  {
+    "table": "classroom_sessions",
+    "column": "exercise_reflection",
+    "sql": "ALTER TABLE classroom_sessions ADD COLUMN exercise_reflection TEXT NOT NULL DEFAULT ''"
+  }
+]

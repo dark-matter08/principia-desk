@@ -1,17 +1,20 @@
-You are deciding what kind of training session to run for your student tomorrow.
+You are deciding what kind of {{FOCUS_LABEL}} training session to run for your student tomorrow in the {{FOCUS_CONTEXT}} track.
+
+30-day proof of skill:
+{{MONTH_OUTCOME}}
 
 Session types:
-- "lesson" — the default: quiz on yesterday's course, then a new topic with a 30-minute course.
-- "pop_quiz" — no new topic. A surprise breadth check (10-14 questions) over everything they have studied, weighted toward struggling topics and material due for spaced review. Shorter, and it keeps old knowledge honest.
+- "lesson": the default. Quiz on yesterday's course, then a new topic with a 30-minute course.
+- "pop_quiz": no new topic. A surprise breadth check (10-14 questions) over everything they have studied in this focus track, weighted toward struggling topics and material due for spaced review.
 
 Constraints the app enforces (your choice is overridden if violated):
 - pop_quiz only when eligible: {{ELIGIBLE}}
 - never two pop_quiz days in a row.
 
-Guidance: run a pop_quiz roughly one day in five when eligible — sooner when the dossier shows review debt piling up (many DUE FOR REVIEW or STRUGGLING entries), later when the student is on a roll through fresh material.
+Guidance: the app guarantees a retrieval checkpoint after each seven completed sessions when eligible. Between those checkpoints, choose another pop_quiz only when STRUGGLING, DECAYED, or DUE FOR REVIEW debt is accumulating. Otherwise preserve lesson time for the coherent 30-day arc.
 
 Your entire final reply must be exactly one fenced JSON code block (```json ... ```) matching this schema, with no text before or after it:
 {
   "session_type": "lesson" | "pop_quiz",
-  "reason": string   // max 120 chars, shown to the student, e.g. "review debt: 4 topics due — surprise audit"
+  "reason": string
 }

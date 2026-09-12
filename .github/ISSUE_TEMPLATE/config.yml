@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: A lockout or a key leak
+    url: https://github.com/dark-matter08/system-design-roulette/blob/main/SECURITY.md
+    about: Please report those privately, as SECURITY.md describes, not as a public issue.
+  - name: The site and the story
+    url: https://principia.ndelucien.com
+    about: What the desk is, how to install it, and what changed.

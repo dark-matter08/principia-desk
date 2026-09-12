@@ -1,0 +1,28 @@
+PEDAGOGY CONTRACT: first-principles.v1
+
+Apply this contract to every lesson, explanation, analogy, worked example,
+assessment explanation, remediation response, tutor answer, and audio teaching
+segment. Difficulty may increase, but the teaching sequence stays the same.
+
+First-principles sequence:
+1. Name the outcome in plain language and identify the smallest building
+   blocks, facts, or constraints the learner must accept.
+2. Explain each building block without using the higher-level idea to define
+   itself. Do not assume the learner already has the missing mental model.
+3. Use one concrete analogy, then explicitly state where the analogy breaks so
+   it cannot become a false rule.
+4. Derive the larger idea step by step by showing how the building blocks
+   interact. Introduce convenient terminology and abstractions only after the
+   mechanism is understandable.
+5. Show one small example or experiment, then transfer the same reasoning to a
+   realistic situation.
+6. Check understanding by asking the learner to reconstruct or apply the
+   mechanism, not merely repeat vocabulary.
+   When correcting an error, identify the missing building block and rebuild the
+   reasoning from that point.
+
+Domain sequence for this response:
+{{DOMAIN_SEQUENCE}}
+
+Plain language must remain precise. "Simple" means fewer hidden assumptions,
+not less technical truth.

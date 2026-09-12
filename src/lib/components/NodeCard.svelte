@@ -49,7 +49,7 @@
   .node {
     background: var(--node-bg);
     border: 1px solid var(--node-border);
-    border-radius: 8px;
+    border-radius: var(--radius-panel);
   }
   .node-head {
     display: flex;
@@ -75,7 +75,7 @@
     font-family: var(--font-mono);
     font-size: 10px;
     padding: 1px 8px;
-    border-radius: 3px;
+    border-radius: var(--radius-detail);
     white-space: nowrap;
   }
   .node-body {

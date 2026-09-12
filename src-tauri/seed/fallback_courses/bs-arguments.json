@@ -1,0 +1,104 @@
+{
+  "slug": "bs-arguments",
+  "kind": "beginner",
+  "title": "Arguments, quoted arrays and option boundaries",
+  "markdown": "## Why this matters\n\nA script receives its arguments as separate values, and the first thing many scripts do is destroy that separation: joining them into one string, splitting them again, and then passing a filename with a space to a command as two names. The same script is then handed a file called `-report.csv` and the command treats it as an option. Both failures come from one idea: argument boundaries are data, and the script must forward them unchanged.\n\n## The simple version\n\nThink of arguments as a stack of index cards. `\"$@\"` hands the cards over one by one, untouched. `\"$*\"` glues them into one card with spaces between, and `$@` without quotes shuffles the cards through the shell's word splitting again, so a card that contained a space becomes two. An array such as `files=(\"$@\")` keeps a copy of the stack that you can grow, shorten or forward later.\n\nThe analogy breaks at option parsing: even a perfectly forwarded card that begins with `-` is read by the receiving command as an instruction rather than a name. That is a second boundary, and the receiving command decides it, not the shell.\n\n## Core mechanics\n\n`$1`, `$2` and `$#` address positional parameters; `shift` drops the first one. `\"$@\"` expands to each argument as its own word and is the only correct way to forward all of them. `for arg in \"$@\"` (or simply `for arg`) iterates without splitting. Storing arguments in an array, `args=(\"$@\")`, and expanding `\"${args[@]}\"` preserves the same boundaries.\n\nMost GNU commands accept `--` to mark the end of options, after which every argument is an operand even if it starts with a hyphen: `wc -l -- \"$@\"`. When a command lacks `--`, prefix the name with `./` to make it a path. `set -- \"$@\" extra` appends to the positional parameters without losing existing boundaries.\n\n## Failure modes\n\n`for f in $*` splits every argument on whitespace and expands globs inside them. Building a command as a string, `cmd=\"wc -l $file\"` then `$cmd`, re-splits the filename and cannot represent an argument containing a space at all. Checking `[ -z $1 ]` without quotes turns an empty first argument into a syntax error; use `[ -z \"$1\" ]` or `[[ -z $1 ]]`. Treating `$#` as a string comparison instead of a number hides the \"no arguments\" case.\n\n## Runnable experiment\n\nSave this as `argv.sh`, make it executable, and predict each result before running.\n\n```bash\n#!/bin/bash\nprintf 'argc=%s\\n' \"$#\"\nfor arg; do printf '<%s>\\n' \"$arg\"; done\nprintf 'joined=%s\\n' \"$*\"\nargs=(\"$@\")\nprintf 'array=%s\\n' \"${#args[@]}\"\nwc -l -- \"$@\" 2>&1 | sed 's/^/wc: /'\n```\n\n```bash\ntouch 'quarterly report.txt' -- '-report.csv'\n./argv.sh 'quarterly report.txt' -report.csv ''\n# argc=3, three bracketed values (the last empty), joined as one string,\n# array=3, and wc counts both files because -- ends option parsing.\n./argv.sh $(printf 'quarterly report.txt')\n# argc=2: unquoted command substitution split the name.\n```\n\n## Practical exercise\n\nWrite `safe_count`, a wrapper that forwards every argument to `wc -l` without splitting or option confusion, refuses to run with zero arguments (usage message to stderr, exit status 2), and prints each result with the exact filename. Test it with a plain name, a name with spaces, a name starting with a hyphen, an empty argument and no arguments. Record the transcript and mark which behaviors come from the shell and which from `wc`.\n",
+  "resources": [
+    {
+      "title": "Special Parameters",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Special-Parameters.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "Arrays",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Arrays.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "Common options (--)",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/Common-options.html",
+      "type": "documentation",
+      "why": "How GNU commands treat -- and operands starting with a hyphen."
+    }
+  ],
+  "key_takeaways": [
+    "Forward all arguments with \"$@\" or a quoted array; never rebuild them as one string.",
+    "-- ends option parsing so operands starting with a hyphen stay operands.",
+    "Test the empty argument and the no-argument case separately."
+  ],
+  "exercise": {
+    "title": "Write an argument-preserving wrapper",
+    "instructions": "Write safe_count, a wrapper that forwards every argument to wc -l without splitting or option confusion, refuses zero arguments with a usage message on stderr and exit status 2, and prints each result with the exact filename. Test a plain name, a spaced name, a leading-hyphen name, an empty argument and no arguments.",
+    "starter_code": "#!/bin/bash\nsafe_count() {\n  if [ \"$#\" -eq 0 ]; then\n    printf 'usage: safe_count FILE...\\n' >&2\n    return 2\n  fi\n  wc -l -- \"$@\"\n}\nsafe_count \"$@\"\n",
+    "deliverable": "The wrapper and a transcript of five runs with exit statuses, annotated as shell behavior or wc behavior.",
+    "hints": [
+      "\"$@\" keeps each argument as one word; \"$*\" joins them.",
+      "Check the argument count with [ \"$#\" -eq 0 ], not by testing $1 for emptiness.",
+      "Quote every expansion inside [ ]; an empty unquoted value is a syntax error."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Which expansion forwards all script arguments to `wc -l` with their original boundaries?",
+      "kind": "mcq",
+      "choices": [
+        "wc -l $*",
+        "wc -l \"$*\"",
+        "wc -l \"$@\"",
+        "wc -l $@"
+      ],
+      "correct_answer": "wc -l \"$@\"",
+      "explanation": "\"$@\" expands to each argument as a separate word; the other forms join or re-split.",
+      "section": "Core mechanics",
+      "learning_objective": "Forward arguments without changing boundaries"
+    },
+    {
+      "prompt": "A file is named `-report.csv`. Which invocation counts its lines?",
+      "kind": "mcq",
+      "choices": [
+        "wc -l -report.csv",
+        "wc -l -- -report.csv",
+        "wc -l '-report.csv'",
+        "wc -l \"-report.csv\""
+      ],
+      "correct_answer": "wc -l -- -report.csv",
+      "explanation": "Quoting only affects the shell; -- tells wc that what follows is an operand.",
+      "section": "Core mechanics",
+      "learning_objective": "Use -- to end option parsing"
+    },
+    {
+      "prompt": "`args=(\"$@\")` followed by `for f in \"${args[@]}\"` differs from `for f in $*` because…",
+      "kind": "mcq",
+      "choices": [
+        "arrays are faster",
+        "the quoted array iteration keeps each argument intact while $* re-splits on whitespace",
+        "$* cannot be used in loops",
+        "arrays remove empty arguments"
+      ],
+      "correct_answer": "the quoted array iteration keeps each argument intact while $* re-splits on whitespace",
+      "explanation": "Quoted array expansion preserves boundaries; unquoted $* undergoes word splitting and globbing.",
+      "section": "Core mechanics",
+      "learning_objective": "Store and iterate arguments with an array"
+    },
+    {
+      "prompt": "Why does `[ -z $1 ]` fail when the script is called with an empty first argument?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The empty value vanishes, leaving [ -z ] which is a syntax error. Unquoted empty expansions disappear; quote them inside test.",
+      "explanation": "Unquoted empty expansions disappear; quote them inside test.",
+      "section": "Failure modes",
+      "learning_objective": "Quote expansions inside tests"
+    },
+    {
+      "prompt": "Explain the two separate boundaries involved when a script forwards the filename `-quarterly report.csv` to a command.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The shell boundary: the name must be forwarded as one argument, which \"$@\" or a quoted array does. The option boundary: the receiving command reads a leading hyphen as an option, so the script must pass -- before operands or use a ./ path form. Quoting fixes only the first.",
+      "explanation": "Shell argument construction and program option parsing are independent boundaries.",
+      "section": "Failure modes",
+      "learning_objective": "Separate shell boundaries from option parsing"
+    }
+  ]
+}

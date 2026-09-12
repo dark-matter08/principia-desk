@@ -1,0 +1,17 @@
+---
+import type { Figure } from "../lib/schema";
+interface Props { figure: Figure; eager?: boolean; label?: string }
+const { figure, eager = false, label = "principia://desk" } = Astro.props;
+---
+<figure class="shot-wrap">
+  <div class="shot">
+    <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span>{label}</span></div>
+    <img src={figure.src} alt={figure.alt} width="1440" height="900" loading={eager ? "eager" : "lazy"} decoding="async" />
+  </div>
+  <figcaption class="mono">{figure.caption}</figcaption>
+</figure>
+<style>
+  .shot-wrap { margin: 0; }
+  .bar span { margin-left: 6px; }
+  figcaption { margin-top: 10px; font-size: 10.5px; letter-spacing: 0.5px; color: var(--faint); }
+</style>

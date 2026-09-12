@@ -1,0 +1,37 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: "Fraunces"; src: url("../public/fonts/fraunces-latin-standard-normal.woff2") format("woff2"); font-weight: 300 900; }
+@font-face { font-family: "Inter"; src: url("../public/fonts/inter-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+@font-face { font-family: "JetBrains Mono"; src: url("../public/fonts/jetbrains-mono-regular.woff") format("woff"); }
+html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+body { background: #141118; background-image: radial-gradient(circle, #2a2431 1px, transparent 1px); background-size: 22px 22px; color: #f2ede4; font-family: Inter, sans-serif; position: relative; }
+.card { position: absolute; inset: 44px; border: 1px solid #3a3344; border-radius: 12px; background: linear-gradient(180deg, rgba(239,159,39,0.06), #1b1721 45%); display: flex; flex-direction: column; justify-content: space-between; padding: 40px 48px 36px; }
+.head { display: flex; align-items: center; justify-content: space-between; font: 15px "JetBrains Mono", monospace; color: #a89f92; letter-spacing: 0.5px; }
+.head .name { display: flex; align-items: center; gap: 14px; font-size: 20px; color: #f2ede4; font-family: Fraunces, serif; }
+.head .name small { display: block; font: 10px "JetBrains Mono", monospace; letter-spacing: 2px; color: #6a635c; text-transform: uppercase; margin-top: 4px; }
+.led { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #9fe1cb; box-shadow: 0 0 10px #9fe1cb; margin-right: 10px; vertical-align: middle; }
+h1 { font: 500 74px/1.08 Fraunces, serif; letter-spacing: -0.01em; margin: 0; max-width: 900px; }
+h1 em { font-style: normal; color: #ef9f27; }
+.deck { font-size: 24px; line-height: 1.45; color: #a89f92; max-width: 860px; margin-top: 18px; }
+.foot { display: flex; align-items: center; justify-content: space-between; font: 15px "JetBrains Mono", monospace; color: #6a635c; letter-spacing: 0.6px; }
+.foot .facts { display: flex; gap: 26px; }
+.foot .facts span::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ef9f27; margin-right: 9px; vertical-align: 2px; }
+.key { padding: 12px 22px; background: #ef9f27; color: #412402; font: 700 15px "JetBrains Mono", monospace; letter-spacing: 1px; clip-path: polygon(9px 0, 100% 0, 100% 100%, 0 100%, 0 9px); }
+</style></head>
+<body>
+<div class="card">
+  <div class="head">
+    <div class="name"><img src="../public/logo-mark.svg" width="46" height="46"><span>Principia Desk<small>personal learning system</small></span></div>
+    <div><span class="led"></span>all systems nominal · free · open source · macOS</div>
+  </div>
+  <div>
+    <h1>A study desk that <em>keeps its appointments.</em></h1>
+    <p class="deck">Classes with a personal starting point, lessons your own AI tutor writes from primary documentation, study times that ring, and a lock you choose and can always undo.</p>
+  </div>
+  <div class="foot">
+    <div class="facts"><span>MIT</span><span>nine classes, and your own</span><span>five ways out of every lock</span></div>
+    <div class="key">PRINCIPIA.NDELUCIEN.COM</div>
+  </div>
+</div>
+</body></html>

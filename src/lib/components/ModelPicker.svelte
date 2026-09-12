@@ -1,94 +1,32 @@
 <script lang="ts">
-  /** Course-generation model selector with honest trade-off explanations.
-   *  Quiz/grading always run on sonnet — this picks the course author. */
-  let {
-    value = $bindable('opus'),
-  }: { value?: string } = $props();
-
-  const MODELS = [
-    {
-      id: 'opus',
-      name: 'OPUS',
-      tag: 'deepest · slowest',
-      desc: 'The strongest reasoning — richest courses with the best trade-off analysis. A course takes ~8-12 minutes to research and write, and uses the most of your plan quota.',
-    },
-    {
-      id: 'sonnet',
-      name: 'SONNET',
-      tag: 'balanced',
-      desc: 'Fast and strong — very good courses in ~3-6 minutes at a fraction of the quota. The sensible daily driver if you generate live often.',
-    },
-    {
-      id: 'haiku',
-      name: 'HAIKU',
-      tag: 'fastest · lightest',
-      desc: 'Quickest and cheapest. Courses will be shallower and resources less curated — fine when quota is tight or you mostly want the quiz loop.',
-    },
-  ];
+  import { untrack } from 'svelte';
+  import { api } from '$lib/ipc';
+  import { shortlistOptions } from '$lib/features/runners/model-list';
+  import Dropdown from './Dropdown.svelte';
+  let { value = $bindable('default'), agent = 'claude', revision = 0, disabled = false, onconfigure, onchange, hideLabel = false }: { value?: string; agent?: string; revision?: number; disabled?: boolean; onconfigure?: () => void; onchange?: () => void; hideLabel?: boolean } = $props();
+  let models = $state<string[]>([]); let query = $state(''); let loading = $state(false); let error = $state('');
+  let sequence = 0;
+  const options = $derived(shortlistOptions(models, value).filter(m => m.label.toLowerCase().includes(query.toLowerCase())));
+  async function load(runner: string) {
+    const token = ++sequence; loading = true; error = '';
+    try { const setup = await api.getRunnerConfiguration(runner); if (token === sequence) models = setup.models; }
+    catch (e) { if (token === sequence) error = String(e); }
+    finally { if (token === sequence) loading = false; }
+  }
+  $effect(() => { const runner = agent; void revision; untrack(() => { models = []; query = ''; void load(runner); }); return () => { sequence++; }; });
 </script>
 
-<div class="mpicker">
-  {#each MODELS as m}
-    <button class="mdl mono" class:active={value === m.id} onclick={() => (value = m.id)}>
-      <span class="mdl-name">{m.name}</span>
-      <span class="mdl-tag">{m.tag}</span>
-    </button>
-  {/each}
+<div class="model-picker">
+  {#if models.length > 8}<input {disabled} aria-label="Search saved models" placeholder="Find a saved model…" bind:value={query} />{/if}
+  <Dropdown label="Model" {hideLabel} {value} {options} disabled={loading || disabled} onchange={selected => { value = selected; onchange?.(); }} placeholder={loading ? 'Loading saved models…' : value} />
+  <div class="foot"><span>{models.length} saved {models.length === 1 ? 'model' : 'models'}</span>{#if onconfigure}<button type="button" onclick={onconfigure}>Manage models ↗</button>{/if}</div>
+  {#if query && !options.length}<p role="status">No saved models match.</p>{/if}
+  {#if error}<p class="error" role="status">{error}</p>{/if}
 </div>
-{#each MODELS.filter((m) => m.id === value) as m}
-  <p class="mdl-desc">{m.desc}</p>
-{/each}
-<p class="mdl-note mono">applies to course writing · quizzes and grading always use sonnet</p>
-
 <style>
-  .mpicker {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-  }
-  .mdl {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    align-items: flex-start;
-    background: var(--bg);
-    border: 1px solid var(--node-border);
-    border-radius: 7px;
-    padding: 8px 11px;
-    cursor: pointer;
-    text-align: left;
-  }
-  .mdl:hover {
-    border-color: var(--muted);
-  }
-  .mdl.active {
-    border-color: var(--accent);
-    background: var(--surface-2);
-  }
-  .mdl-name {
-    font-size: 11px;
-    letter-spacing: 1.5px;
-    color: var(--muted);
-  }
-  .mdl.active .mdl-name {
-    color: var(--accent);
-  }
-  .mdl-tag {
-    font-size: 8.5px;
-    color: var(--faint);
-    letter-spacing: 0.5px;
-  }
-  .mdl-desc {
-    font-size: 12.5px;
-    color: var(--muted);
-    line-height: 1.55;
-    margin: 10px 0 2px;
-  }
-  .mdl-note {
-    font-size: 9.5px;
-    color: var(--faint);
-    letter-spacing: 0.5px;
-    margin: 4px 0 0;
-  }
+  .model-picker { display: grid; gap: 7px; min-width: 0; align-content: start; }
+  .foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; color: var(--muted); font: 9px/1.5 var(--font-mono); }
+  button { border: 0; background: transparent; color: var(--accent); font-size: 10px; padding: 0; cursor: pointer; }
+  input { background: var(--bg); border: 1px solid var(--node-border); border-radius: var(--radius-control); color: var(--text); padding: 8px; width: 100%; font-size: 11px; }
+  p { font-size: 11px; color: var(--muted); margin: 0; overflow-wrap: anywhere; } .error { color: var(--led-err); }
 </style>

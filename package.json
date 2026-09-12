@@ -1,15 +1,20 @@
 {
-  "name": "system-design-roulette",
+  "name": "principia-desk",
   "version": "0.1.0",
   "description": "",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "test": "vitest run",
     "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check": "npm run catalog:check && svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-    "tauri": "tauri"
+    "bundle:mac": "npm run tauri build -- --bundles app && bash scripts/bundle-dmg.sh",
+    "tauri": "tauri",
+    "catalog:generate": "node scripts/generate-catalog.mjs",
+    "catalog:check": "node scripts/generate-catalog.mjs --check",
+    "version:set": "node scripts/set-version.mjs"
   },
   "license": "MIT",
   "dependencies": {
@@ -17,16 +22,20 @@
     "@tauri-apps/plugin-opener": "^2",
     "dompurify": "^3.4.8",
     "lucide-svelte": "^1.0.1",
-    "marked": "^18.0.5"
+    "marked": "^18.0.5",
+    "mermaid": "^11.16.0",
+    "pdfmake": "^0.3.11"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.6",
     "@sveltejs/kit": "^2.9.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
     "@tauri-apps/cli": "^2",
+    "@types/node": "^26.1.2",
     "svelte": "^5.0.0",
     "svelte-check": "^4.0.0",
     "typescript": "~5.6.2",
-    "vite": "^6.0.3"
+    "vite": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }

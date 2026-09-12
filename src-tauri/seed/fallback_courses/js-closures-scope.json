@@ -1,0 +1,104 @@
+{
+  "slug": "js-closures-scope",
+  "kind": "remediation",
+  "title": "Closures and scope, refreshed at the point where they bite",
+  "markdown": "## Why this matters\n\nThis refresher exists because a later lesson found a gap: an event handler that always reports the last value of a loop, a timer that reads state that has since changed, or a React-style callback that keeps using an old snapshot. All three are one mechanism: a function captures the variable, not the value it held when the function was created. You do not need the whole chapter on lexical environments again; you need to predict what a captured variable will hold when the function finally runs.\n\n## The simple version\n\nA closure is a function carrying a reference to the room it was born in. It does not take a photograph of the room; it keeps a key. When it runs later, it opens the door and reads whatever the room contains now. `let` in a loop gives each iteration its own room; `var` gives the whole loop one shared room. The analogy breaks for values captured by parameter: a parameter is a new binding on every call, so passing the current value in explicitly is the same as photographing it.\n\n## Core mechanics\n\nEvery function is created with a link to the lexical environment where it was defined. Variable lookup walks that chain outward at call time, so a closure sees assignments made after it was created. Each evaluation of a `let` or `const` declaration inside a loop body creates a fresh binding per iteration; the classic `for (let i …)` loop additionally copies `i` into a new binding for each iteration, which is why handlers created in it see distinct values. `var` is function-scoped: one binding, hoisted to the top of the function, shared by every closure created in the loop.\n\nA stale closure is not a bug in the language: the closure faithfully reports the current value of a binding that nobody updated, or an old binding that a new render replaced. The fix is to decide what should be captured: a fresh binding per event (parameters, `let`), a mutable box you update on purpose (an object or a ref), or a subscription that re-reads state when it runs.\n\n## Failure modes\n\nHandlers attached in a `var` loop all report the final index. A timer callback that reads a variable reassigned later prints the new value, which surprises people who expected a snapshot. Debounced or memoized functions that close over configuration keep the configuration from when they were built. Module-level singletons capture the module environment, so tests that mutate module state leak between cases.\n\n## Runnable experiment\n\nRun this with `node` and predict every line before executing it.\n\n```js\nconst handlers = [];\nfor (var i = 0; i < 3; i++) handlers.push(() => i);\nconsole.log(handlers.map((h) => h()));      // [3, 3, 3]: one shared binding\nconst fresh = [];\nfor (let j = 0; j < 3; j++) fresh.push(() => j);\nconsole.log(fresh.map((h) => h()));         // [0, 1, 2]: a binding per iteration\nlet count = 0;\nconst read = () => count;\ncount = 5;\nconsole.log(read());                        // 5: the closure reads the current value\nfunction snapshot(value) { return () => value; }\nconst keep = snapshot(count);\ncount = 9;\nconsole.log(keep());                        // 5: the parameter froze the value\n```\n\n## Practical exercise\n\nTake one stale-closure bug from your own code or from the experiment and write three versions: capture a fresh binding per iteration, pass the value as a parameter, and read through a mutable box that you update deliberately. For each version, write a one-line comment saying what the function will see if the outer variable changes later, then prove it with a printed transcript.\n",
+  "resources": [
+    {
+      "title": "Closures",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    },
+    {
+      "title": "let",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/let",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    },
+    {
+      "title": "var hoisting",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/var",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "A closure captures the binding, not the value; it reads the current value when it runs.",
+    "let creates a binding per loop iteration; var shares one binding across the loop.",
+    "Choose what to capture on purpose: a fresh binding, a parameter, or a mutable box you update."
+  ],
+  "exercise": {
+    "title": "Rewrite one stale closure three ways",
+    "instructions": "Take a stale-closure bug and write three versions: a fresh binding per iteration, a parameter that freezes the value, and a mutable box read at call time. Comment what each sees when the outer variable changes later and prove it with a transcript.",
+    "starter_code": "// version 1: fresh binding per iteration\nfor (let i = 0; i < 3; i++) button(i).onclick = () => report(i);\n// version 2: parameter freezes the value\nfunction handlerFor(value) { return () => report(value); }\n// version 3: a box updated on purpose\nconst latest = { value: 0 };\nconst onTick = () => report(latest.value);\n",
+    "deliverable": "Three annotated versions and a printed transcript showing what each reports after the outer variable changes.",
+    "hints": [
+      "Run each version with node and change the outer variable before calling the closures.",
+      "A parameter is a new binding on every call; that is the snapshot form.",
+      "If you need the newest value, read a box or re-subscribe; do not rely on re-creating the closure by accident."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Handlers created in `for (var i = 0; i < 3; i++)` all return 3. Why?",
+      "kind": "mcq",
+      "choices": [
+        "Arrow functions copy variables",
+        "var creates one function-scoped binding shared by every closure",
+        "The loop ran once",
+        "console.log caches results"
+      ],
+      "correct_answer": "var creates one function-scoped binding shared by every closure",
+      "explanation": "Every closure reads the same binding, which holds 3 when the loop ends.",
+      "section": "Core mechanics",
+      "learning_objective": "Explain shared bindings under var"
+    },
+    {
+      "prompt": "What does `for (let j …)` change for closures created inside the loop?",
+      "kind": "mcq",
+      "choices": [
+        "Nothing; let and var behave alike in loops",
+        "Each iteration gets its own binding, so each closure sees a distinct value",
+        "Closures cannot be created in let loops",
+        "The loop runs asynchronously"
+      ],
+      "correct_answer": "Each iteration gets its own binding, so each closure sees a distinct value",
+      "explanation": "A fresh let binding per iteration is why handlers report 0, 1, 2.",
+      "section": "Core mechanics",
+      "learning_objective": "Use per-iteration bindings"
+    },
+    {
+      "prompt": "`const read = () => count; count = 5;`what does `read()` return?",
+      "kind": "mcq",
+      "choices": [
+        "0, the value when read was created",
+        "5, the current value of the captured binding",
+        "undefined",
+        "A reference error"
+      ],
+      "correct_answer": "5, the current value of the captured binding",
+      "explanation": "Closures read bindings at call time, not creation time.",
+      "section": "Core mechanics",
+      "learning_objective": "Predict what a closure reads"
+    },
+    {
+      "prompt": "A debounced search function keeps using an old API base URL after settings changed. Explain the mechanism and two fixes.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The debounced function closed over the configuration binding or object that held the old URL when it was built, so it keeps reading that captured value. Fix by reading the configuration at call time through a box or getter that you update deliberately, or by rebuilding the debounced function whenever the configuration changes so it captures the new binding.",
+      "explanation": "Stale closures capture old bindings; read current state on purpose or rebuild.",
+      "section": "Failure modes",
+      "learning_objective": "Diagnose a stale closure in real code"
+    },
+    {
+      "prompt": "Why does passing a value as a parameter freeze it while capturing an outer variable does not?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "A parameter is a new binding created for each call and initialized with the value passed in, so the closure captures that private binding and no later assignment to the outer variable touches it. Capturing an outer variable captures the shared binding, which later assignments change.",
+      "explanation": "Parameters create fresh bindings; outer captures share bindings.",
+      "section": "Core mechanics",
+      "learning_objective": "Distinguish parameter capture from outer capture"
+    }
+  ]
+}

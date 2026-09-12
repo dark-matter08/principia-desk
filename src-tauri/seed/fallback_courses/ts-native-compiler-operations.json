@@ -1,0 +1,110 @@
+{
+  "slug": "ts-native-compiler-operations",
+  "kind": "capstone",
+  "title": "Capstone lab: ship a type-safe package through editor, CI and the native compiler",
+  "markdown": "## Why this matters\n\nThe capstone assembles the course outcome into one artifact: a small type-safe package that models async UI state without impossible combinations, validates untrusted data at its boundary, ships correct declarations and package exports, and stays fast in editors and CI. The operational half is the point: the same code is checked by the TypeScript language service while you edit, by `tsc -b` across project references, and by the native compiler in CI. If those three disagree, the package is not done.\n\n## The simple version\n\nThink of the package as a product that passes three inspections: a workshop check while it is being built (the editor's language service), a full assembly check before shipping (a solution build over every project reference), and an independent lab test (the native compiler in CI). All three read the same blueprints (tsconfig files). The analogy breaks because the inspectors are different programs: version-sensitive details such as which compiler options a native build supports, or which module-resolution mode a bundler expects, must be recorded rather than assumed. Record the exact `typescript` and native compiler versions in your lab notes; behavior named here is stated as of 2026 and can change.\n\n## The lab\n\nRun the setup in an isolated directory. It creates a two-package workspace with project references, a consumer that depends on a core package, and a CI script; it touches nothing outside the temporary directory.\n\n```bash\nlab=$(mktemp -d) && cd \"$lab\" || exit 1\nmkdir -p packages/core/src packages/app/src\ncat > package.json <<'JSON'\n{ \"name\": \"capstone\", \"private\": true, \"workspaces\": [\"packages/*\"], \"scripts\": { \"check\": \"tsc -b --pretty false\", \"check:native\": \"tsgo -b --pretty false\" } }\nJSON\ncat > tsconfig.base.json <<'JSON'\n{ \"compilerOptions\": { \"strict\": true, \"module\": \"nodenext\", \"moduleResolution\": \"nodenext\", \"target\": \"es2022\", \"declaration\": true, \"composite\": true, \"isolatedDeclarations\": true, \"exactOptionalPropertyTypes\": true } }\nJSON\ncat > packages/core/package.json <<'JSON'\n{ \"name\": \"@capstone/core\", \"version\": \"0.1.0\", \"type\": \"module\", \"exports\": { \".\": { \"types\": \"./dist/index.d.ts\", \"default\": \"./dist/index.js\" } } }\nJSON\ncat > packages/core/tsconfig.json <<'JSON'\n{ \"extends\": \"../../tsconfig.base.json\", \"compilerOptions\": { \"rootDir\": \"src\", \"outDir\": \"dist\" }, \"include\": [\"src\"] }\nJSON\ncat > packages/app/tsconfig.json <<'JSON'\n{ \"extends\": \"../../tsconfig.base.json\", \"compilerOptions\": { \"rootDir\": \"src\", \"outDir\": \"dist\" }, \"include\": [\"src\"], \"references\": [{ \"path\": \"../core\" }] }\nJSON\ncat > tsconfig.json <<'JSON'\n{ \"files\": [], \"references\": [{ \"path\": \"packages/core\" }, { \"path\": \"packages/app\" }] }\nJSON\nprintf 'lab at %s\\n' \"$lab\"\n```\n\nInstall `typescript` and the native compiler package current in your lab (record both versions), then write `packages/core/src/index.ts` and `packages/app/src/main.ts` as described below.\n\n## Core mechanics\n\nThe core package exports an async state model as a discriminated union (`idle`, `loading`, `success` with data, `error` with a reason) and a `transition` function whose `switch` is exhaustive. It exports `parseResponse(raw: unknown)` that narrows untrusted data to the domain type with a type predicate, never an assertion. With `isolatedDeclarations`, every exported function carries an explicit return type so declaration emit does not depend on inference; with `exactOptionalPropertyTypes`, optional fields cannot be set to `undefined` by accident. The `exports` map points `types` and `default` at `dist`, so the consumer resolves the built declarations under `nodenext`.\n\nThe app package imports only through the package name, never a relative path into `core/src`, so the project reference and the exports map are exercised the way a real consumer would exercise them.\n\n## Runnable experiment\n\nPredict each result before running it in the lab root.\n\n```bash\nnpm run check; printf 'tsc status=%s\\n' \"$?\"\n# builds core then app; dist/index.d.ts exists; status 0\nnpm run check:native; printf 'native status=%s\\n' \"$?\"\n# same diagnostics (none) or a documented difference; status 0\nsed -i.bak 's/| { kind: \"error\"; reason: string }/| { kind: \"error\"; reason: string } | { kind: \"cancelled\" }/' packages/core/src/index.ts\nnpm run check; printf 'tsc status=%s\\n' \"$?\"\n# the exhaustive switch reports the new member; status 1\nmv packages/core/src/index.ts.bak packages/core/src/index.ts\n```\n\nThen measure: time a no-op rebuild (`tsc -b` twice) and the native compiler twice, and note which one your editor's language service is running (the TypeScript version shown in the editor status).\n\n## Failure modes\n\nImporting `../core/src` from the app hides a broken `exports` map until a real consumer installs the package. Omitting `composite` breaks `tsc -b`. Inferring exported return types works in `tsc` but fails `isolatedDeclarations`, and a declaration emitted from inference can differ from the one you intended. A CI that checks only with the native compiler while editors run the JavaScript compiler can pass with a diagnostic the developer never saw; the lab exists to compare them.\n\n## Practical exercise\n\nDeliver the package: `packages/core` with the state model, exhaustive transition, `parseResponse`, explicit return types and a working `exports` map; `packages/app` consuming it through the package name; a CI script that runs both compilers and fails on any diagnostic; a `MIGRATION.md` naming the recorded compiler versions, options either compiler did not support, and the rollback (pin the JavaScript compiler); and a `SOUNDNESS.md` listing the runtime boundaries the types cannot prove.\n",
+  "resources": [
+    {
+      "title": "Project References",
+      "url": "https://www.typescriptlang.org/docs/handbook/project-references.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    },
+    {
+      "title": "isolatedDeclarations",
+      "url": "https://www.typescriptlang.org/tsconfig/isolatedDeclarations.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    },
+    {
+      "title": "Modules: Reference (nodenext and exports)",
+      "url": "https://www.typescriptlang.org/docs/handbook/modules/reference.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    },
+    {
+      "title": "A 10x faster TypeScript (native compiler)",
+      "url": "https://devblogs.microsoft.com/typescript/typescript-native-port/",
+      "type": "documentation",
+      "why": "Background on the native compiler; verify current flags and version in your lab."
+    }
+  ],
+  "key_takeaways": [
+    "The editor, tsc -b and the native compiler must agree on the same tsconfig; record versions and differences.",
+    "Consume your own package through its exports map, never through a relative source path.",
+    "Explicit return types and exhaustive unions make declarations and CI checks independent of inference."
+  ],
+  "exercise": {
+    "title": "Deliver the type-safe package with three agreeing inspections",
+    "instructions": "Build the core and app packages on project references, an exports map, isolatedDeclarations and exactOptionalPropertyTypes; run tsc -b and the native compiler in a CI script that fails on any diagnostic; write MIGRATION.md with recorded versions, unsupported options and the rollback, and SOUNDNESS.md with the runtime boundaries the types cannot prove.",
+    "starter_code": "// packages/core/src/index.ts\nexport type AsyncState<T> =\n  | { kind: 'idle' }\n  | { kind: 'loading'; startedAt: number }\n  | { kind: 'success'; data: T }\n  | { kind: 'error'; reason: string };\nexport type Event<T> = { type: 'start'; at: number } | { type: 'resolve'; data: T } | { type: 'reject'; reason: string };\nexport function transition<T>(state: AsyncState<T>, event: Event<T>): AsyncState<T> {\n  switch (event.type) {\n    case 'start': return { kind: 'loading', startedAt: event.at };\n    case 'resolve': return state.kind === 'loading' ? { kind: 'success', data: event.data } : state;\n    case 'reject': return state.kind === 'loading' ? { kind: 'error', reason: event.reason } : state;\n    default: { const exhaustive: never = event; return exhaustive; }\n  }\n}\n",
+    "deliverable": "The two-package workspace, a CI script running both compilers, MIGRATION.md and SOUNDNESS.md.",
+    "hints": [
+      "Run tsc -b from the workspace root; it orders core before app through the references.",
+      "If the native compiler rejects an option, record it in MIGRATION.md instead of removing it silently.",
+      "Add a cancelled state to the union to prove the switch is exhaustive, then remove it."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Why must the app package import `@capstone/core` by name rather than `../core/src/index`?",
+      "kind": "mcq",
+      "choices": [
+        "Relative imports are slower",
+        "Only the package name resolves through the exports map and built declarations a real consumer would use",
+        "TypeScript forbids relative imports across packages",
+        "The native compiler cannot follow relative paths"
+      ],
+      "correct_answer": "Only the package name resolves through the exports map and built declarations a real consumer would use",
+      "explanation": "A source-relative import hides a broken exports map or missing declaration emit.",
+      "section": "Core mechanics",
+      "learning_objective": "Consume a package the way its users will"
+    },
+    {
+      "prompt": "What does `isolatedDeclarations` require of exported functions?",
+      "kind": "mcq",
+      "choices": [
+        "They must be arrow functions",
+        "Explicit type annotations so declarations do not depend on inference",
+        "They must return Promise",
+        "They must be async"
+      ],
+      "correct_answer": "Explicit type annotations so declarations do not depend on inference",
+      "explanation": "Declaration emit becomes possible per file, which also keeps the emitted contract intentional.",
+      "section": "Core mechanics",
+      "learning_objective": "Explain isolatedDeclarations"
+    },
+    {
+      "prompt": "CI checks only with the native compiler while developers' editors run the JavaScript compiler. What does the lab say to do?",
+      "kind": "mcq",
+      "choices": [
+        "Nothing; both are TypeScript",
+        "Run both in CI, record versions, and treat any disagreement as a finding",
+        "Disable the editor's language service",
+        "Pin both to the oldest version"
+      ],
+      "correct_answer": "Run both in CI, record versions, and treat any disagreement as a finding",
+      "explanation": "The three inspections must agree; version-sensitive differences are documented, not assumed away.",
+      "section": "Failure modes",
+      "learning_objective": "Operate two compilers without silent drift"
+    },
+    {
+      "prompt": "A no-op `tsc -b` still rebuilds core every time. Name two likely causes and how you would confirm each.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The core project may lack composite: true or a stable outDir/rootDir, so no .tsbuildinfo is used; confirm by checking tsconfig and the presence of tsbuildinfo after a build. Or a file outside include is being touched or generated on every run, invalidating the build; confirm with --verbose (or --explainFiles) to see what changed.",
+      "explanation": "Incremental builds depend on composite settings and stable inputs.",
+      "section": "Failure modes",
+      "learning_objective": "Diagnose a non-incremental solution build"
+    },
+    {
+      "prompt": "What belongs in SOUNDNESS.md for this package, and why is it part of the deliverable?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The runtime boundaries the types cannot prove: the shape of fetched or parsed data before parseResponse narrows it, any assertions with their evidence, declaration files of dependencies that are trusted rather than verified, and states that runtime code could reach if callers ignore the transition function. It is part of the deliverable because a public contract must say where its guarantees stop.",
+      "explanation": "A readable contract names its soundness boundary explicitly.",
+      "section": "Practical exercise",
+      "learning_objective": "Document where type safety stops"
+    }
+  ]
+}

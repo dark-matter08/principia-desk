@@ -1,0 +1,15 @@
+---
+import Base from "../layouts/Base.astro";
+import { getSite } from "../lib/content";
+const site = getSite();
+---
+<Base title={`Not found · ${site.name}`} description="That page is not on this desk." path="/404">
+  <section class="section">
+    <div class="frame">
+      <span class="eyebrow">404</span>
+      <h1>Nothing at this address.</h1>
+      <p class="muted">The page you asked for is not here. The desk itself is at the <a href="/">front</a>.</p>
+    </div>
+  </section>
+</Base>
+<style> h1 { margin: 12px 0; } </style>

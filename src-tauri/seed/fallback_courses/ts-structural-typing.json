@@ -1,0 +1,104 @@
+{
+  "slug": "ts-structural-typing",
+  "kind": "beginner",
+  "title": "Structural typing and excess property checking",
+  "markdown": "## Why this matters\n\nTypeScript's structural system is not \"duck typing with annotations.\" Excess property checking and assignability rules explain surprising errors at API boundaries.\n\n## The simple version\n\nForget class names entirely and think of TypeScript as checking whether one key ring opens the same doors as another key ring. If key ring A opens every door that key ring B needs opened (and maybe a few more), A can stand in for B, it doesn't matter what the key rings are called or where they came from. That's structural typing: shape, not name, decides compatibility.\n\n```mermaid\nflowchart LR\n  A[\"interface Point {x, y}\"] -.same shape.-> B[\"interface Coord {x, y}\"]\n  B == assignable both ways ==> A\n  C[\"literal {x: 1, y: 2, z: 3}\"] -- \"extra key z\" --> D{\"Fresh literal?\"}\n  D -- yes --> E[Excess property error]\n  D -- no, came through a variable --> F[Allowed]\n```\n\nWhere the analogy breaks: with real keys, having an extra key on the ring never hurts. TypeScript disagrees, but *only* when you hand over a freshly-written object literal directly. Pass that same \"extra key\" through a variable first, and TypeScript stops checking for extras, because it assumes a variable might reasonably be reused elsewhere with a wider shape. The excess-property check exists specifically to catch typos on literals (`{ nmae: 'x' }`), not to enforce that shapes are ever exact.\n\n## Core mechanics\n\nTypes are compared by shape. Fresh object literals get excess property checks; variables widened through aliases do not. Optional vs `undefined` positions matter for `exactOptionalPropertyTypes`.\n\n## Mental model\n\nThink \"compatibility of required members,\" not nominal names. Two interfaces with the same fields are interchangeable even if declared separately.\n\n## Runnable experiment\n\n```ts\nfunction takesId(x: { id: string }) {}\n\ntakesId({ id: '1', extra: true }); // error: excess property 'extra'\n\nconst withExtra = { id: '1', extra: true };\ntakesId(withExtra); // OK: went through a variable first, no fresh-literal check\n```\n\n## Trade-offs and failure modes\n\nTeams sometimes \"fix\" an excess property error by routing a literal through a throwaway variable, silencing a real typo instead of catching it. The check exists to catch exactly that mistake, bypass it deliberately, not by accident.\n\n## Tool-building exercise\n\nSketch a small CLI that prints assignability failures by driving the compiler API on two type nodes.\n\n## Key takeaways\n\n- Shapes compare, names do not.\n- Fresh literals are checked strictly.\n- Optional properties are not the same as `undefined` unions without `exactOptionalPropertyTypes`.",
+  "resources": [
+    {
+      "title": "Type Compatibility",
+      "url": "https://www.typescriptlang.org/docs/handbook/type-compatibility.html",
+      "type": "official handbook",
+      "why": "Defines structural assignability, function compatibility, and the intentional unsoundness boundaries."
+    },
+    {
+      "title": "Exact Optional Property Types",
+      "url": "https://www.typescriptlang.org/tsconfig/exactOptionalPropertyTypes.html",
+      "type": "official compiler reference",
+      "why": "Distinguishes an absent property from a present property whose value is undefined."
+    },
+    {
+      "title": "TypeScript for Functional Programmers",
+      "url": "https://www.typescriptlang.org/docs/handbook/typescript-in-5-minutes-func.html",
+      "type": "official handbook",
+      "why": "Provides a concise structural-typing model and contrasts it with nominal systems."
+    }
+  ],
+  "key_takeaways": [
+    "Structural assignability drives most TS errors.",
+    "Excess checks apply to fresh literals.",
+    "Assignability is decided by shape; type names only help readers, never the checker."
+  ],
+  "exercise": {
+    "title": "Break and fix an excess-property error",
+    "instructions": "Write a function that accepts `{ id: string; role: 'admin' | 'user' }`. Call it three ways: a fresh object literal with a typo, the same value assigned to a wider variable first, and a literal checked with `satisfies`. Add a fourth case that compares `role?: Role` with `role: Role | undefined` under `exactOptionalPropertyTypes`.\n\nAcceptance criteria: keep the expected errors visible with `@ts-expect-error`; explain why the variable path allows an extra key; show that `satisfies` catches the typo without widening valid literals; distinguish absent from present-undefined at runtime; and define the public API shape you would choose.",
+    "starter_code": "interface Actor {\n  id: string;\n  role: 'admin' | 'user';\n}\n\nfunction takesActor(a: Actor) {}\n\n// @ts-expect-error: fresh literals reject unknown keys\ntakesActor({ id: '1', role: 'admin', roel: 'oops' });\n\nconst viaVar = { id: '1', role: 'admin' as const, roel: 'oops' };\ntakesActor(viaVar);\n\n// @ts-expect-error: satisfies preserves the fresh-literal check\nconst viaSatisfies = { id: '1', role: 'admin', roel: 'oops' } satisfies Actor;\n",
+    "deliverable": "Four compiler-checked cases plus a short boundary-design note explaining structural compatibility, fresh-literal checking, `satisfies`, and optional-property semantics.",
+    "hints": [
+      "Use `@ts-expect-error` for intentional negative cases so CI proves the error still exists.",
+      "`satisfies` deliberately re-enables the fresh-literal check even though you're assigning to a plain variable, which is exactly why it exists.",
+      "The compiler doesn't track 'this variable came from a literal with an extra field' once it's been assigned, widening erases that history."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "When does excess property checking apply?",
+      "kind": "mcq",
+      "choices": [
+        "Fresh object literals assigned to a typed target",
+        "Every assignment",
+        "Only with any",
+        "Only in .d.ts files"
+      ],
+      "correct_answer": "Fresh object literals assigned to a typed target",
+      "explanation": "The misconception: assuming TypeScript always enforces exact shapes. It only checks fresh literals, like the key-ring analogy, an extra key is fine once it's on a keyring (variable) you're handing over, but flagged the moment you're cutting a brand new key on the spot.",
+      "section": "Core mechanics",
+      "learning_objective": "excess property checks apply only to fresh object literals"
+    },
+    {
+      "prompt": "Are two interfaces with identical fields mutually assignable?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Yes, TypeScript compares structure, not declaration name, so identical shapes are assignable barring branded/nominal tricks.",
+      "explanation": "The misconception: expecting class-like nominal typing, where the declared name matters. TypeScript checks whether the 'key ring' opens the same doors, identical shape means interchangeable, regardless of the interface's name.",
+      "section": "Mental model",
+      "learning_objective": "structural compatibility ignores declared type names"
+    },
+    {
+      "prompt": "What breaks assignability first when adding an unknown key to a literal?",
+      "kind": "mcq",
+      "choices": [
+        "Excess property check",
+        "Emit decorator metadata",
+        "Node16 resolution",
+        "isolatedModules"
+      ],
+      "correct_answer": "Excess property check",
+      "explanation": "The misconception: assuming a superset shape is always fine since it 'has everything required.' The excess-property check specifically targets unknown keys on fresh literals to catch typos, independent of whether the required fields are all present.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "unknown keys on fresh literals fail even when required fields are present"
+    },
+    {
+      "prompt": "With `exactOptionalPropertyTypes` enabled, which value satisfies `{ theme?: 'dark' | 'light' }`?",
+      "kind": "mcq",
+      "choices": [
+        "`{}`",
+        "`{ theme: undefined }`",
+        "`{ theme: 'blue' }`",
+        "`{ theme: null }`"
+      ],
+      "correct_answer": "`{}`",
+      "explanation": "The misconception is treating absence and present-with-undefined as identical. Under exact optional properties, `theme?: T` permits the key to be absent; assigning undefined requires `undefined` to appear explicitly in T.",
+      "section": "Core mechanics",
+      "learning_objective": "distinguish optional property absence from an explicit undefined value"
+    },
+    {
+      "prompt": "You are publishing a component prop type used by many teams. Explain when a structural interface is enough and when you would add a brand or runtime validation.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Use a plain structural type when any value with the required shape is valid. Add a brand when accidentally mixing structurally identical domain values would be dangerous, and validate at runtime whenever the value crosses an untrusted boundary because TypeScript types disappear after compilation.",
+      "explanation": "The misconception is asking the static type system to prove runtime trust or domain identity automatically. Structural typing is convenient inside trusted code, while brands and validators solve different boundary risks.",
+      "section": "Production architecture lens",
+      "learning_objective": "choose structural types, brands, and runtime validators according to boundary risk"
+    }
+  ]
+}

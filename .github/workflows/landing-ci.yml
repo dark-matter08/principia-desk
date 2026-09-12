@@ -1,0 +1,88 @@
+name: Landing CI
+
+# principia.ndelucien.com lives in landing/. Type-check and build it on every
+# change to that folder (or to the changelog and licence it reads), and push an
+# image on main so the deploy workflow can ship it.
+
+on:
+  pull_request:
+    paths: ["landing/**", "CHANGELOG.md", "LICENSE", ".github/workflows/landing-*.yml"]
+  push:
+    branches: [main]
+    paths: ["landing/**", "CHANGELOG.md", "LICENSE", ".github/workflows/landing-*.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: landing-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+  OWNER: ${{ github.repository_owner }}
+  IMAGE_NAME: principia-landing
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Type-check & build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: landing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      # `astro build` succeeds on code `astro check` rejects. Run both.
+      - run: npx astro check
+      - run: npm run build
+      - name: Assert the page actually has content
+        run: |
+          test -f dist/index.html || { echo "::error::no index.html"; exit 1; }
+          bytes=$(wc -c < dist/index.html)
+          echo "index.html: ${bytes} bytes"
+          [ "$bytes" -gt 8192 ] || { echo "::error::index.html is ${bytes} bytes; the page rendered empty"; exit 1; }
+          grep -q "Principia Desk" dist/index.html || { echo "::error::product name missing from the render"; exit 1; }
+          grep -q '"@type":"SoftwareApplication"' dist/index.html || { echo "::error::structured data missing"; exit 1; }
+          test -f dist/sitemap-index.xml || { echo "::error::no sitemap"; exit 1; }
+          test -f dist/og.png || { echo "::error::no share card"; exit 1; }
+
+  image:
+    name: Build & push image
+    needs: check
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
+      - name: Generate image tags
+        id: tags
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.OWNER }}/${{ env.IMAGE_NAME }}"
+          SHA_SHORT=$(echo "${{ github.sha }}" | cut -c1-7)
+          echo "tags=${IMAGE}:sha-${SHA_SHORT},${IMAGE}:production" >> "$GITHUB_OUTPUT"
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: landing/docker/Dockerfile.web.prod
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=landing
+          cache-to: type=gha,mode=max,scope=landing

@@ -1,0 +1,29 @@
+---
+import type { Section } from "../lib/schema";
+type Faq = Extract<Section, { kind: "faq" }>;
+const { s } = Astro.props as { s: Faq };
+---
+<section class="section" id={s.key} aria-labelledby={`${s.key}-title`}>
+  <div class="frame">
+    <div class="section-head"><span class="eyebrow">{s.kicker}</span><h2 id={`${s.key}-title`}>{s.title}</h2></div>
+    <div class="faq">
+      {s.items.map((it) => (
+        <details class="node">
+          <summary><span>{it.q}</span><i aria-hidden="true">+</i></summary>
+          <p set:html={it.a} />
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+<style>
+  .faq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  details { padding: 0; }
+  summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; cursor: pointer; font-weight: 500; font-size: 15px; list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary i { font-style: normal; color: var(--accent); font-family: var(--font-mono); transition: transform 0.15s ease; }
+  details[open] summary i { transform: rotate(45deg); }
+  details p { padding: 0 16px 16px; font-size: 14px; line-height: 1.6; color: var(--muted); }
+  details :global(code) { font-size: 12px; }
+  @media (max-width: 760px) { .faq { grid-template-columns: 1fr; } }
+</style>

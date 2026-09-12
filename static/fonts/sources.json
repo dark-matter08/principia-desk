@@ -1,0 +1,17 @@
+[
+  {
+    "package": "@fontsource-variable/fraunces",
+    "version": "5.3.0",
+    "integrity": "sha512-9BYGySn4AHEJdgp9Z28tQ3X+laJMEOITXkQarZXeloWQZDq5oOvXJ3kDA8c7MGIfpogIaZfjrQBqmda8POOCKA=="
+  },
+  {
+    "package": "@fontsource-variable/inter",
+    "version": "5.3.0",
+    "integrity": "sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA=="
+  },
+  {
+    "package": "@fontsource-variable/jetbrains-mono",
+    "version": "5.3.0",
+    "integrity": "sha512-F32xpS2NsGYoQi2ADSkKTgpJj7ozajsGgDJ8woTnqjmIB+dxDIqImjl4pXZVEExu8UFZ2ndhmX18EBS/hdz3Lw=="
+  }
+]

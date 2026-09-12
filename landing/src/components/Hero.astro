@@ -1,0 +1,45 @@
+---
+import Shot from "./Shot.astro";
+import type { Section } from "../lib/schema";
+type Hero = Extract<Section, { kind: "hero" }>;
+const { s } = Astro.props as { s: Hero };
+---
+<section class="hero" aria-labelledby="hero-title">
+  <div class="frame">
+    <div class="hero-grid">
+      <div class="copy">
+        <span class="eyebrow">{s.kicker}</span>
+        <h1 id="hero-title">{s.title}</h1>
+        <p class="deck">{s.deck}</p>
+        <div class="links">
+          {s.links.map((l) => <a href={l.href} class:list={["key", l.primary ? "cta" : "ghost"]} rel={l.href.startsWith("http") ? "noopener" : undefined}>{l.label}</a>)}
+        </div>
+        {s.facts.length > 0 && <ul class="facts mono">{s.facts.map((f) => <li><i class="led accent"></i>{f}</li>)}</ul>}
+      </div>
+      <div class="ring" aria-hidden="true">
+        <svg viewBox="0 0 220 220" class="ring-svg"><circle cx="110" cy="110" r="100" class="track" /><circle cx="110" cy="110" r="100" class="arc" /></svg>
+        <div class="ring-text"><span class="mono">next class</span><strong class="mono">00:07:00</strong><small>Linux Bash · today</small></div>
+      </div>
+    </div>
+    <div class="hero-shot"><Shot figure={s.figure} eager label="principia://today · cluster: local" /></div>
+  </div>
+</section>
+<style>
+  .hero { padding: 64px 0 40px; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) 240px; gap: 40px; align-items: center; margin-bottom: 44px; }
+  .copy { display: flex; flex-direction: column; gap: 18px; }
+  .deck { font-size: 18px; line-height: 1.6; color: var(--muted); max-width: 60ch; }
+  .links { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 6px 0 0; padding: 0; list-style: none; font-size: 11px; color: var(--muted); }
+  .facts li { display: inline-flex; align-items: center; gap: 7px; }
+  .ring { position: relative; width: 220px; height: 220px; margin: 0 auto; }
+  .ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .track { fill: none; stroke: var(--node-border); stroke-width: 6; }
+  .arc { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; stroke-dasharray: 628; stroke-dashoffset: 120; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 60%, transparent)); animation: draw 2.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes draw { from { stroke-dashoffset: 628; } }
+  .ring-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; }
+  .ring-text span { font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--accent); }
+  .ring-text strong { font-size: 26px; font-weight: 400; letter-spacing: -1px; }
+  .ring-text small { font-size: 11px; color: var(--muted); }
+  @media (max-width: 860px) { .hero-grid { grid-template-columns: 1fr; } .ring { display: none; } }
+</style>

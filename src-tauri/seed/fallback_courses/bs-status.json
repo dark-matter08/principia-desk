@@ -1,0 +1,104 @@
+{
+  "slug": "bs-status",
+  "kind": "remediation",
+  "title": "Exit codes and explicit error paths, refreshed",
+  "markdown": "## Why this matters\n\nThis refresher exists because a later lesson found a gap: scripts that report success after a step failed, or that check `$?` one line too late. You do not need the whole chapter on conditionals again. You need three habits: read a command's status where it happens, decide what your script does about it in that same place, and send the message to the right stream with the right exit code.\n\n## The simple version\n\nEvery command ends with a small number: 0 for \"did what was asked\" and anything else for \"did not\". `if` does not test truth; it runs a command and branches on that number. So `if grep -q ERROR log; then` is complete on its own. Writing `grep -q ERROR log; if [ $? -eq 0 ]` asks the same question a step later and breaks as soon as someone inserts a line between them.\n\nThe analogy that helps: the status is a receipt printed at the checkout. Read it at the checkout. Walking to the car and then asking for the receipt gets you whichever receipt was printed last. The analogy breaks in one way: a receipt is printed for every purchase, but a status is only meaningful if you know what that command's numbers mean, which its manual page defines.\n\n## Core mechanics\n\n`command || { printf 'message\\n' >&2; exit 1; }` is the smallest explicit error path: it runs only when the command fails, writes to standard error, and exits with a non-zero status the caller can test. `command && next` runs `next` only on success. Inside a function, `return 1` hands the status to the caller instead of ending the script.\n\nChoose codes deliberately: 0 success, 1 general failure, 2 usage error (the convention shared by many GNU tools), and reserve larger values for documented conditions. `exit` with no argument reuses the last status, which is rarely what you meant after an `echo`.\n\n`[ ]` and `[[ ]]` are commands too; their status is the test result. `[[ -r \"$file\" ]] || { …; }` reads naturally as \"unless readable, do this\".\n\n## Failure modes\n\n`set -e` exits on many failures but not inside `if` conditions, pipelines without `pipefail`, or commands followed by `||`; treating it as complete error handling is the gap this refresher closes. Printing errors to standard output mixes them with data a caller may parse. A missing `exit` after an error message lets the script continue with bad state. Testing `$?` after a `printf` reports the printf.\n\n## Runnable experiment\n\nPredict each printed status before running.\n\n```bash\ngrep -q nothing /etc/hostname; printf 'late=%s\\n' \"$?\"\n# late=1 (no match); it would be 0 if an echo sat between the two commands\nif grep -q nothing /etc/hostname; then echo matched; else echo 'no match'; fi\ncheck() { [[ -r \"$1\" ]] || { printf 'unreadable: %s\\n' \"$1\" >&2; return 2; }; printf 'ok: %s\\n' \"$1\"; }\ncheck /etc/hostname; printf 'status=%s\\n' \"$?\"\n# ok … status=0\ncheck /nonexistent 2>/dev/null; printf 'status=%s\\n' \"$?\"\n# status=2, message suppressed by the redirection\n( set -e; false || true; echo 'still running' )\n# set -e does not trigger on a failing command followed by ||\n```\n\n## Practical exercise\n\nTake a script that copies a report into an output directory and add explicit error paths for a missing input, an unwritable output directory and a failed copy. Each path prints one line to stderr and exits with a documented code (2 for usage, 1 for runtime). Show a transcript of all three failures plus the success case, including `$?` after each run, and explain one case `set -e` alone would have missed.\n",
+  "resources": [
+    {
+      "title": "Exit Status",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "Lists of Commands (&& and ||)",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Lists.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "The Set Builtin (-e)",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "Branch on the command itself: if cmd; then …, never on $? a line later.",
+    "cmd || { message >&2; exit CODE; } is the smallest explicit error path.",
+    "set -e is not error handling; it skips if-conditions, || lists and unpiped pipelines."
+  ],
+  "exercise": {
+    "title": "Add explicit error paths to a copy script",
+    "instructions": "Add error paths for a missing input, an unwritable output directory and a failed copy, each printing one stderr line and exiting with a documented code. Show a transcript of the three failures and the success case with $? after each run, and name one case set -e alone would miss.",
+    "starter_code": "#!/bin/bash\ninput=$1\noutdir=$2\n[[ -r \"$input\" ]] || { printf 'usage: copy-report INPUT OUTDIR (input unreadable)\\n' >&2; exit 2; }\n[[ -d \"$outdir\" && -w \"$outdir\" ]] || { printf 'output directory not writable: %s\\n' \"$outdir\" >&2; exit 1; }\ncp -- \"$input\" \"$outdir/\" || { printf 'copy failed\\n' >&2; exit 1; }\nprintf 'copied %s\\n' \"$input\"\n",
+    "deliverable": "The script and a four-run transcript with exit statuses and a note on the set -e gap.",
+    "hints": [
+      "Send messages to stderr with >&2 so stdout stays parseable.",
+      "Use 2 for usage errors and 1 for runtime failures; document both in a usage line.",
+      "cp -- keeps a leading-hyphen filename an operand."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Which form checks a command's status where it happens?",
+      "kind": "mcq",
+      "choices": [
+        "cmd; if [ $? -eq 0 ]; then …",
+        "if cmd; then …",
+        "cmd; status=$?; echo; if [ $status -eq 0 ]",
+        "if $?; then …"
+      ],
+      "correct_answer": "if cmd; then …",
+      "explanation": "if runs the command and branches on its status directly; the other forms read it later.",
+      "section": "Core mechanics",
+      "learning_objective": "Branch on a command's status directly"
+    },
+    {
+      "prompt": "What does `cp -- \"$src\" \"$dst\" || { printf 'copy failed\\n' >&2; exit 1; }` do when cp fails?",
+      "kind": "mcq",
+      "choices": [
+        "Retries the copy",
+        "Prints to stderr and exits with status 1",
+        "Prints to stdout and continues",
+        "Exits with cp's own status silently"
+      ],
+      "correct_answer": "Prints to stderr and exits with status 1",
+      "explanation": "The || list runs only on failure; the block messages stderr and exits with a chosen code.",
+      "section": "Core mechanics",
+      "learning_objective": "Write an explicit error path"
+    },
+    {
+      "prompt": "Which exit code is the common convention for a usage error?",
+      "kind": "mcq",
+      "choices": [
+        "0",
+        "1",
+        "2",
+        "127"
+      ],
+      "correct_answer": "2",
+      "explanation": "GNU tools use 2 for usage errors; 1 is general failure; 127 means command not found.",
+      "section": "Core mechanics",
+      "learning_objective": "Choose conventional exit codes"
+    },
+    {
+      "prompt": "Under `set -e`, which failing command does NOT exit the script?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "`false || true`. set -e ignores failures in commands followed by || (and in if conditions and unpiped pipeline stages).",
+      "explanation": "set -e ignores failures in commands followed by || (and in if conditions and unpiped pipeline stages).",
+      "section": "Failure modes",
+      "learning_objective": "Know the limits of set -e"
+    },
+    {
+      "prompt": "A script prints 'done' after a failed copy because it checked `$?` after an echo. Explain the bug and the fix.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The echo ran between the copy and the check, so $? reported the echo's success. Check the copy where it happens: cp … || { message to stderr; exit 1; } or if cp …; then; so the status read is the copy's.",
+      "explanation": "Read the status at the checkout, not after the next command.",
+      "section": "Failure modes",
+      "learning_objective": "Diagnose a late status check"
+    }
+  ]
+}

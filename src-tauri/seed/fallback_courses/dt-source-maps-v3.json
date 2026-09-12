@@ -1,0 +1,104 @@
+{
+  "slug": "dt-source-maps-v3",
+  "kind": "retrieval",
+  "title": "Source map v3: retrieval check",
+  "markdown": "## Recall before you check\n\nThis retrieval pass revisits source maps without re-teaching them. Before opening the check, say in your own words what the `mappings` field encodes and why it is VLQ-encoded, what `sources`, `names`, `sourceRoot` and `sourcesContent` are for, how a generated file points at its map, how a chain of transforms (TypeScript to JavaScript, then a bundler) keeps a map correct, and what breaks debugging when a map lies.\n\n## What to bring back\n\n- `mappings` is a base64 VLQ string of segments per generated line: generated column, source index, original line, original column, and optionally a name index; values are relative to the previous segment.\n- `sources` lists original files; `sourcesContent` may embed them so a debugger needs nothing else; `sourceRoot` prefixes source paths.\n- A generated file references its map with a `//# sourceMappingURL=` comment or a `SourceMap` response header.\n- When two transforms run in sequence, the second must compose its map with the first (map the intermediate positions back through) or the debugger lands in the intermediate output.\n- Stack traces are remapped by tools using the same map; a map with wrong columns produces plausible but wrong frames.\n\nAnswer from memory first, then read the feedback.\n",
+  "resources": [
+    {
+      "title": "Source Map specification",
+      "url": "https://tc39.es/ecma426/",
+      "type": "documentation",
+      "why": "The ECMA-426 source map format."
+    },
+    {
+      "title": "Source maps in Chrome DevTools",
+      "url": "https://developer.chrome.com/docs/devtools/javascript/source-maps",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "MDN: Use a source map",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Console/trace_static",
+      "type": "documentation",
+      "why": "Where remapped traces appear during debugging."
+    }
+  ],
+  "key_takeaways": [
+    "mappings encode relative generated/original positions as base64 VLQ segments.",
+    "Sequential transforms must compose maps or debugging lands in intermediate output.",
+    "sourcesContent lets a debugger show originals without the source tree."
+  ],
+  "exercise": null,
+  "questions": [
+    {
+      "prompt": "What does one segment in `mappings` describe?",
+      "kind": "mcq",
+      "choices": [
+        "A whole original file",
+        "A generated column mapped to a source, original line and column, optionally a name",
+        "A function boundary",
+        "A comment position"
+      ],
+      "correct_answer": "A generated column mapped to a source, original line and column, optionally a name",
+      "explanation": "Segments are per generated line, with relative VLQ-encoded fields.",
+      "section": "Retrieval",
+      "learning_objective": "Read a mappings segment"
+    },
+    {
+      "prompt": "Why are mapping values encoded relative to the previous segment?",
+      "kind": "mcq",
+      "choices": [
+        "To encrypt the map",
+        "To keep the VLQ strings short because deltas are small numbers",
+        "Because absolute positions are unknown",
+        "To support sourceRoot"
+      ],
+      "correct_answer": "To keep the VLQ strings short because deltas are small numbers",
+      "explanation": "Relative encoding is the size optimization that makes maps practical.",
+      "section": "Retrieval",
+      "learning_objective": "Explain relative encoding"
+    },
+    {
+      "prompt": "A TypeScript file is compiled, then bundled and minified. The debugger shows the compiled JavaScript instead of the TypeScript. What is missing?",
+      "kind": "mcq",
+      "choices": [
+        "sourceRoot",
+        "Composition of the bundler's map with the compiler's map",
+        "A names array",
+        "A larger mappings field"
+      ],
+      "correct_answer": "Composition of the bundler's map with the compiler's map",
+      "explanation": "Without composing through the intermediate map, positions stop at the intermediate output.",
+      "section": "Retrieval",
+      "learning_objective": "Compose maps across transforms"
+    },
+    {
+      "prompt": "Which field lets a debugger show original code without access to the source tree?",
+      "kind": "mcq",
+      "choices": [
+        "sources",
+        "sourcesContent",
+        "names",
+        "file"
+      ],
+      "correct_answer": "sourcesContent",
+      "explanation": "Embedded originals travel with the map.",
+      "section": "Retrieval",
+      "learning_objective": "Use sourcesContent"
+    },
+    {
+      "prompt": "How does a browser find the map for a script?",
+      "kind": "mcq",
+      "choices": [
+        "It searches the same directory",
+        "From a sourceMappingURL comment or a SourceMap response header",
+        "From the names array",
+        "It cannot; maps must be inlined"
+      ],
+      "correct_answer": "From a sourceMappingURL comment or a SourceMap response header",
+      "explanation": "Either the comment at the end of the file or the header points to the map.",
+      "section": "Retrieval",
+      "learning_objective": "Link a script to its map"
+    }
+  ]
+}

@@ -1,0 +1,522 @@
+{
+  "schema_version": 1,
+  "courses": [
+    {
+      "id": "system-design",
+      "course_id": "system-design",
+      "kind": "engineering",
+      "label": "System Design",
+      "native_label": "distributed systems",
+      "short_code": "SD",
+      "title": "System Design Foundations",
+      "summary": "Design reliable services by reasoning about scale, data, communication and failure.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/system-design.txt",
+      "context": "Reason about distributed systems from explicit workload assumptions, data invariants, latency and failure. Compare consistency, replication, partitioning, messaging and operations with concrete traces, calculations and failure experiments. Teach justified design choices and their limits rather than a memorized technology shopping list.",
+      "outcome": "Produce and defend a service design with quantified workloads, data invariants, storage and messaging choices, failure traces, reliability objectives and an incremental migration plan. Show how the design behaves under a failed dependency and a tenfold increase in demand.",
+      "environment": "A diagram editor or paper and a local text editor. Individual experiments specify optional tools.",
+      "prerequisite_courses": [],
+      "source_hosts": [
+        "postgresql.org",
+        "redis.io",
+        "kafka.apache.org",
+        "raft.github.io",
+        "rfc-editor.org",
+        "sre.google",
+        "aws.amazon.com",
+        "docs.aws.amazon.com",
+        "cloud.google.com",
+        "kubernetes.io",
+        "etcd.io",
+        "prometheus.io",
+        "opentelemetry.io",
+        "debezium.io",
+        "rocksdb.org",
+        "github.com",
+        "raw.githubusercontent.com",
+        "allthingsdistributed.com"
+      ],
+      "entry_points": [
+        {
+          "id": "foundations",
+          "label": "Foundations"
+        },
+        {
+          "id": "mechanisms",
+          "label": "Core mechanisms"
+        },
+        {
+          "id": "production",
+          "label": "Practical application"
+        },
+        {
+          "id": "synthesis",
+          "label": "Integration and capstone"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "code",
+        "diagrams",
+        "tutor"
+      ],
+      "reference_lessons": [
+        "caching-strategies",
+        "consistent-hashing",
+        "rate-limiting",
+        "idempotency",
+        "consistency-models",
+        "design-kv-store"
+      ]
+    },
+    {
+      "id": "javascript",
+      "course_id": "javascript",
+      "kind": "engineering",
+      "label": "JavaScript & Browser",
+      "native_label": "runtime and platform",
+      "short_code": "JS",
+      "title": "JavaScript and Browser Engineering",
+      "summary": "Understand browser execution and build responsive, observable web experiences.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/javascript.txt",
+      "context": "Modern JavaScript as the browser's execution language and the web platform's control plane. Build first-principles judgment about the event loop and rendering opportunities, engine optimization and memory, DOM/CSSOM/layout/paint/composite, scheduling and responsiveness, Workers and transferable data, Streams and networking, storage and offline behavior, navigation and View Transitions, Speculation Rules, security boundaries, accessibility runtime behavior, and production debugging through DevTools and RUM. Prefer browser experiments and production failure investigations over Node-only trivia. Treat browser support as evidence: distinguish standardized and broadly available features from experimental or engine-specific behavior as of 2026.",
+      "outcome": "By day 30, diagnose and improve a production browser experience from evidence: explain its scheduling and rendering behavior, instrument Core Web Vitals and long tasks, move appropriate work off the main thread, stream or cache data safely, apply browser security boundaries, and present before/after DevTools or RUM evidence in a compact performance case study.",
+      "environment": "A current browser with developer tools and a local editor; lessons identify version-sensitive APIs.",
+      "prerequisite_courses": [],
+      "source_hosts": [
+        "developer.mozilla.org",
+        "mozilla.org",
+        "web.dev",
+        "developer.chrome.com",
+        "chromestatus.com",
+        "v8.dev",
+        "webkit.org",
+        "html.spec.whatwg.org",
+        "dom.spec.whatwg.org",
+        "tc39.es",
+        "w3.org",
+        "nodejs.org",
+        "spec.whatwg.org",
+        "ecma-international.org",
+        "drafts.csswg.org",
+        "ietf.org"
+      ],
+      "entry_points": [
+        {
+          "id": "foundations",
+          "label": "Foundations"
+        },
+        {
+          "id": "mechanisms",
+          "label": "Core mechanisms"
+        },
+        {
+          "id": "production",
+          "label": "Practical application"
+        },
+        {
+          "id": "synthesis",
+          "label": "Integration and capstone"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "code",
+        "diagrams",
+        "tutor"
+      ],
+      "reference_lessons": [
+        "js-event-loop",
+        "js-v8-hidden-classes",
+        "js-closures-scope",
+        "js-browser-security-model",
+        "js-atomics-sharedarraybuffer"
+      ]
+    },
+    {
+      "id": "typescript",
+      "course_id": "typescript",
+      "kind": "engineering",
+      "label": "TypeScript",
+      "native_label": "types and contracts",
+      "short_code": "TS",
+      "title": "TypeScript for Reliable Software",
+      "summary": "Model clear contracts, validate runtime boundaries and explain compiler behavior.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/typescript.txt",
+      "context": "Modern TypeScript as an architectural constraint system for large frontend codebases. Go from structural typing, inference, variance, narrowing, generics, and compiler internals to real boundaries: component APIs, route and form contracts, async UI state machines, runtime validation of untrusted data, generated API clients, package exports, project references, typed linting, migration strategy, and keeping editor/build performance healthy in monorepos. Teach what the type system cannot prove, how unsoundness enters, and when simpler public types beat clever metaprogramming. Use current compiler and module-resolution behavior as of 2026 and name version-sensitive details explicitly.",
+      "outcome": "By day 30, design and publish a small type-safe frontend package: model async UI states without impossible combinations, expose readable component and route APIs, validate untrusted runtime data, generate or consume an external contract, ship correct declarations and package exports, and document the type-safety limits and migration path.",
+      "environment": "A local TypeScript project; each experiment records the compiler version and tsconfig.",
+      "prerequisite_courses": [],
+      "source_hosts": [
+        "typescriptlang.org",
+        "github.com",
+        "raw.githubusercontent.com",
+        "nodejs.org"
+      ],
+      "entry_points": [
+        {
+          "id": "foundations",
+          "label": "Foundations"
+        },
+        {
+          "id": "mechanisms",
+          "label": "Core mechanisms"
+        },
+        {
+          "id": "production",
+          "label": "Practical application"
+        },
+        {
+          "id": "synthesis",
+          "label": "Integration and capstone"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "code",
+        "diagrams",
+        "tutor"
+      ],
+      "reference_lessons": [
+        "ts-structural-typing",
+        "ts-inference-flow",
+        "ts-unknown-any-never",
+        "ts-type-guards-narrowing",
+        "ts-native-compiler-operations"
+      ]
+    },
+    {
+      "id": "frontend-architecture",
+      "course_id": "frontend-architecture",
+      "kind": "engineering",
+      "label": "Frontend Architecture",
+      "native_label": "boundaries and scale",
+      "short_code": "FA",
+      "title": "Frontend Architecture",
+      "summary": "Design maintainable application boundaries, data flows and delivery strategies.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/frontend-architecture.txt",
+      "context": "Staff-level frontend systems architecture for products and organizations that must scale. Cover domain-oriented code organization; component, route, package, and ownership boundaries; server/client and rendering decisions per route; state placement and data-cache consistency; BFF and API composition; design-system governance; accessibility as a cross-cutting contract; performance budgets and RUM; reliability, observability, security, testing, release, migration, and rollback; monorepos and micro-frontends; offline and realtime systems; and multi-team platform strategy. Compare React, Svelte, Vue, Angular, Astro, and standards-based approaches when the mechanism is framework-independent. Prefer a modular monolith until independent deployment or ownership pressure justifies more distribution, and make every recommendation explicit about 10x bottlenecks, failure modes, operability, DX, cost, and reversibility.",
+      "outcome": "By day 30, produce and defend a reference architecture for a realistic multi-team frontend: domain and route boundaries, rendering decisions per route, state and cache ownership, BFF contracts, design-system and accessibility governance, performance and reliability budgets, observability, test and release strategy, security boundaries, ADRs, and an incremental migration/rollback plan.",
+      "environment": "An editor and browser; design exercises can be completed without a framework installation.",
+      "prerequisite_courses": [],
+      "source_hosts": [
+        "react.dev",
+        "svelte.dev",
+        "vuejs.org",
+        "angular.dev",
+        "web.dev",
+        "developer.mozilla.org",
+        "w3.org",
+        "rfc-editor.org",
+        "sre.google"
+      ],
+      "entry_points": [
+        {
+          "id": "foundations",
+          "label": "Foundations"
+        },
+        {
+          "id": "mechanisms",
+          "label": "Core mechanisms"
+        },
+        {
+          "id": "production",
+          "label": "Practical application"
+        },
+        {
+          "id": "synthesis",
+          "label": "Integration and capstone"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "code",
+        "diagrams",
+        "tutor"
+      ],
+      "reference_lessons": [
+        "fa-domain-boundaries",
+        "fa-rendering-strategy",
+        "fa-state-placement",
+        "fa-async-ui-state-machines",
+        "fa-server-component-mutation-boundaries"
+      ]
+    },
+    {
+      "id": "developer-tooling",
+      "course_id": "developer-tooling",
+      "kind": "engineering",
+      "label": "Developer Tooling",
+      "native_label": "tools and diagnostics",
+      "short_code": "DT",
+      "title": "Developer Tooling",
+      "summary": "Build tools that provide repeatable transformations, fast feedback and useful diagnostics.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/developer-tooling.txt",
+      "context": "Building and operating the 2026 toolchain a world-class frontend organization relies on: parsers and AST transforms, LSP/DAP and source maps, Rust-powered bundlers and dev servers, HMR and incremental graphs, package-manager and monorepo orchestration, CSS and design-token compilers, typed linting and codemods, browser/component/E2E/visual testing, accessibility and performance gates, supply-chain controls, release automation, observability pipelines, and safe AI/MCP-assisted developer workflows. Every lesson should culminate in a practical tool or policy that a team could adopt, with plugin contracts, cache invalidation, determinism, diagnostics, security, and maintenance cost made explicit.",
+      "outcome": "By day 30, ship a usable frontend engineering toolchain slice: a parser, codemod, lint rule, bundler/dev-server plugin, or quality gate with a stable CLI/plugin contract, deterministic tests, actionable diagnostics, caching/invalidation behavior, CI integration, security constraints, documentation, and evidence that another engineer can adopt it.",
+      "environment": "A local development workspace; each lab identifies its runtime and tool versions.",
+      "prerequisite_courses": [],
+      "source_hosts": [
+        "typescriptlang.org",
+        "nodejs.org",
+        "vite.dev",
+        "vitest.dev",
+        "esbuild.github.io",
+        "rust-lang.org",
+        "github.com",
+        "raw.githubusercontent.com",
+        "developer.mozilla.org"
+      ],
+      "entry_points": [
+        {
+          "id": "foundations",
+          "label": "Foundations"
+        },
+        {
+          "id": "mechanisms",
+          "label": "Core mechanisms"
+        },
+        {
+          "id": "production",
+          "label": "Practical application"
+        },
+        {
+          "id": "synthesis",
+          "label": "Integration and capstone"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "code",
+        "diagrams",
+        "tutor"
+      ],
+      "reference_lessons": [
+        "dt-ast-parsing",
+        "dt-lsp-protocol",
+        "dt-cli-design",
+        "dt-source-maps-v3",
+        "dt-webpack-vite-rspack-migration"
+      ]
+    },
+    {
+      "id": "linux-bash",
+      "course_id": "linux-bash",
+      "kind": "engineering",
+      "label": "Linux Bash",
+      "native_label": "terminal foundations",
+      "short_code": "LB",
+      "title": "Linux Bash",
+      "summary": "Navigate Linux, compose pipelines and diagnose files, permissions and processes.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/linux-bash.txt",
+      "context": "Teach interactive Bash on GNU/Linux from observable mechanisms: paths and files, shell expansion and quoting, standard streams and pipelines, environment, text processing, permissions and processes. Explain what the shell does before a program runs. Use supplied fixtures, predicted output and reproducible command transcripts. Mark GNU/BSD differences and distinguish Bash from POSIX sh. Do not present saved transcripts as automatically verified execution.",
+      "outcome": "Investigate a supplied Linux directory and log dataset, compose reproducible command pipelines, explain permissions and process behavior, and present a command transcript with expected outputs and a concise diagnosis of the observed problems.",
+      "environment": "GNU/Linux with Bash 5.x and GNU Coreutils. Use an isolated Linux lab on macOS or Windows; exercises identify GNU/BSD and Bash/POSIX differences.",
+      "prerequisite_courses": [],
+      "source_hosts": [
+        "gnu.org",
+        "man7.org",
+        "kernel.org",
+        "docs.kernel.org"
+      ],
+      "entry_points": [
+        {
+          "id": "foundations",
+          "label": "Foundations"
+        },
+        {
+          "id": "mechanisms",
+          "label": "Core mechanisms"
+        },
+        {
+          "id": "production",
+          "label": "Practical application"
+        },
+        {
+          "id": "synthesis",
+          "label": "Integration and capstone"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "code",
+        "diagrams",
+        "tutor"
+      ],
+      "reference_lessons": [
+        "lb-quoting",
+        "lb-pipelines",
+        "lb-permissions",
+        "lb-search",
+        "lb-capstone"
+      ]
+    },
+    {
+      "id": "bash-scripting",
+      "course_id": "bash-scripting",
+      "kind": "engineering",
+      "label": "Bash Scripting",
+      "native_label": "reliable automation",
+      "short_code": "BS",
+      "title": "Bash Scripting",
+      "summary": "Write dependable command-line tools with clear arguments, errors, tests and cleanup.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/bash-scripting.txt",
+      "context": "Teach reliable Bash automation through executable specifications and small command-line tools. Make quoting, arrays, input validation, exit status, functions, conditionals, loops, pipelines, traps and cleanup explicit. Practice failure cases, filenames with spaces, repeat runs and tests in supplied Linux fixtures. Do not treat set -e as a substitute for deliberate error handling or require completing Linux Bash when equivalent skills are already present.",
+      "outcome": "Build a tested log-reporting command-line tool with documented arguments, deliberate quoting, input validation, appropriate output and error streams, useful exit statuses and temporary-file cleanup. Demonstrate missing-input, spaced-filename and repeat-run cases.",
+      "environment": "The Linux Bash lab environment, a text editor and supplied test fixtures. Commands run in the learner-controlled lab, not through privileged app execution.",
+      "prerequisite_courses": [
+        "linux-bash"
+      ],
+      "source_hosts": [
+        "gnu.org",
+        "man7.org",
+        "kernel.org",
+        "docs.kernel.org",
+        "shellcheck.net",
+        "github.com",
+        "raw.githubusercontent.com"
+      ],
+      "entry_points": [
+        {
+          "id": "foundations",
+          "label": "Foundations"
+        },
+        {
+          "id": "mechanisms",
+          "label": "Core mechanisms"
+        },
+        {
+          "id": "production",
+          "label": "Practical application"
+        },
+        {
+          "id": "synthesis",
+          "label": "Integration and capstone"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "code",
+        "diagrams",
+        "tutor"
+      ],
+      "reference_lessons": [
+        "bs-error-handling",
+        "bs-arguments",
+        "bs-status",
+        "bs-loops",
+        "bs-capstone"
+      ]
+    },
+    {
+      "id": "german",
+      "course_id": "german",
+      "kind": "language",
+      "label": "German",
+      "native_label": "Deutsch",
+      "short_code": "DE",
+      "title": "German A1–B2",
+      "summary": "Build practical German through scenarios, explanations and increasingly independent use.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/german.txt",
+      "context": "Teach German through CEFR-aligned situations and skills. Preserve separate evidence for reading, writing, listening and speaking. Explain grammatical and pragmatic mechanisms, build from the learner's declared starting band, and use targeted refreshers for gaps. App course completion does not certify a CEFR level.",
+      "outcome": "Complete the chosen German learning path from the selected entry band to the goal, retain original written work and practice evidence, and demonstrate the course's assessed outcomes through scenario tasks. Review remaining skill gaps without claiming external certification.",
+      "environment": "Reading and writing work offline once prepared. Listening requires audio; speaking assessment is shown only when an evaluator is available.",
+      "prerequisite_courses": [],
+      "source_hosts": [
+        "goethe.de",
+        "coe.int",
+        "dw.com"
+      ],
+      "entry_points": [
+        {
+          "id": "A1",
+          "label": "A1 · First interactions"
+        },
+        {
+          "id": "A2",
+          "label": "A2 · Everyday situations"
+        },
+        {
+          "id": "B1",
+          "label": "B1 · Independent communication"
+        },
+        {
+          "id": "B2",
+          "label": "B2 · Detailed expression"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "dialogue",
+        "listening",
+        "writing",
+        "speaking_practice"
+      ],
+      "reference_lessons": []
+    },
+    {
+      "id": "italian",
+      "course_id": "italian",
+      "kind": "language",
+      "label": "Italian",
+      "native_label": "Italiano",
+      "short_code": "IT",
+      "title": "Italian A1–B2",
+      "summary": "Build practical Italian through scenarios, explanations and increasingly independent use.",
+      "version": "v1",
+      "prompt_path": "prompts/classroom/italian.txt",
+      "context": "Teach Italian through CEFR-aligned situations and skills. Preserve separate evidence for reading, writing, listening and speaking. Explain sound-spelling, grammatical and pragmatic mechanisms, build from the learner's declared starting band, and use targeted refreshers for gaps. App course completion does not certify a CEFR level.",
+      "outcome": "Complete the chosen Italian learning path from the selected entry band to the goal, retain original written work and practice evidence, and demonstrate the course's assessed outcomes through scenario tasks. Review remaining skill gaps without claiming external certification.",
+      "environment": "Reading and writing work offline once prepared. Listening requires audio; speaking assessment is shown only when an evaluator is available.",
+      "prerequisite_courses": [],
+      "source_hosts": [
+        "unistrasi.it",
+        "unistrapg.it",
+        "coe.int",
+        "rai.it"
+      ],
+      "entry_points": [
+        {
+          "id": "A1",
+          "label": "A1 · First interactions"
+        },
+        {
+          "id": "A2",
+          "label": "A2 · Everyday situations"
+        },
+        {
+          "id": "B1",
+          "label": "B1 · Independent communication"
+        },
+        {
+          "id": "B2",
+          "label": "B2 · Detailed expression"
+        }
+      ],
+      "capabilities": [
+        "explanation",
+        "knowledge_checks",
+        "dialogue",
+        "listening",
+        "writing",
+        "speaking_practice"
+      ],
+      "reference_lessons": []
+    }
+  ]
+}

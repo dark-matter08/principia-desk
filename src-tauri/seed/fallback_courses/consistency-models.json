@@ -1,0 +1,104 @@
+{
+  "slug": "consistency-models",
+  "kind": "retrieval",
+  "title": "Consistency models: retrieval check",
+  "markdown": "## Recall before you check\n\nThis retrieval pass revisits consistency models without re-teaching them. Before opening the check, say in your own words what linearizability promises about a single object across all clients, how sequential consistency weakens that, what causal consistency preserves and what it lets differ, what read-your-writes and monotonic reads guarantee for one session, and why eventual consistency is a liveness statement rather than a safety one.\n\n## What to bring back\n\n- Linearizable: every operation appears to take effect atomically at some instant between its start and finish, in one real-time order for all clients.\n- Sequential: one total order that respects each client's program order, without the real-time requirement.\n- Causal: operations that are causally related are seen in the same order everywhere; concurrent operations may be seen in different orders.\n- Session guarantees: read-your-writes (a session sees its own writes), monotonic reads (a session never sees older state after newer state).\n- Eventual: if writes stop, replicas converge; it says nothing about what a read returns meanwhile.\n- Stronger models cost coordination and availability under partition; weaker models shift the reasoning to the application.\n\nAnswer from memory first, then read the feedback.\n",
+  "resources": [
+    {
+      "title": "Jepsen: Consistency models",
+      "url": "https://jepsen.io/consistency",
+      "type": "documentation",
+      "why": "A map of the models and their relationships."
+    },
+    {
+      "title": "Linearizability: A Correctness Condition for Concurrent Objects (Herlihy & Wing)",
+      "url": "https://cs.brown.edu/~mph/HerlihyW90/p463-herlihy.pdf",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Jepsen: Linearizability",
+      "url": "https://jepsen.io/consistency/models/linearizable",
+      "type": "documentation",
+      "why": "Definition and examples of the strongest single-object model."
+    }
+  ],
+  "key_takeaways": [
+    "Linearizability adds a real-time order that sequential consistency does not require.",
+    "Causal consistency orders related operations everywhere and lets concurrent ones differ.",
+    "Session guarantees are per client; eventual consistency only promises convergence."
+  ],
+  "exercise": null,
+  "questions": [
+    {
+      "prompt": "A write completes at 10:00:00; a read starting at 10:00:01 on another client returns the old value. Which model does this violate?",
+      "kind": "mcq",
+      "choices": [
+        "Eventual consistency",
+        "Linearizability",
+        "Causal consistency",
+        "Monotonic reads"
+      ],
+      "correct_answer": "Linearizability",
+      "explanation": "Linearizability requires the read, which started after the write finished, to observe it.",
+      "section": "Retrieval",
+      "learning_objective": "Apply the real-time requirement"
+    },
+    {
+      "prompt": "Which guarantee ensures a user sees their own just-submitted comment on the next page load?",
+      "kind": "mcq",
+      "choices": [
+        "Monotonic writes",
+        "Read-your-writes",
+        "Eventual consistency",
+        "Sequential consistency"
+      ],
+      "correct_answer": "Read-your-writes",
+      "explanation": "It is a session guarantee about a client observing its own writes.",
+      "section": "Retrieval",
+      "learning_objective": "Name the session guarantee"
+    },
+    {
+      "prompt": "Two unrelated writes on different keys are seen in different orders by two replicas. Which model still holds?",
+      "kind": "mcq",
+      "choices": [
+        "Linearizability",
+        "Sequential consistency",
+        "Causal consistency",
+        "None of them"
+      ],
+      "correct_answer": "Causal consistency",
+      "explanation": "Concurrent, causally unrelated operations may be ordered differently under causal consistency.",
+      "section": "Retrieval",
+      "learning_objective": "Distinguish causal from total orders"
+    },
+    {
+      "prompt": "What does eventual consistency promise?",
+      "kind": "mcq",
+      "choices": [
+        "Every read returns the latest write",
+        "Replicas converge once writes stop",
+        "Reads are monotonic within a session",
+        "Writes are never lost"
+      ],
+      "correct_answer": "Replicas converge once writes stop",
+      "explanation": "It is a convergence promise, not a statement about individual reads.",
+      "section": "Retrieval",
+      "learning_objective": "State what eventual consistency guarantees"
+    },
+    {
+      "prompt": "A session reads version 5, then version 3 of the same object. Which guarantee is broken?",
+      "kind": "mcq",
+      "choices": [
+        "Read-your-writes",
+        "Monotonic reads",
+        "Linearizability only",
+        "Causal consistency only"
+      ],
+      "correct_answer": "Monotonic reads",
+      "explanation": "A session must not observe older state after newer state.",
+      "section": "Retrieval",
+      "learning_objective": "Spot a monotonic-reads violation"
+    }
+  ]
+}

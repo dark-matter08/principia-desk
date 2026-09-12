@@ -1,0 +1,23 @@
+---
+import type { Section } from "../lib/schema";
+type Cta = Extract<Section, { kind: "cta" }>;
+const { s } = Astro.props as { s: Cta };
+---
+<section class="section" id={s.key} aria-labelledby={`${s.key}-title`}>
+  <div class="frame">
+    <div class="node cta-node">
+      <div class="node-head"><span class="name"><i class="led ok"></i>all systems nominal</span><span class="mono">region: home-1</span></div>
+      <div class="body">
+        <h2 id={`${s.key}-title`}>{s.title}</h2>
+        <p>{s.body}</p>
+        <div class="links">{s.links.map((l) => <a href={l.href} class:list={["key", l.primary ? "cta" : "ghost"]} rel={l.href.startsWith("http") ? "noopener" : undefined}>{l.label}</a>)}</div>
+      </div>
+    </div>
+  </div>
+</section>
+<style>
+  .cta-node { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 8%, var(--node-bg)), var(--node-bg) 60%); }
+  .body { display: flex; flex-direction: column; gap: 14px; padding: 34px 28px 30px; text-align: center; align-items: center; }
+  .body p { font-size: 16px; color: var(--muted); max-width: 60ch; }
+  .links { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+</style>

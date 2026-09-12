@@ -1,0 +1,104 @@
+{
+  "slug": "fa-async-ui-state-machines",
+  "kind": "retrieval",
+  "title": "Async UI state machines: retrieval check",
+  "markdown": "## Recall before you check\n\nThis retrieval pass revisits async UI state without re-teaching it. Before opening the check, say in your own words why a loading boolean next to a data field admits impossible combinations, how a discriminated state (`idle`, `loading`, `success`, `error`, and a stale-while-revalidating variant) removes them, how retries and cancellation are modelled as transitions rather than flags, what an `AbortController` gives a cancelled request, and why the last response to arrive is not always the one to show.\n\n## What to bring back\n\n- Separate booleans (`isLoading`, `hasError`, `data`) allow states such as loading with data and error at once; a discriminated union names the states that can exist.\n- Stale-while-revalidate is its own state: previous data shown while a refresh is in flight.\n- Cancellation aborts the in-flight request and transitions back or to the newest request; ignoring an aborted response prevents a late overwrite.\n- A request token or sequence number lets the machine drop responses from superseded requests.\n- Retry is a transition with a count and a delay; the error state carries the reason and whether retry is allowed.\n\nAnswer from memory first, then read the feedback.\n",
+  "resources": [
+    {
+      "title": "AbortController",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/AbortController",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Using promises",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Statecharts (SCXML) background",
+      "url": "https://www.w3.org/TR/scxml/",
+      "type": "documentation",
+      "why": "The state-machine model behind discriminated UI state."
+    }
+  ],
+  "key_takeaways": [
+    "Name the states that can exist as a discriminated union; booleans admit impossible combinations.",
+    "Cancel superseded requests with AbortController and ignore their late responses.",
+    "Retry and stale-while-revalidate are transitions and states, not extra flags."
+  ],
+  "exercise": null,
+  "questions": [
+    {
+      "prompt": "Which representation prevents a component from being loading, errored and holding data at once?",
+      "kind": "mcq",
+      "choices": [
+        "Three independent booleans",
+        "A discriminated union with one state at a time",
+        "A nullable data field",
+        "A global error flag"
+      ],
+      "correct_answer": "A discriminated union with one state at a time",
+      "explanation": "The union names the states that can exist; impossible combinations cannot be expressed.",
+      "section": "Retrieval",
+      "learning_objective": "Model async state as a union"
+    },
+    {
+      "prompt": "A user types quickly and two searches are in flight; the older one returns last. What prevents the older result from overwriting the newer?",
+      "kind": "mcq",
+      "choices": [
+        "Searching slower",
+        "A request sequence number checked when a response arrives, plus aborting the older request",
+        "Disabling the input while loading",
+        "Sorting responses by size"
+      ],
+      "correct_answer": "A request sequence number checked when a response arrives, plus aborting the older request",
+      "explanation": "Superseded responses are dropped; AbortController cancels them early.",
+      "section": "Retrieval",
+      "learning_objective": "Handle out-of-order responses"
+    },
+    {
+      "prompt": "What does `AbortController.abort()` do to an in-flight `fetch`?",
+      "kind": "mcq",
+      "choices": [
+        "Retries it",
+        "Rejects its promise with an AbortError so the machine can ignore it",
+        "Returns cached data",
+        "Nothing until the response arrives"
+      ],
+      "correct_answer": "Rejects its promise with an AbortError so the machine can ignore it",
+      "explanation": "The rejection is the signal to treat the request as cancelled.",
+      "section": "Retrieval",
+      "learning_objective": "Use AbortController correctly"
+    },
+    {
+      "prompt": "Showing yesterday's list while a refresh runs is which state?",
+      "kind": "mcq",
+      "choices": [
+        "idle",
+        "loading",
+        "stale-while-revalidating",
+        "error"
+      ],
+      "correct_answer": "stale-while-revalidating",
+      "explanation": "It is a distinct state with data present and a refresh in flight.",
+      "section": "Retrieval",
+      "learning_objective": "Name the stale-while-revalidate state"
+    },
+    {
+      "prompt": "Where does a retry count belong in the machine?",
+      "kind": "mcq",
+      "choices": [
+        "In a global counter",
+        "On the error or retrying state, carried through the retry transition",
+        "In the URL",
+        "Nowhere; retries are unlimited"
+      ],
+      "correct_answer": "On the error or retrying state, carried through the retry transition",
+      "explanation": "State carries the data the next transition needs; the count decides whether retry is allowed.",
+      "section": "Retrieval",
+      "learning_objective": "Model retries as transitions"
+    }
+  ]
+}

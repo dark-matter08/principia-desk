@@ -1,0 +1,104 @@
+{
+  "slug": "ts-inference-flow",
+  "kind": "advanced",
+  "title": "Contextual typing and bidirectional inference",
+  "markdown": "## Why this matters\n\nMost \"TypeScript magic\" is inference flow: contextual typing in callbacks, best common type aggregation, and return inference with conditional paths.\n\n## The simple version\n\nPicture two people passing notes across a table. One direction, **context flowing in**, is someone telling you \"whatever you write next needs to fit in a box labeled `(x: number) => boolean`,\" before you've written anything. The other direction, **inference flowing out**, is you writing something down and someone else reading it back to figure out what kind of thing it turned out to be. TypeScript runs both notes at once: it tells callback parameters what they must be (context in) while also figuring out what a function's return type turned out to be (inference out).\n\n```mermaid\nflowchart LR\n  subgraph contextIn [Context flows in]\n    Expected[\"array.map's expected callback type\"] --> Param[\"callback parameter gets that type\"]\n  end\n  subgraph inferOut [Inference flows out]\n    Branch1[\"return 1\"] --> Merge[Best common type]\n    Branch2[\"return 'a'\"] --> Merge\n    Merge --> Result[\"inferred union: number | string\"]\n  end\n```\n\nWhere the analogy breaks: real note-passing has one note per direction. TypeScript's two flows happen inside the *same* expression simultaneously and can interact, a callback's inferred return type can itself become part of the context for an outer generic constraint. There's no clean moment where \"context finishes, then inference starts\"; they're resolved together, which is why moving a callback out of a call and giving it an explicit type annotation can suddenly change what TypeScript infers elsewhere.\n\n## Core mechanics\n\nTypes flow down (contextual) and up (inferred return). A callback parameter type can be inferred from the callee's generic constraint. Union inference widens unless you provide a const anchor.\n\n## Mental model\n\nPicture two rivers: context flowing into expressions, results flowing out to bindings. Errors happen at the narrowest junction.\n\n## Runnable experiment\n\n```ts\n// Contextual typing: `n` gets type `number` from Array<number>.map's signature\nconst xs: number[] = [1, 2, 3];\nconst doubled = xs.map((n) => n * 2); // n: number, inferred from context\n\n// Return inference widening on mixed branches\nfunction pick(flag: boolean) {\n  if (flag) return 1;\n  return 'a';\n} // inferred return type: number | string\n\n// const assertion narrows it back down\nconst anchored = [1, 'a'] as const; // readonly [1, 'a'], not (number | string)[]\n```\n\n## Trade-offs and failure modes\n\nExtracting an inline callback into a standalone named function loses contextual typing, you must annotate its parameters explicitly, which is a common source of \"it worked inline but broke when I refactored it out.\"\n\n## Tool-building exercise\n\nUse the compiler API to print inferred types for a handful of callback parameters in a sample file.\n\n## Key takeaways\n\n- Contextual typing supplies callback parameter types.\n- Return inference merges conditional branches.\n- `const` assertions narrow inferred unions.",
+  "resources": [
+    {
+      "title": "Type Inference",
+      "url": "https://www.typescriptlang.org/docs/handbook/type-inference",
+      "type": "official handbook",
+      "why": "Defines best-common-type and contextual-typing behavior with worked examples."
+    },
+    {
+      "title": "Everyday Types",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html",
+      "type": "official handbook",
+      "why": "Shows callback contextual typing and literal preservation with const assertions."
+    },
+    {
+      "title": "More on Functions",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/functions.html",
+      "type": "official handbook",
+      "why": "Explains inference-friendly generic API design and why fewer type parameters often infer better."
+    }
+  ],
+  "key_takeaways": [
+    "Inference is bidirectional.",
+    "Context supplies callback types.",
+    "Contextual types flow inward into callbacks and literals; return types are inferred outward, so annotate public boundaries."
+  ],
+  "exercise": {
+    "title": "Break contextual typing, then restore it",
+    "instructions": "Take inline callbacks passed to `.map()`, `.filter()`, and `.reduce()`. Extract each into a named function and inspect what context is lost. Restore safety with the smallest public annotation, then build one generic helper twice: an inference-friendly signature and an over-constrained signature.\n\nAcceptance criteria: run with `noImplicitAny`; record editor hovers before and after extraction; preserve literal information where it matters without blanket `as const`; show one generic constraint that worsens inference; and explain which annotations belong at a public boundary versus inside an implementation.",
+    "starter_code": "const xs: number[] = [1, 2, 3];\n\n// Step 1: inline, contextual typing gives `n` its type for free\nconst doubled = xs.map((n) => n * 2);\n\n// Step 2: extract this into a standalone function called `double`\n// and call xs.map(double) instead. What type does `n` get now?\n",
+    "deliverable": "The extracted function with whatever annotation you had to add, plus one sentence naming which flow (context-in or inference-out) you replaced by hand.",
+    "hints": [
+      "A standalone function declared outside the call has no expected-type context to pull a parameter type from, it needs its own annotation.",
+      "Try hovering the extracted function's parameter in your editor before adding an annotation to see exactly what TypeScript falls back to.",
+      "The fix is almost always the smallest possible annotation on the parameter, not on the whole function."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "What is contextual typing?",
+      "kind": "mcq",
+      "choices": [
+        "Types flowing from outer expression into inner expressions",
+        "Only typeof inference",
+        "Emit target selection",
+        "Runtime reflection"
+      ],
+      "correct_answer": "Types flowing from outer expression into inner expressions",
+      "explanation": "The misconception: assuming a callback's parameter types are always inferred from how they're used inside the function body. They're actually handed down from the outer expected type before the body is even checked, context flowing in, like the note that arrives before you write anything.",
+      "section": "Core mechanics",
+      "learning_objective": "callback parameter types come from the outer expected type, not the body"
+    },
+    {
+      "prompt": "Why does return type inference widen on mixed branches?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The checker computes a best common type/supertype across branches; unlike values, unions widen unless constrained by annotations or const contexts.",
+      "explanation": "The misconception: expecting TypeScript to preserve the exact literal types from each branch. Inference flowing outward merges multiple returns into their best common type, the union, unless you anchor it with an annotation or `as const`.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "inferred return types widen to a best common type across branches"
+    },
+    {
+      "prompt": "Which anchor narrows literal inference?",
+      "kind": "mcq",
+      "choices": [
+        "as const",
+        "as any",
+        "declare global",
+        "/// <reference />"
+      ],
+      "correct_answer": "as const",
+      "explanation": "The misconception: reaching for `any` to 'fix' unwanted widening, which throws away type information entirely. `as const` freezes the literal types instead, so inference keeps the specific value rather than widening to its general type.",
+      "section": "Mental model",
+      "learning_objective": "as const anchors literal types against widening"
+    },
+    {
+      "prompt": "Which generic helper is usually easier for TypeScript to infer?",
+      "kind": "mcq",
+      "choices": [
+        "A helper with one type parameter that directly relates its input and output",
+        "A helper with five independent type parameters used once each",
+        "A helper that returns `any`",
+        "A helper whose only parameter is asserted to `never`"
+      ],
+      "correct_answer": "A helper with one type parameter that directly relates its input and output",
+      "explanation": "The misconception is assuming more generic parameters make an API more precise. Type parameters help when they relate values; unnecessary parameters and constraints create inference cliffs without adding a useful contract.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "design generic APIs with the fewest type parameters needed to relate values"
+    },
+    {
+      "prompt": "An inline router callback infers route params correctly, but extracting it loses the type. Describe the smallest safe fix and one API redesign that could preserve inference for callers.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Annotate the extracted function at the route-handler boundary using the router's exported handler or parameter type. If this recurs, expose a helper or `satisfies`-checked route definition that contextually types handlers while preserving their inferred return values.",
+      "explanation": "The misconception is adding assertions throughout the body. The lost information was context flowing into the function, so restore it once at the boundary or redesign the API to supply that context.",
+      "section": "Production architecture lens",
+      "learning_objective": "restore lost contextual typing at stable public boundaries"
+    }
+  ]
+}

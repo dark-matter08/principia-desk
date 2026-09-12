@@ -1,0 +1,45 @@
+---
+import type { Section } from "../lib/schema";
+type Features = Extract<Section, { kind: "features" }>;
+const { s } = Astro.props as { s: Features };
+// A small set of glyphs drawn inline, so the page ships no icon font.
+const GLYPHS: Record<string, string> = {
+  book: '<path d="M4 5h6a3 3 0 0 1 3 3v11a2 2 0 0 0-2-2H4z"/><path d="M20 5h-6a3 3 0 0 0-3 3v11a2 2 0 0 1 2-2h7z"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  compass: '<circle cx="12" cy="12" r="9"/><path d="m15 9-2 6-4 2 2-6z"/>',
+  layers: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/><path d="m3 17 9 5 9-5"/>',
+  shield: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  bot: '<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M8 14h.01M16 14h.01"/>',
+  file: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/>',
+  pulse: '<path d="M3 12h4l2-5 3 10 3-8 2 3h4"/>',
+  pen: '<path d="m4 20 4-1 10-10-3-3L5 16z"/><path d="m13 6 3 3"/>',
+  bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  terminal: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m7 9 3 3-3 3M12 15h5"/>',
+};
+const glyph = (name?: string) => GLYPHS[name ?? ""] ?? GLYPHS.layers;
+---
+<section class="section" id={s.key} aria-labelledby={`${s.key}-title`}>
+  <div class="frame">
+    <div class="section-head"><span class="eyebrow">{s.kicker}</span><h2 id={`${s.key}-title`}>{s.title}</h2>{s.lede && <p>{s.lede}</p>}</div>
+    <ul class="grid">
+      {s.items.map((it) => (
+        <li class="node card">
+          <span class="tile" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" set:html={glyph(it.icon)} /></span>
+          <h3>{it.title}</h3>
+          <p>{it.body}</p>
+        </li>
+      ))}
+    </ul>
+  </div>
+</section>
+<style>
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+  .card { display: flex; flex-direction: column; gap: 10px; padding: 20px 18px; transition: border-color 0.15s ease; }
+  .card:hover { border-color: color-mix(in srgb, var(--accent) 40%, var(--node-border)); }
+  .tile { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--node-border)); border-radius: 10px; background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, var(--surface)), var(--surface)); color: var(--accent); }
+  .card h3 { font-size: 18px; }
+  .card p { font-size: 14px; line-height: 1.55; color: var(--muted); }
+  @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+</style>

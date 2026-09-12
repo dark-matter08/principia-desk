@@ -1,13 +1,13 @@
 <script lang="ts">
   /**
-   * Topology-styled time picker: two mono digit segments with steppers,
-   * arrow-key / scroll / direct-digit input, and a live cron readout.
-   * Replaces native <input type="time"> (browser-blue selection, off-theme).
+   * Keyboard-accessible hour and minute segments with direct-digit entry.
    */
   let {
     value = $bindable('19:00'),
     cron = true,
-  }: { value?: string; cron?: boolean } = $props();
+    compact = false,
+    label = 'Time picker',
+  }: { value?: string; cron?: boolean; compact?: boolean; label?: string } = $props();
 
   const hour = $derived(Number(value.split(':')[0]) || 0);
   const minute = $derived(Number(value.split(':')[1]) || 0);
@@ -58,16 +58,17 @@
   }
 </script>
 
-<div class="tp mono" role="group" aria-label="time picker">
+<div class="tp mono" class:compact role="group" aria-label={label}>
   {#each [{ seg: 'h' as const, val: hour }, { seg: 'm' as const, val: minute }] as s, i}
     {#if i === 1}<div class="colon" class:lit={focused !== null}>:</div>{/if}
     <div class="seg-col">
-      <button class="chev" tabindex="-1" aria-label="increment" onclick={() => step(s.seg, 1)}>▴</button>
+      <button type="button" class="chev" tabindex="-1" aria-label={`Increase ${s.seg === 'h' ? 'hour' : 'minute'}`} onclick={() => step(s.seg, 1)}>▴</button>
       <div
         class="seg"
         class:focused={focused === s.seg}
         data-seg={s.seg}
         role="spinbutton"
+        aria-label={s.seg === 'h' ? 'Hour' : 'Minute'}
         aria-valuenow={s.val}
         aria-valuemin="0"
         aria-valuemax={s.seg === 'h' ? 23 : 59}
@@ -79,7 +80,7 @@
       >
         {String(s.val).padStart(2, '0')}
       </div>
-      <button class="chev" tabindex="-1" aria-label="decrement" onclick={() => step(s.seg, -1)}>▾</button>
+      <button type="button" class="chev" tabindex="-1" aria-label={`Decrease ${s.seg === 'h' ? 'hour' : 'minute'}`} onclick={() => step(s.seg, -1)}>▾</button>
     </div>
   {/each}
   {#if cron}
@@ -97,9 +98,13 @@
     gap: 6px;
     background: var(--bg);
     border: 1px solid var(--node-border);
-    border-radius: 8px;
+    border-radius: var(--radius-panel);
     padding: 6px 10px;
   }
+  .tp.compact { gap: 3px; padding: 3px 6px; }
+  .compact .seg { font-size: 17px; padding: 2px 4px; }
+  .compact .colon { font-size: 16px; }
+  .compact .chev { padding: 1px 4px; }
   .seg-col {
     display: flex;
     flex-direction: column;
@@ -112,7 +117,7 @@
     color: var(--fg);
     background: var(--surface);
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-control);
     padding: 2px 9px;
     cursor: ns-resize;
     outline: none;

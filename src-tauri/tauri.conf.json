@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "System Design Roulette",
+  "productName": "Principia Desk",
   "version": "0.1.0",
-  "identifier": "com.darkmatter.system-design-roulette",
+  "identifier": "com.darkmatter.principia-desk",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "System Design Roulette",
+        "title": "Principia Desk",
+        "theme": "Dark",
         "width": 1100,
-        "height": 760
+        "height": 760,
+        "minWidth": 640,
+        "minHeight": 540
       }
     ],
     "security": {
@@ -25,7 +28,8 @@
           "$APPDATA/audio/**"
         ]
       }
-    }
+    },
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,
@@ -36,6 +40,13 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "resources": {
+      "../THIRD_PARTY_NOTICES.md": "THIRD_PARTY_NOTICES.md"
+    },
+    "shortDescription": "Understand deeply. Practice daily.",
+    "longDescription": "Principia Desk is a study desk for learning subjects from their foundations: classes with personal starting points, lessons taught by your own AI tutor from verified primary sources, durable appointments, and enforcement you choose per class.",
+    "publisher": "darkmatter",
+    "copyright": "Copyright 2026 darkmatter"
   }
 }

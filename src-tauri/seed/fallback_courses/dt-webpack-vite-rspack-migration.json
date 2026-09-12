@@ -1,0 +1,110 @@
+{
+  "slug": "dt-webpack-vite-rspack-migration",
+  "kind": "capstone",
+  "title": "Capstone lab: migrate a build with parity checks and a measured rollback",
+  "markdown": "## Why this matters\n\nThe capstone extends the toolchain slice with the decision a platform team eventually faces: moving an application build from one bundler to another without breaking the people who depend on it. The lab is not about which tool is faster in a blog post. It is about proving parity on your own code, measuring on your own machines and CI, and keeping a rollback that is exercised, not merely written down.\n\n## The simple version\n\nThink of the build as a factory line that turns source into shipped bundles. A migration installs a second line beside the first and runs both from the same raw material until the outputs match: same entry points, same public assets, same environment handling, same source maps for the debugger. Only then does the switch move traffic to the new line, and the old line stays powered until a full release has passed without the switch moving back. The analogy breaks at \"match\": two bundlers never emit byte-identical output, so parity has to be defined as a checklist of observable properties, not a file diff.\n\n## The lab\n\nRun the setup in an isolated directory. It creates a tiny application with two entry points, a dynamic import, an environment variable and an asset, plus a parity script skeleton; it touches nothing outside the temporary directory. Install the two bundlers you are comparing and record their exact versions in the notes; flags and defaults named here are stated as of 2026 and must be verified against those versions.\n\n```bash\nlab=$(mktemp -d) && cd \"$lab\" || exit 1\nmkdir -p src/pages public scripts dist-a dist-b\nprintf 'export const greet = (n) => `hello ${n}`;\\n' > src/util.js\nprintf 'import { greet } from \"./util.js\";\\nconsole.log(greet(import.meta.env?.MODE ?? process.env.NODE_ENV));\\nimport(\"./pages/about.js\").then((m) => m.about());\\n' > src/main.js\nprintf 'import { greet } from \"../util.js\";\\nexport const about = () => console.log(greet(\"about\"));\\n' > src/pages/about.js\nprintf 'export const admin = () => console.log(\"admin\");\\n' > src/admin.js\nprintf 'body { margin: 0 }\\n' > public/app.css\ncat > scripts/parity.mjs <<'JS'\nimport { readdirSync, statSync, existsSync } from 'node:fs';\nconst [a, b] = process.argv.slice(2);\nconst list = (dir) => readdirSync(dir).filter((f) => !f.endsWith('.map')).sort();\nconst checks = [\n  ['entry chunks present', (d) => list(d).some((f) => f.startsWith('main')) && list(d).some((f) => f.startsWith('admin'))],\n  ['dynamic import split into its own chunk', (d) => list(d).some((f) => /about/.test(f))],\n  ['source maps emitted', (d) => readdirSync(d).some((f) => f.endsWith('.map'))],\n  ['public asset copied', (d) => existsSync(`${d}/app.css`)],\n  ['total size within 10% of the other line', () => true],\n];\nfor (const [name, check] of checks) console.log(`${check(a) && check(b) ? 'PASS' : 'FAIL'} ${name}`);\nJS\nprintf 'lab at %s\\n' \"$lab\"\n```\n\n## Core mechanics\n\nParity is a checklist run against both output directories: entry chunks present, the dynamic import split into its own chunk, source maps emitted and pointing at original files, public assets copied, environment values resolved to the same strings, total size within a tolerance, and the application starting under a smoke test. Each check prints PASS or FAIL with the observed value so a failure names the property, not the tool.\n\nMeasurement covers cold build, warm rebuild after touching one file, and dev-server startup, each run three times on the same machine with the median recorded, plus the CI build time from the pipeline itself. The decision compares medians against a stated budget; a single faster run is not evidence.\n\nThe rollback is a switch: one environment variable or script selects the build line, both lines stay installed for a full release, and the rollback is rehearsed by flipping the switch in CI once before the migration is declared done.\n\n## Runnable experiment\n\nAfter building with both tools into `dist-a` and `dist-b`, predict each line, then run the parity script and the timing loop.\n\n```bash\nnode scripts/parity.mjs dist-a dist-b\n# PASS or FAIL per check; a FAIL names the property to investigate\nfor i in 1 2 3; do /usr/bin/time -p npm run build:b 2>&1 | grep real; done\n# three cold-build timings; record the median, not the best\n```\n\nThen delete `dist-b`, touch `src/util.js`, and time the warm rebuild the same way.\n\n## Failure modes\n\nComparing minified output byte for byte guarantees a failed parity check and proves nothing. Measuring once on a warm laptop and reporting it as the CI improvement misleads the team. Migrating the dev server and the production build in one step doubles the blast radius; migrate one, keep the other. Deleting the old configuration on the day of the switch removes the rollback. Leaving the environment handling to defaults changes `process.env` semantics silently between tools.\n\n## Practical exercise\n\nDeliver the toolchain-slice extension: both build lines behind one switch; the parity script with all checks passing and its output attached; a measurement table (cold, warm, dev start, CI) with medians and the budget they are judged against; a diagnosis of any check that failed during the work and how it was fixed; and a rollback note with the switch, the rehearsal evidence from CI, and the date the old line may be removed.\n",
+  "resources": [
+    {
+      "title": "Vite: Why Vite",
+      "url": "https://vite.dev/guide/why.html",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Rspack: Migrating from webpack",
+      "url": "https://rspack.dev/guide/migration/webpack",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "webpack: Code Splitting",
+      "url": "https://webpack.js.org/guides/code-splitting/",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Node.js child_process and timing",
+      "url": "https://nodejs.org/api/child_process.html",
+      "type": "documentation",
+      "why": "Scripting repeated builds for medians."
+    }
+  ],
+  "key_takeaways": [
+    "Define parity as observable properties checked by a script, never as a byte diff.",
+    "Report medians of repeated cold, warm, dev-start and CI measurements against a stated budget.",
+    "Keep both lines behind a rehearsed switch until a full release has passed."
+  ],
+  "exercise": {
+    "title": "Deliver the migration with parity and rollback evidence",
+    "instructions": "Build the app with both bundlers behind one switch, make every parity check pass with output attached, record medians for cold, warm, dev start and CI builds against a budget, document any failed check and its fix, and write the rollback note with the switch, the CI rehearsal evidence and the removal date for the old line.",
+    "starter_code": "# package.json scripts (sketch)\n#  \"build:a\": \"webpack --mode production --output-path dist-a\",\n#  \"build:b\": \"rspack build --mode production --output-path dist-b\",\n#  \"build\": \"node -e \\\"process.exit()\\\" && npm run build:${BUILD_LINE:-a}\"\n# parity: node scripts/parity.mjs dist-a dist-b\n",
+    "deliverable": "Two build lines behind a switch, passing parity output, a measurement table with medians and budget, a diagnosis of failures fixed, and a rehearsed rollback note.",
+    "hints": [
+      "Add a check for environment values by grepping a known string in both outputs.",
+      "Time three runs and record the median; a best-of-three hides variance.",
+      "Flip the switch in CI once before declaring the migration done."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Why is a byte-for-byte diff of the two output directories the wrong parity test?",
+      "kind": "mcq",
+      "choices": [
+        "Diff tools cannot read JavaScript",
+        "Bundlers never emit identical bytes; parity must be a checklist of observable properties",
+        "Output directories are too large",
+        "Source maps forbid comparison"
+      ],
+      "correct_answer": "Bundlers never emit identical bytes; parity must be a checklist of observable properties",
+      "explanation": "Entry chunks, splits, maps, assets, env values and a smoke test define parity.",
+      "section": "Core mechanics",
+      "learning_objective": "Define parity observably"
+    },
+    {
+      "prompt": "What is the correct way to report build speed for the decision?",
+      "kind": "mcq",
+      "choices": [
+        "The fastest single run on a warm laptop",
+        "Medians of repeated cold, warm and dev-start runs plus the CI pipeline's own time",
+        "Only the CI time",
+        "The vendor's published benchmark"
+      ],
+      "correct_answer": "Medians of repeated cold, warm and dev-start runs plus the CI pipeline's own time",
+      "explanation": "Repeated measurements on your machines and CI are the evidence; medians resist variance.",
+      "section": "Core mechanics",
+      "learning_objective": "Measure builds honestly"
+    },
+    {
+      "prompt": "When may the old build line be removed?",
+      "kind": "mcq",
+      "choices": [
+        "On the day the switch flips",
+        "After the rollback was rehearsed in CI and a full release passed without switching back",
+        "As soon as parity passes",
+        "Never"
+      ],
+      "correct_answer": "After the rollback was rehearsed in CI and a full release passed without switching back",
+      "explanation": "The rollback exists only while the old line is installed and proven to work.",
+      "section": "Core mechanics",
+      "learning_objective": "Keep a real rollback"
+    },
+    {
+      "prompt": "The dynamic-import parity check fails on the new line: `about` is inlined into the main chunk. Diagnose and fix without weakening the check.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The new bundler either did not recognize the dynamic import as a split point (different syntax handling or a plugin transforming it) or its chunking defaults inlined the small module; confirm by inspecting the build's chunk report or manifest, then configure the split explicitly (a chunking rule or the tool's documented option for dynamic imports) and rerun the check until the about chunk exists on both lines.",
+      "explanation": "Fix the configuration to restore the observable property; do not delete the check.",
+      "section": "Failure modes",
+      "learning_objective": "Diagnose a lost code split"
+    },
+    {
+      "prompt": "Why does migrating the dev server and the production build in one step double the blast radius, and what order does the lab recommend?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The two have different failure modes: dev-server issues hit every developer immediately, production-build issues hit users after release, and doing both at once makes it impossible to attribute a regression. Migrate one line first behind the switch, keep the other unchanged, verify parity and measurements, then migrate the second.",
+      "explanation": "One line at a time keeps regressions attributable and rollbacks small.",
+      "section": "Failure modes",
+      "learning_objective": "Sequence a migration to limit blast radius"
+    }
+  ]
+}

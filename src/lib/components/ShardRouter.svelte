@@ -17,10 +17,14 @@
   }: { pool: string[]; chosenIndex: number; lockedCount?: number; onLanded: () => void } = $props();
 
   type ShardState = 'in' | 'out' | 'scan' | 'winner';
-  let states = $state<ShardState[]>(pool.map(() => 'in'));
+  let states = $state<ShardState[]>([]);
   let term = $state(0);
   let phase = $state<'idle' | 'election' | 'duel' | 'done'>('idle');
   let burst = $state(false); // packet-burst celebration on the winner
+
+  $effect(() => {
+    if (phase === 'idle') states = pool.map(() => 'in');
+  });
 
   export function spin() {
     if (phase !== 'idle') return;
@@ -82,11 +86,11 @@
     {#if phase === 'idle'}
       <span class="ing-label"><ArrowDown size={10} /> {pool.length} shards standing for election</span>
     {:else if phase === 'duel'}
-      <span class="ing-label duel"><Zap size={10} /> FINAL ROUND — TERM {term} · 2 candidates</span>
+      <span class="ing-label duel"><Zap size={10} /> FINAL ROUND · TERM {term} · 2 candidates</span>
     {:else if phase === 'done'}
-      <span class="ing-label done"><Crown size={10} /> LEADER ELECTED — TERM {term}</span>
+      <span class="ing-label done"><Crown size={10} /> LEADER ELECTED · TERM {term}</span>
     {:else}
-      <span class="ing-label live"><Zap size={10} /> ELECTION — TERM {term} · {remaining} candidates remain</span>
+      <span class="ing-label live"><Zap size={10} /> ELECTION · TERM {term} · {remaining} candidates remain</span>
     {/if}
     <svg class="ing-pipe" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true">
       <path d="M 50 0 L 50 26" />
@@ -188,7 +192,7 @@
     position: relative;
     background: var(--node-bg);
     border: 1px solid var(--node-border);
-    border-radius: 8px;
+    border-radius: var(--radius-panel);
     padding: 9px 12px 10px;
     transition: border-color 0.12s ease, background 0.12s ease, opacity 0.45s ease, transform 0.3s ease;
     min-height: 62px;

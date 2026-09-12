@@ -1,0 +1,104 @@
+{
+  "slug": "dt-cli-design",
+  "kind": "remediation",
+  "title": "CLI contracts, refreshed: argv, exit codes and the two output streams",
+  "markdown": "## Why this matters\n\nThis refresher exists because a later lesson found a gap: a tool that prints its error to standard output, a script that treats any non-zero status as the same failure, or a command whose `--help` and behavior disagree. A command-line tool is a contract with other programs first and with people second. You do not need the whole chapter again; you need the three parts of that contract and one habit: decide what a caller can rely on before writing the happy path.\n\n## The simple version\n\nThink of a tool as a vending machine used by robots. The buttons are `argv`, the display is the exit status, the product tray is standard output, and the service hatch on the side is standard error. A robot presses buttons, reads the display, and takes whatever is in the tray; anything in the service hatch is for the technician. The analogy breaks at the display: a status is one small integer, so distinct failures need documented numbers, and the technician's notes must never be dropped into the tray where the robot will try to eat them.\n\n## Core mechanics\n\n`argv` carries options and operands; a parser separates them, treats `--` as the end of options, and rejects unknown options with a usage error. Exit status 0 means the contract was fulfilled; 1 is a general failure; 2 is a usage error in the GNU convention; document any other code you use. Standard output carries the result a caller may parse, so it is stable and machine-readable when `--json` or a pipe is detected; standard error carries diagnostics, progress and warnings, so it can change wording without breaking callers. `--help` documents exactly the flags, operands, codes and streams the tool honours; a test compares the two.\n\nSignals matter: a tool interrupted with Ctrl-C should clean up and exit with a status that shows interruption rather than success. A tool that prompts must check whether standard input is a terminal before waiting on a robot that will never answer.\n\n## Failure modes\n\nPrinting \"error: file not found\" to standard output corrupts a pipeline that parses the result. Exiting 0 after a caught exception makes CI green on failure. Using exit code 1 for both \"bad arguments\" and \"input unreadable\" leaves callers unable to branch. Writing progress bars to standard output breaks `tool | jq`. Reading options from environment variables without documenting them makes behavior differ between machines.\n\n## Runnable experiment\n\nRun this with `node` and predict every line, including which stream each line goes to. Run it once plainly and once as `node cli.mjs --json 2>/dev/null` to see what a robot would receive.\n\n```js\n// cli.mjs\nconst args = process.argv.slice(2);\nconst json = args.includes('--json');\nconst operands = args.filter((a) => !a.startsWith('--'));\nif (args.some((a) => a.startsWith('--') && !['--json', '--help'].includes(a))) {\n  console.error('usage: cli [--json] FILE...');   // stderr\n  process.exit(2);\n}\nif (operands.length === 0) { console.error('usage: cli [--json] FILE...'); process.exit(2); }\nconsole.error(`checking ${operands.length} file(s)`);          // progress belongs on stderr\nconst result = { files: operands, ok: true };\nconsole.log(json ? JSON.stringify(result) : `ok: ${operands.join(' ')}`);  // stdout\nprocess.exit(0);\n```\n\n```bash\nnode cli.mjs a.txt; echo \"status=$?\"            # stderr: checking 1 file(s); stdout: ok: a.txt; status=0\nnode cli.mjs --json a.txt 2>/dev/null | jq .ok  # true: stderr was discarded, stdout parsed\nnode cli.mjs --verbose a.txt; echo \"status=$?\"  # usage on stderr; status=2\n```\n\n## Practical exercise\n\nTake one tool you maintain and write its contract as a table: every option and operand, every exit code with its meaning, what standard output contains in human and JSON modes, and what goes to standard error. Then write a test that runs the tool three ways (success, usage error, runtime failure) and asserts the status and the stream each message appeared on. Fix the first mismatch between the table, `--help` and the behavior.\n",
+  "resources": [
+    {
+      "title": "Standard streams",
+      "url": "https://en.wikipedia.org/wiki/Standard_streams",
+      "type": "documentation",
+      "why": "The stdout/stderr split that every caller relies on."
+    },
+    {
+      "title": "Node.js process.exit and exit codes",
+      "url": "https://nodejs.org/api/process.html#exit-codes",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Command Line Interface Guidelines",
+      "url": "https://clig.dev/",
+      "type": "documentation",
+      "why": "Practical conventions for options, output and errors."
+    }
+  ],
+  "key_takeaways": [
+    "Results go to standard output; diagnostics and progress go to standard error.",
+    "Exit codes are a documented vocabulary: 0 success, 2 usage error, 1 general failure, others named.",
+    "Test the contract: status and stream for success, usage error and runtime failure."
+  ],
+  "exercise": {
+    "title": "Write and test one tool's contract",
+    "instructions": "Write the contract table for one tool (options, operands, exit codes, stdout in human and JSON modes, stderr), then a test that runs success, usage error and runtime failure and asserts status and stream per message. Fix the first mismatch between table, --help and behavior.",
+    "starter_code": "import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { spawnSync } from 'node:child_process';\nconst run = (...args) => spawnSync('node', ['cli.mjs', ...args], { encoding: 'utf8' });\ntest('usage errors exit 2 on stderr with empty stdout', () => {\n  const r = run('--verbose', 'a.txt');\n  assert.equal(r.status, 2);\n  assert.equal(r.stdout, '');\n  assert.match(r.stderr, /^usage:/);\n});\n",
+    "deliverable": "The contract table, the passing three-way test, and a note on the mismatch you fixed.",
+    "hints": [
+      "Run the tool with 2>/dev/null and pipe stdout to a parser to prove the streams are separated.",
+      "Reserve 2 for usage errors; name any other code in --help.",
+      "Check process.stdin.isTTY before prompting."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Where should a tool print `checking 3 files…` progress while its result is being piped to another program?",
+      "kind": "mcq",
+      "choices": [
+        "Standard output",
+        "Standard error",
+        "Both streams",
+        "A log file only"
+      ],
+      "correct_answer": "Standard error",
+      "explanation": "Progress is a diagnostic; standard output carries the parseable result.",
+      "section": "Core mechanics",
+      "learning_objective": "Route diagnostics to standard error"
+    },
+    {
+      "prompt": "A caller passes an unknown option. Which exit status follows the common convention?",
+      "kind": "mcq",
+      "choices": [
+        "0",
+        "1",
+        "2",
+        "127"
+      ],
+      "correct_answer": "2",
+      "explanation": "2 is the usage-error convention; 1 is general failure; 127 means command not found.",
+      "section": "Core mechanics",
+      "learning_objective": "Use conventional exit codes"
+    },
+    {
+      "prompt": "A tool catches an exception, prints it, and ends normally. What is the defect?",
+      "kind": "mcq",
+      "choices": [
+        "The message is too long",
+        "It exits 0, so callers and CI treat the failure as success",
+        "Exceptions cannot be caught in tools",
+        "It should have printed to stdout"
+      ],
+      "correct_answer": "It exits 0, so callers and CI treat the failure as success",
+      "explanation": "A caught failure must still end with a non-zero status.",
+      "section": "Failure modes",
+      "learning_objective": "Preserve failure in the exit status"
+    },
+    {
+      "prompt": "Explain why `tool | jq .ok` breaks when the tool writes an error message to standard output, and what the fix is.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "jq parses everything on standard output as JSON, so a human-readable error line makes the parse fail or produces wrong results. Errors and diagnostics belong on standard error, leaving standard output either valid JSON or empty; then jq sees only the result and the exit status reports the failure.",
+      "explanation": "Keep the result stream parseable.",
+      "section": "Failure modes",
+      "learning_objective": "Diagnose a corrupted output stream"
+    },
+    {
+      "prompt": "A tool prompts for confirmation and hangs in CI. What went wrong and how should the tool behave?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "It waited on standard input although no terminal was attached, so the prompt could never be answered. The tool should check whether standard input is a terminal (process.stdin.isTTY), skip or refuse interactive prompts when it is not, offer a flag such as --yes for non-interactive use, and exit with a documented status instead of waiting.",
+      "explanation": "Detect non-interactive use before prompting.",
+      "section": "Failure modes",
+      "learning_objective": "Handle non-interactive callers"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "slug": "fa-server-component-mutation-boundaries",
+  "kind": "capstone",
+  "title": "Capstone lab: a serialization and mutation boundary contract with an ADR and rollback",
+  "markdown": "## Why this matters\n\nThe capstone extends the reference architecture with the boundary that server-rendered component trees introduce: what may cross from server to client as props, where mutations run, how the client shows optimistic results, and how a bad decision is reversed. Frameworks differ in what their serialization protocol accepts and how they expose server-side mutations; the lab therefore builds a framework-independent boundary check and records the framework's rules as of the version you test, rather than assuming them.\n\n## The simple version\n\nThink of the server and client trees as two offices connected by a pneumatic tube. Only things that fit the tube travel: plain data, references to server-side functions, and a few agreed container types. A chair does not fit, however useful it is in the other office. Mutations are letters sent back through the tube: they must say who sent them, be validated on arrival, and the sender may pin a provisional copy on the wall until the reply comes. The analogy breaks at identity: a data object sent through the tube is a copy, so the client cannot mutate it and expect the server to notice; it must send the letter.\n\n## The lab\n\nRun the setup in an isolated directory. It creates a small Node project with a boundary checker, a mutation contract and a test; it touches nothing outside the temporary directory and needs no framework installed.\n\n```bash\nlab=$(mktemp -d) && cd \"$lab\" || exit 1\nmkdir -p src test\ncat > src/boundary.mjs <<'JS'\n// Props that may cross a serialization boundary. Adjust ALLOWED to your framework's documented rules and record the version.\nconst ALLOWED = new Set(['string', 'number', 'boolean', 'undefined']);\nexport function firstViolation(value, path = 'props') {\n  if (value === null || ALLOWED.has(typeof value)) return null;\n  if (typeof value === 'function') return value.$$serverAction ? null : `${path}: functions cannot cross unless they are server actions`;\n  if (Array.isArray(value)) { for (const [i, item] of value.entries()) { const v = firstViolation(item, `${path}[${i}]`); if (v) return v; } return null; }\n  if (value instanceof Date) return null;\n  if (typeof value === 'object') {\n    if (Object.getPrototypeOf(value) !== Object.prototype && !(value instanceof Map) && !(value instanceof Set)) return `${path}: class instances do not cross the boundary`;\n    for (const [key, item] of Object.entries(value)) { const v = firstViolation(item, `${path}.${key}`); if (v) return v; }\n    return null;\n  }\n  return `${path}: unsupported ${typeof value}`;\n}\nJS\nprintf 'lab at %s\\n' \"$lab\"\n```\n\n## Core mechanics\n\nThe boundary contract is a list, checked by code, of what server components may pass to client components: serializable data by structure, server action references, and the container types your framework documents. `firstViolation` returns the first offending path so a failing build names the prop. The mutation contract defines each server action's input (validated on the server, never trusted from the client), its result shape (success with the new record or failure with a reason), and its invalidation effect (which cached keys change). The client applies an optimistic copy tagged as pending, replaces it with the server result, and rolls back with the failure reason. Because the client holds copies, every mutation goes through an action; there is no path where editing a prop changes server state.\n\n## Runnable experiment\n\nPredict each printed line, then run `node` on this script in the lab.\n\n```js\nimport { firstViolation } from './src/boundary.mjs';\nconst action = Object.assign(async () => {}, { $$serverAction: true });\nconsole.log(firstViolation({ id: 1, title: 'x', tags: ['a'], updatedAt: new Date() }));   // null\nconsole.log(firstViolation({ onClick: () => {} }));              // props.onClick: functions cannot cross unless they are server actions\nconsole.log(firstViolation({ save: action }));                   // null\nclass Money { constructor(c) { this.cents = c; } }\nconsole.log(firstViolation({ price: new Money(100) }));          // props.price: class instances do not cross the boundary\n```\n\nThen write `test/mutation.test.mjs` with the Node test runner: an optimistic update followed by a failed action must leave the list equal to its state before the update and expose the failure reason.\n\n## Failure modes\n\nPassing a callback from a server component \"because it works in development\" fails at the boundary in production or silently drops behavior. Validating input on the client only lets any caller of the action bypass the rules. Optimistic updates without a rollback leave phantom records after a failure. Treating a prop object as mutable state on the client creates edits that never reach the server. Relying on undocumented serialization support for a type ties the architecture to one framework version.\n\n## Practical exercise\n\nDeliver the reference-architecture extension: `ADR.md` (the decision to place mutations behind validated server actions with optimistic client copies, the alternatives considered, and the signal that would reverse it), `BOUNDARY.md` (the allowed-props list with the framework and version it was checked against, and the checker's output for three real component props), the mutation contract for two actions with their validation and invalidation effects, the passing test for optimistic rollback, and a rollback path that moves one mutation back to a conventional request handler without changing the client contract.\n",
+  "resources": [
+    {
+      "title": "Node.js test runner",
+      "url": "https://nodejs.org/api/test.html",
+      "type": "documentation",
+      "why": "Runs the boundary and rollback tests without a framework."
+    },
+    {
+      "title": "Structured clone algorithm",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Structured_clone_algorithm",
+      "type": "documentation",
+      "why": "The baseline of what crosses a serialization boundary; frameworks add their own rules."
+    },
+    {
+      "title": "Architecture decision records",
+      "url": "https://adr.github.io/",
+      "type": "documentation",
+      "why": "Format for the decision, alternatives and reversal signal."
+    }
+  ],
+  "key_takeaways": [
+    "Encode the serialization boundary as a checked allow-list and record the framework version it was verified against.",
+    "Mutations run behind validated server actions; the client holds copies and never edits a prop as state.",
+    "Optimistic updates need a rollback with the failure reason, proven by a test."
+  ],
+  "exercise": {
+    "title": "Deliver the boundary and mutation contract",
+    "instructions": "Write ADR.md, BOUNDARY.md with checker output for three real props, the mutation contract for two actions with validation and invalidation, a passing optimistic-rollback test, and a rollback path that moves one mutation back to a request handler without changing the client contract.",
+    "starter_code": "// test/mutation.test.mjs (sketch)\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\ntest('a failed action rolls the optimistic copy back', async () => {\n  let items = [{ id: 1, title: 'a' }];\n  const before = structuredClone(items);\n  const pending = { id: 'tmp', title: 'b', pending: true };\n  items = [...items, pending];\n  const result = { ok: false, reason: 'title taken' };\n  if (!result.ok) items = items.filter((i) => i !== pending);\n  assert.deepEqual(items, before);\n  assert.equal(result.reason, 'title taken');\n});\n",
+    "deliverable": "ADR.md, BOUNDARY.md with checker output, two mutation contracts, the rollback test and a rollback path.",
+    "hints": [
+      "Check the framework's documented serializable types and record the version next to the allow-list.",
+      "Validate action input on the server with the same schema the client uses for hints.",
+      "Tag optimistic copies as pending so the UI and the rollback can find them."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "A server component passes an `onSelect` callback to a client component. What does the boundary rule say?",
+      "kind": "mcq",
+      "choices": [
+        "Callbacks are fine if small",
+        "Plain functions cannot cross; only server action references may",
+        "Callbacks must be stringified",
+        "It works only in development"
+      ],
+      "correct_answer": "Plain functions cannot cross; only server action references may",
+      "explanation": "The serialization boundary carries data and action references, not arbitrary functions.",
+      "section": "Core mechanics",
+      "learning_objective": "Apply the serialization boundary to functions"
+    },
+    {
+      "prompt": "Why must action input be validated on the server even when the client validated it?",
+      "kind": "mcq",
+      "choices": [
+        "Server validation is faster",
+        "Any caller can invoke the action; the client's validation is only a hint",
+        "Client validation cannot use schemas",
+        "Servers cannot read client errors"
+      ],
+      "correct_answer": "Any caller can invoke the action; the client's validation is only a hint",
+      "explanation": "The action is a public entry point; trust ends at the boundary.",
+      "section": "Core mechanics",
+      "learning_objective": "Place validation at the trust boundary"
+    },
+    {
+      "prompt": "An optimistic insert fails on the server. What must the client do?",
+      "kind": "mcq",
+      "choices": [
+        "Keep the record and retry forever",
+        "Remove the pending copy and surface the failure reason",
+        "Reload the page",
+        "Mark the record as saved"
+      ],
+      "correct_answer": "Remove the pending copy and surface the failure reason",
+      "explanation": "Optimistic copies are provisional; rollback restores the pre-mutation state.",
+      "section": "Core mechanics",
+      "learning_objective": "Roll back optimistic updates"
+    },
+    {
+      "prompt": "Why does editing a prop object on the client never change server state, and what does the architecture require instead?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Props that crossed the boundary are copies produced by serialization; the server has no reference to the client's object, so local edits are invisible to it. Every change must be sent as a validated action that mutates the source and invalidates the affected cached keys; the client may show an optimistic copy while it waits.",
+      "explanation": "Copies do not write back; actions do.",
+      "section": "Failure modes",
+      "learning_objective": "Explain why props are copies"
+    },
+    {
+      "prompt": "What belongs in the ADR's reversal signal, and how does the rollback path keep the client contract unchanged?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The signal names the observation that would reverse the decision, for example action latency above a budget, framework serialization changes breaking the allow-list, or validation drift between client and server. The rollback path moves one mutation from a server action to a conventional request handler behind the same client-facing function signature and result shape, so components do not change while the transport does.",
+      "explanation": "Reversible decisions name their signal and keep contracts stable across transports.",
+      "section": "Practical exercise",
+      "learning_objective": "Write a reversible architecture decision"
+    }
+  ]
+}

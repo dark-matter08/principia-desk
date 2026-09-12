@@ -1,0 +1,110 @@
+{
+  "slug": "ts-unknown-any-never",
+  "kind": "remediation",
+  "title": "unknown, any and never: where type safety actually stops",
+  "markdown": "## Why this matters\n\nThis refresher exists because a later lesson found a gap: a value typed `any` slipped through a public function, or an `as` assertion made a runtime crash look like a compiler guarantee. You do not need the whole handbook again. You need to recognize the three places where TypeScript's checking stops and choose, at each one, whether the program should stay checked (`unknown`), opt out on purpose (`any`) or prove a case cannot happen (`never`).\n\n## The simple version\n\nThink of the type checker as a customs officer. `unknown` is a sealed crate: it may enter, but nothing can be taken out until it is opened and inspected. `any` is a diplomatic bag: it passes every checkpoint unopened, and whatever it contains travels with it into the rest of the program. `never` is the empty crate: the officer can prove nothing is inside, which is exactly what you want at the end of an exhaustive `switch`. The analogy breaks at assertions: an `as` cast is not an inspection but a forged stamp, and the officer accepts it without looking.\n\n## Core mechanics\n\n`unknown` is assignable from everything and to nothing except `unknown` and `any`. Reading a property or calling it is an error until a narrowing step (`typeof`, `instanceof`, `in`, a type predicate, or a runtime schema check) establishes a more specific type. That makes `unknown` the correct type for anything that arrives from outside the program: `JSON.parse` results, `fetch` bodies, `postMessage` payloads, `localStorage`, and errors in `catch` clauses under `useUnknownInCatchVariables`, which strict mode enables.\n\n`any` is assignable both ways and silences every check on the value and on everything derived from it: `const id = (payload as any).user.id` yields another `any`. Explicit `any` is a decision; implicit `any` from missing annotations is what `noImplicitAny` reports, and the `unknown` you get from `JSON.parse` in newer library settings is a deliberate replacement.\n\n`never` is the type of expressions that cannot produce a value: a function that always throws, an impossible intersection, and the leftover of a union after every member has been narrowed away. An `assertNever(x: never)` call in the `default` branch turns a missing case into a compile error when the union grows.\n\n## Failure modes\n\nType assertions (`value as User`) and non-null assertions (`value!`) are unchecked promises. They are appropriate when you hold evidence the compiler cannot see, and they should be rare and commented. Declaration files describe what a library claims, not what it does; a wrong `.d.ts` is `any` in disguise. Narrowing does not survive across function boundaries: a check in one function does not narrow the argument inside a callback defined elsewhere.\n\n## Runnable experiment\n\nPut this in a scratch file and run `tsc --noEmit --strict` on it. Predict each diagnostic before compiling.\n\n```ts\nconst raw: unknown = JSON.parse('{\"id\": 7}');\n// raw.id;                       // error: 'raw' is of type 'unknown'\nif (typeof raw === 'object' && raw !== null && 'id' in raw && typeof raw.id === 'number') {\n  const id: number = raw.id;      // ok: narrowed step by step\n}\nconst loose = JSON.parse('{\"id\": \"7\"}') as any;\nconst n: number = loose.id;      // compiles; n is a string at runtime\ntype Shape = { kind: 'circle'; r: number } | { kind: 'square'; s: number };\nfunction area(shape: Shape): number {\n  switch (shape.kind) {\n    case 'circle': return Math.PI * shape.r ** 2;\n    case 'square': return shape.s ** 2;\n    default: { const exhaustive: never = shape; return exhaustive; }\n  }\n}\n```\n\nAdd a `{ kind: 'triangle'; b: number; h: number }` member to `Shape` and compile again: the `default` branch now reports that `shape` is not assignable to `never`.\n\n## Practical exercise\n\nTake a function in your package that accepts data from outside the program (a fetched response, a parsed file, a message event). Change its input type to `unknown`, add a narrowing or schema step that yields the domain type, and write down each remaining assertion with the evidence that justifies it. Then find one `switch` over a union and add an exhaustive `default`. Record the compiler output before and after each change.\n",
+  "resources": [
+    {
+      "title": "Narrowing",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    },
+    {
+      "title": "Everyday Types: any, unknown",
+      "url": "https://www.typescriptlang.org/docs/handbook/2/everyday-types.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    },
+    {
+      "title": "useUnknownInCatchVariables",
+      "url": "https://www.typescriptlang.org/tsconfig/useUnknownInCatchVariables.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    },
+    {
+      "title": "noImplicitAny",
+      "url": "https://www.typescriptlang.org/tsconfig/noImplicitAny.html",
+      "type": "documentation",
+      "why": "Official TypeScript reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "unknown keeps a value checked until you narrow it; any removes checking from everything derived from it.",
+    "Assertions are unchecked promises; keep them rare, commented and backed by evidence.",
+    "never in a default branch turns a missing union case into a compile error."
+  ],
+  "exercise": {
+    "title": "Move one boundary from any to unknown",
+    "instructions": "Change a function that accepts outside data to take unknown, add a narrowing or schema step that yields the domain type, document each remaining assertion with its evidence, and add an exhaustive default to one switch over a union. Record compiler output before and after.",
+    "starter_code": "type User = { id: number; name: string };\nfunction isUser(value: unknown): value is User {\n  return typeof value === 'object' && value !== null\n    && 'id' in value && typeof (value as { id: unknown }).id === 'number'\n    && 'name' in value && typeof (value as { name: unknown }).name === 'string';\n}\nexport function parseUser(raw: unknown): User {\n  if (!isUser(raw)) throw new Error('payload is not a User');\n  return raw;\n}\n",
+    "deliverable": "A diff that replaces an any boundary with unknown plus narrowing, a list of remaining assertions with evidence, and compiler output before and after.",
+    "hints": [
+      "A type predicate (value is User) lets one runtime check narrow at every call site.",
+      "Search for 'as any' and '!' first; each is a place checking stopped on purpose or by accident.",
+      "The default branch of an exhaustive switch should assign to a never-typed variable."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Which type should a function use for a `fetch` response body it has just parsed with `JSON.parse`?",
+      "kind": "mcq",
+      "choices": [
+        "any, because the shape is not known yet",
+        "unknown, so nothing can be used until it is narrowed",
+        "object, because JSON is always an object",
+        "never, because the value is untrusted"
+      ],
+      "correct_answer": "unknown, so nothing can be used until it is narrowed",
+      "explanation": "unknown keeps the value checked; narrowing or a schema check produces the domain type.",
+      "section": "Core mechanics",
+      "learning_objective": "Type outside data as unknown"
+    },
+    {
+      "prompt": "`const n: number = (payload as any).id` compiles although `id` is a string at runtime. Why?",
+      "kind": "mcq",
+      "choices": [
+        "Numbers and strings are compatible in TypeScript",
+        "any disables checking on the value and everything derived from it",
+        "The assertion converts the string",
+        "JSON.parse always returns numbers"
+      ],
+      "correct_answer": "any disables checking on the value and everything derived from it",
+      "explanation": "Property access on any yields any, which is assignable to number without a check.",
+      "section": "Core mechanics",
+      "learning_objective": "Explain how any propagates"
+    },
+    {
+      "prompt": "What does assigning the switch subject to a `never`-typed variable in the `default` branch achieve?",
+      "kind": "mcq",
+      "choices": [
+        "It throws at runtime for unknown cases",
+        "It makes a newly added union member a compile error until handled",
+        "It converts the union to a string",
+        "It disables the switch"
+      ],
+      "correct_answer": "It makes a newly added union member a compile error until handled",
+      "explanation": "After all members are narrowed away the subject is never; a new member breaks that assignment.",
+      "section": "Core mechanics",
+      "learning_objective": "Use never for exhaustiveness"
+    },
+    {
+      "prompt": "A teammate writes `const user = data as User` after parsing JSON and says the compiler now guarantees the shape. Correct the claim.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "An assertion is an unchecked promise: it tells the compiler to treat the value as User without any runtime evidence, so a wrong payload still crashes later. Type data as unknown and narrow it with a type predicate or schema check that actually inspects the fields; keep assertions only where you hold evidence the compiler cannot see, and comment them.",
+      "explanation": "Assertions bypass checking; narrowing proves the shape.",
+      "section": "Failure modes",
+      "learning_objective": "Distinguish assertions from narrowing"
+    },
+    {
+      "prompt": "Explain why a `typeof value === 'string'` check inside one function does not narrow `value` inside a callback passed to another function.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Narrowing is control-flow analysis within a function body. A callback is a separate function whose parameter type comes from its own declaration, and the compiler cannot know when the callback runs relative to the check, so the narrowed type does not carry across the function boundary. Pass the narrowed value as a typed argument or narrow again inside the callback.",
+      "explanation": "Control-flow narrowing stops at function boundaries.",
+      "section": "Failure modes",
+      "learning_objective": "Recognize the limits of control-flow narrowing"
+    }
+  ]
+}

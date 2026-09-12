@@ -1,0 +1,104 @@
+{
+  "slug": "fa-state-placement",
+  "kind": "remediation",
+  "title": "State placement, refreshed: local, URL, server cache, shared client, persistent",
+  "markdown": "## Why this matters\n\nThis refresher exists because a later lesson found a gap: a filter that resets when the user presses back, a server record copied into a client store and then edited in two places, or a modal flag hoisted into a global store because two components once needed it. Each is a placement mistake. You do not need the whole state-management chapter; you need the five places state can live and the one question that chooses among them: who must agree on this value, and for how long?\n\n## The simple version\n\nPicture a building with five kinds of storage: a desk drawer (local component state), a label on the door (URL state), a photocopy of a file from the archive (server cache), a shared whiteboard (shared client state), and a filing cabinet that survives the building being closed (persistent storage). Every item wants to live in the smallest storage that everyone who needs it can reach. The analogy breaks at the photocopy: unlike paper, a server cache knows it is a copy, tracks how stale it is, and can be refreshed or invalidated by identity, which is why edits belong on the original, not the copy.\n\n## Core mechanics\n\nLocal state is owned by one component and dies with it: input drafts, open/closed, hover. URL state is anything the user should be able to share, bookmark or return to with the back button: filters, sort, page, selected item; it is the only place that survives a reload without storage and is visible to routing. Server cache holds data whose source of truth is elsewhere; it is keyed by identity, carries freshness, and is updated by mutations that invalidate or patch the key, never by editing a copy in a store. Shared client state is for values several unrelated parts of the tree must agree on right now and that no server owns: the current theme, an unsaved multi-step draft, a live cursor. Persistent state is the subset that must outlive the session: preferences, drafts worth keeping, tokens with their own security rules.\n\nMoving state outward is a cost, not a default. Each step outward adds an audience that must be kept consistent, a lifetime that must be managed, and a place where stale values can hide.\n\n## Failure modes\n\nA filter kept in component state breaks back navigation and sharing. A server record mirrored into a global store creates two truths that drift after the first mutation. A flag hoisted \"in case\" others need it never comes back down. Persisting a server cache without a freshness rule serves yesterday's data confidently. URL state that encodes internal identifiers leaks implementation into bookmarks.\n\n## Runnable experiment\n\nSketch this decision table for one screen of your own product and check each row against the questions in the comments. The table is the experiment: it should change your mind about at least one value.\n\n```text\nvalue               | audience              | must survive        | placement\nsearch text (draft) | one input             | typing only         | local\napplied filters     | this screen + sharing | reload, back button | URL\nproduct list        | this screen           | until stale         | server cache (key: filters)\ncart badge count    | header + cart page    | navigation          | shared client (derived from server cache when possible)\ntheme               | whole app             | sessions            | persistent\n```\n\n## Practical exercise\n\nTake one screen and list every value it holds. For each, name the audience and lifetime, place it in one of the five stores, and justify the choice in one sentence. Then find one value currently placed too far out (a global that only one component reads) and one placed too far in (a filter that should be in the URL), move them, and record what changed for back navigation, sharing and mutation.\n",
+  "resources": [
+    {
+      "title": "History API and URL state",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/History_API",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "URLSearchParams",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/URLSearchParams",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "HTTP caching and freshness",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching",
+      "type": "documentation",
+      "why": "Freshness and validation rules that a client server-cache mirrors."
+    }
+  ],
+  "key_takeaways": [
+    "Place each value in the smallest store every reader can reach; moving outward is a cost.",
+    "URL state is what users share, bookmark and return to; server cache is a copy keyed by identity and freshness.",
+    "Never edit a server copy in a client store; mutate the source and invalidate or patch the key."
+  ],
+  "exercise": {
+    "title": "Re-place two values on one screen",
+    "instructions": "List every value one screen holds with its audience and lifetime, place each in one of the five stores with a one-sentence justification, then move one value inward and one outward and record the effect on back navigation, sharing and mutation.",
+    "starter_code": "value | audience | must survive | placement | why\n--- | --- | --- | --- | ---\n",
+    "deliverable": "A placement table for one screen plus a note on the two moved values.",
+    "hints": [
+      "Ask who must agree on the value and for how long before choosing a store.",
+      "If pressing back should change it, it belongs in the URL.",
+      "If a server owns it, keep one truth: cache it by key and invalidate on mutation."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Applied list filters that users share by link belong in which store?",
+      "kind": "mcq",
+      "choices": [
+        "Local component state",
+        "URL state",
+        "Shared client state",
+        "Persistent storage"
+      ],
+      "correct_answer": "URL state",
+      "explanation": "Shareable, bookmarkable and back-button-aware values live in the URL.",
+      "section": "Core mechanics",
+      "learning_objective": "Place shareable state in the URL"
+    },
+    {
+      "prompt": "A product record fetched from the API is copied into a global store and edited there. What is the defect?",
+      "kind": "mcq",
+      "choices": [
+        "Global stores cannot hold objects",
+        "Two truths now exist; the copy drifts from the server after the first mutation",
+        "The record should be in the URL",
+        "Fetching should happen in the store"
+      ],
+      "correct_answer": "Two truths now exist; the copy drifts from the server after the first mutation",
+      "explanation": "Server-owned data is a cache keyed by identity; mutate the source and invalidate the key.",
+      "section": "Failure modes",
+      "learning_objective": "Avoid duplicating server truth"
+    },
+    {
+      "prompt": "Which value is a good candidate for shared client state rather than a server cache?",
+      "kind": "mcq",
+      "choices": [
+        "A user's order history",
+        "An unsaved multi-step form draft that several steps edit",
+        "The product catalogue",
+        "The list of countries"
+      ],
+      "correct_answer": "An unsaved multi-step form draft that several steps edit",
+      "explanation": "No server owns the draft yet, and several parts of the tree must agree on it now.",
+      "section": "Core mechanics",
+      "learning_objective": "Recognize genuinely shared client state"
+    },
+    {
+      "prompt": "A modal's open flag was moved into a global store because a second component once needed to open it. Explain why that is a placement smell and what to do instead.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The flag's audience is now the whole app although one screen reads it, so every reader must handle its lifetime and stale values; the second component only needed to trigger an action. Keep the flag local to the owning component and expose an event or callback for the trigger, or lift it only to the nearest common parent.",
+      "explanation": "Hoisting widens the audience without a reason; lift to the nearest common owner or pass a trigger.",
+      "section": "Failure modes",
+      "learning_objective": "Diagnose over-hoisted state"
+    },
+    {
+      "prompt": "Why does persisting a server cache without a freshness rule produce confident stale data, and what rule fixes it?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Persistence keeps the copy across sessions, but a copy without a freshness or validation rule has no way to know the source changed, so it is served as if current. Store the fetch time or a validator with each key, treat entries as stale after a defined age, and revalidate or refetch on read.",
+      "explanation": "Copies need freshness metadata to stay honest.",
+      "section": "Failure modes",
+      "learning_objective": "Add freshness rules to persisted caches"
+    }
+  ]
+}

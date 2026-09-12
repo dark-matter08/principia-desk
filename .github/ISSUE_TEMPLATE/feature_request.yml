@@ -1,0 +1,22 @@
+name: Feature request
+description: Something the desk should do.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The situation, not the solution. What were you doing when you wanted this?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What the desk could do
+    validations:
+      required: true
+  - type: textarea
+    id: ways-out
+    attributes:
+      label: If it touches enforcement
+      description: A lock must always be escapable. Say how the ways out stay intact.

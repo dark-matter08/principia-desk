@@ -1,0 +1,23 @@
+---
+import Base from "../layouts/Base.astro";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { getSite } from "../lib/content";
+const site = getSite();
+const text = readFileSync(resolve(process.cwd(), "../LICENSE"), "utf8");
+const description = "Principia Desk is released under the MIT licence. Fonts and third-party components carry their own notices.";
+---
+<Base title={`Licence · ${site.name}`} description={description} path="/licence">
+  <section class="section">
+    <div class="frame prose">
+      <span class="eyebrow">Licence</span>
+      <h1>MIT.</h1>
+      <p>The desk, this site and the bundled curricula are released under the MIT licence, reproduced below from the repository. Third-party notices, including the fonts (Fraunces, Inter and JetBrains Mono under the SIL Open Font License), are in <a href="https://github.com/dark-matter08/system-design-roulette/blob/main/THIRD_PARTY_NOTICES.md" rel="noopener">THIRD_PARTY_NOTICES.md</a>.</p>
+      <pre><code>{text}</code></pre>
+    </div>
+  </section>
+</Base>
+<style>
+  h1 { font-size: clamp(30px, 4vw, 44px); margin: 12px 0 8px; color: var(--fg); }
+  pre { white-space: pre-wrap; margin-top: 18px; }
+</style>

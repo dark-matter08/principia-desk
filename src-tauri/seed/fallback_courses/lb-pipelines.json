@@ -1,0 +1,110 @@
+{
+  "slug": "lb-pipelines",
+  "kind": "advanced",
+  "title": "Pipelines and visible failure propagation",
+  "markdown": "## Why this matters\n\nA pipeline connects the standard output of one command to the standard input of the next. The connection is a stream, not a contract about success: the last command can finish happily while an earlier stage failed to read its input at all. A counting command that prints `0` after a missing file is the classic case. This lesson makes every stage's status visible before you trust a number.\n\n## The simple version\n\nPicture a bucket brigade. Each person passes whatever arrives to the next; the last person reports \"done\" even when the first bucket was empty because the well was dry. Bash reports the status of the last command in a pipeline as `$?`. To learn about the well, you have to ask every person in the line, immediately, before they move on.\n\nThe analogy breaks in one way: unlike people, the stages run concurrently. A downstream command can start consuming before the upstream one has failed, so partial output is possible.\n\n## Core mechanics\n\n`$?` after a pipeline is the exit status of the last command unless `pipefail` is set. `PIPESTATUS` is an array holding every stage's status in order, but it describes only the most recent pipeline and is replaced by the next command you run, including an `echo` you add to inspect it. Capture it on the same line or copy it into your own variable first.\n\n`set -o pipefail` changes `$?` to the status of the rightmost failing stage, which makes a hidden reader failure visible to `if`, `&&` and `||`. It does not stop the downstream stages from running; it only changes what the pipeline reports afterwards.\n\nA non-zero status is not always an error. `grep` exits with 1 when nothing matched and with 2 for a real problem such as an unreadable file. Read the manual page of each stage for the meaning of its statuses before treating them as failures.\n\n## Failure modes\n\nAdding `2>/dev/null` to quiet a stage also hides the evidence that would have explained a wrong count. Prefer capturing stderr to a file you can inspect. Using `$?` two lines after the pipeline reports the status of whatever ran in between. Enabling `pipefail` globally in an interactive shell can make legitimate \"no match\" results look like failures in scripts that check `$?` casually.\n\n## Runnable experiment\n\nRun this in Bash in a scratch directory. It creates no files and needs no elevated permissions. Predict each line before running it.\n\n```bash\ncat missing.log | wc -l\nprintf 'status=%s\\n' \"$?\"\n# 0: wc succeeded, so the pipeline \"succeeded\"\ncat missing.log | wc -l; printf 'stages=%s\\n' \"${PIPESTATUS[*]}\"\n# stages=1 0: cat failed, wc succeeded\nset -o pipefail\ncat missing.log | wc -l; printf 'status=%s\\n' \"$?\"\n# status=1: the reader failure is now visible\nset +o pipefail\nprintf 'a\\nb\\n' | grep -c a; printf 'status=%s\\n' \"$?\"\n# 1 then status=0: one match\nprintf 'a\\nb\\n' | grep -c z; printf 'status=%s\\n' \"$?\"\n# 0 then status=1: no match is status 1, not an error\n```\n\n## Practical exercise\n\nWrite a three-stage pipeline that reads a log file, filters ERROR lines and counts them. Run it against a present file, a missing file and an unreadable file (create one with `chmod 000`). For each run record the printed count, `$?`, and `PIPESTATUS` captured on the same line. Then enable `pipefail` and repeat. Explain which runs produced a misleading count and which mechanism exposed each failure.\n",
+  "resources": [
+    {
+      "title": "Pipelines",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Pipelines.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "The Set Builtin (pipefail)",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "Bash Variables (PIPESTATUS)",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "grep exit status",
+      "url": "https://www.gnu.org/software/grep/manual/html_node/Exit-Status.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "After a pipeline, $? is the last stage's status unless pipefail is set.",
+    "PIPESTATUS describes only the most recent pipeline; capture it immediately.",
+    "A non-zero status means what that command's manual says, not always an error."
+  ],
+  "exercise": {
+    "title": "Make every pipeline stage's status visible",
+    "instructions": "Write a three-stage pipeline that reads a log file, filters ERROR lines and counts them. Run it against a present file, a missing file and an unreadable file. For each run record the count, $? and PIPESTATUS captured on the same line, then repeat with pipefail enabled and explain which runs were misleading.",
+    "starter_code": "count_errors() {\n  cat -- \"$1\" | grep ERROR | wc -l\n  printf 'stages=%s\\n' \"${PIPESTATUS[*]}\"\n}\ncount_errors present.log\ncount_errors missing.log\n",
+    "deliverable": "A transcript of six runs (three files, pipefail off and on) with counts, statuses and a short explanation of each misleading result.",
+    "hints": [
+      "Capture PIPESTATUS on the same line as the pipeline or it describes your next command.",
+      "grep exits 1 for no match; decide whether that is a failure for your report.",
+      "Keep stderr visible or redirect it to a file you inspect; do not discard it."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "After `cat missing.log | wc -l`, what does `$?` report by default?",
+      "kind": "mcq",
+      "choices": [
+        "The status of cat",
+        "The status of wc",
+        "The highest status of any stage",
+        "The number of stages that failed"
+      ],
+      "correct_answer": "The status of wc",
+      "explanation": "Without pipefail, a pipeline's status is the exit status of its last command.",
+      "section": "Core mechanics",
+      "learning_objective": "Read a pipeline's default status correctly"
+    },
+    {
+      "prompt": "What does `set -o pipefail` change?",
+      "kind": "mcq",
+      "choices": [
+        "Downstream stages stop when an upstream stage fails",
+        "$? becomes the status of the rightmost failing stage",
+        "Every stage's stderr is suppressed",
+        "PIPESTATUS is cleared after each command"
+      ],
+      "correct_answer": "$? becomes the status of the rightmost failing stage",
+      "explanation": "pipefail changes only what the pipeline reports; the stages still run.",
+      "section": "Core mechanics",
+      "learning_objective": "Explain what pipefail does and does not do"
+    },
+    {
+      "prompt": "Why can `echo \"${PIPESTATUS[*]}\"` on the next line show a wrong value?",
+      "kind": "mcq",
+      "choices": [
+        "PIPESTATUS only exists inside functions",
+        "The array is replaced by the most recent command, including that echo",
+        "Arrays cannot hold more than one status",
+        "echo resets all shell variables"
+      ],
+      "correct_answer": "The array is replaced by the most recent command, including that echo",
+      "explanation": "PIPESTATUS describes the last pipeline run; inspect it on the same line or copy it first.",
+      "section": "Core mechanics",
+      "learning_objective": "Capture PIPESTATUS at the right moment"
+    },
+    {
+      "prompt": "`printf 'a\\n' | grep -c z` prints 0 and exits with status 1. What happened?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "No line matched, which grep reports as status 1. grep uses status 1 for no match and 2 for errors such as unreadable files.",
+      "explanation": "grep uses status 1 for no match and 2 for errors such as unreadable files.",
+      "section": "Failure modes",
+      "learning_objective": "Interpret a stage's status from its documentation"
+    },
+    {
+      "prompt": "A report shows 0 errors after `cat app.log | grep ERROR | wc -l`, but the file was missing. Explain why the count looked valid and how you would expose the failure.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "cat failed with a non-zero status, but wc read empty input and succeeded, so $? was 0 and the count was 0. Capture PIPESTATUS on the same line or enable pipefail so the pipeline reports cat's failure; keep cat's stderr visible.",
+      "explanation": "The last stage's success masked the reader failure; PIPESTATUS or pipefail makes it visible.",
+      "section": "Failure modes",
+      "learning_objective": "Diagnose a hidden upstream failure in a pipeline"
+    }
+  ]
+}

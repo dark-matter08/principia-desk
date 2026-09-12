@@ -13,7 +13,7 @@
       name: 'ADVISORY',
       tag: 'honor system',
       tone: 'teal',
-      desc: 'The window comes to front and stays on top, but nothing is blocked — you can switch apps, the session just stays owed and waits. For people who only need a nudge.',
+      desc: 'The window comes to front and stays on top, but nothing is blocked: you can switch apps, the session just stays owed and waits. For people who only need a nudge.',
       blocks: 'blocks: nothing',
     },
     {
@@ -21,7 +21,7 @@
       name: 'FIRM',
       tag: 'level 1000 · escapable',
       tone: 'amber',
-      desc: 'Full-screen above the menu bar, focus snaps back every 300ms, other displays sealed by the chaos lab, media paused and muted. Switching away is useless — but Force Quit and ⌘⌥⎋ still work if something goes wrong.',
+      desc: 'Full-screen above the menu bar, focus snaps back every 300ms, other displays sealed by the chaos lab, media paused and muted. Switching away is useless, but Force Quit and ⌘⌥⎋ still work if something goes wrong.',
       blocks: 'blocks: Dock, menu bar · keeps: Force Quit',
     },
     {
@@ -29,7 +29,7 @@
       name: 'HARD',
       tag: 'no mercy',
       tone: 'red',
-      desc: 'Everything in FIRM, plus ⌘Tab, Force Quit, ⌘⌥⎋, logout and shutdown are disabled while locked. The only exits are: finish the session, pass the 3-question exit check, or type the break-glass phrase (streak resets).',
+      desc: 'Everything in FIRM, plus ⌘Tab, Force Quit, ⌘⌥⎋, logout and shutdown are disabled while locked. The only exits are: finish the session, pass a perfect adaptive exit-check round, or type the break-glass phrase (streak resets).',
       blocks: 'blocks: ⌘Tab, Force Quit, logout, shutdown',
     },
   ];
@@ -58,7 +58,7 @@
   <div class="hard-warn mono">
     <TriangleAlert size={11} /> HARD means it: while locked, this machine does nothing else. If the app ever misbehaves
     mid-lock, recovery needs another machine or Safe Mode (see README → Recovery). The
-    white-screen guard and the ~/sdr-unlock back door remain as last resorts.
+    white-screen guard and the ~/principia-unlock release token remain as last resorts.
   </div>
 {/if}
 
@@ -76,7 +76,7 @@
     align-items: flex-start;
     background: var(--bg);
     border: 1px solid var(--node-border);
-    border-radius: 7px;
+    border-radius: var(--radius-control);
     padding: 8px 11px;
     cursor: pointer;
     text-align: left;
@@ -134,7 +134,7 @@
     color: var(--bad-fg);
     background: var(--bad-bg);
     border: 1px dashed var(--led-err);
-    border-radius: 7px;
+    border-radius: var(--radius-control);
     padding: 9px 12px;
   }
 </style>

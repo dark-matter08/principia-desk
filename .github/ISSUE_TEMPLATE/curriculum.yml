@@ -1,0 +1,30 @@
+name: Curriculum correction or proposal
+description: A wrong answer key, a dead source, a topic that should exist, or a whole class you built.
+labels: ["curriculum"]
+body:
+  - type: input
+    id: course
+    attributes:
+      label: Course and topic
+      placeholder: linux-bash · lb-quoting
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - A question's key is wrong
+        - A primary source is dead or wrong
+        - A topic brief is inaccurate
+        - A topic is missing
+        - A whole class (attach the exported .principia-class.json)
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: What is wrong, and what is right
+      description: Cite the primary source that settles it.
+    validations:
+      required: true

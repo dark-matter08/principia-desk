@@ -1,0 +1,104 @@
+{
+  "slug": "dt-lsp-protocol",
+  "kind": "advanced",
+  "title": "Language Server Protocol: requests, capabilities, sync",
+  "markdown": "## Why this matters\n\nLSP is how editors decouple UI from language intelligence. Capability negotiation and document sync modes determine latency, correctness, and memory use.\n\n## The simple version\n\nAn editor speaking LSP is like a customer calling a translation hotline instead of learning every language itself. The editor (client) just needs to know how to ask questions, \"what does this word mean here?\", \"where else is this used?\", in one standard format. The language server on the other end is the actual expert for one specific language, and it answers using the same standard format no matter which editor called. Neither side needs to know the other's internals; they only need to agree on the phrasebook.\n\n```mermaid\nsequenceDiagram\n  participant Editor as Editor (client)\n  participant Server as Language server\n  Editor->>Server: initialize (my capabilities)\n  Server->>Editor: capabilities (what I can answer)\n  Editor->>Server: textDocument/didChange (edit)\n  Editor->>Server: textDocument/hover (what is this?)\n  Server->>Editor: hover result\n```\n\nWhere the analogy breaks: a phone call to a hotline is stateless, the agent doesn't need to track everything you've said before to answer the next question well. A language server does need that memory: it must keep an accurate in-memory copy of every open file, kept in sync edit-by-edit, or its answers about \"this symbol\" become wrong the moment the document drifts from what the server thinks it looks like. The sync strategy (full document vs incremental edits) is really a cache-invalidation problem wearing a protocol's clothing.\n\n## Core mechanics\n\nClients and servers exchange `initialize`/capabilities. Text documents sync as full, incremental, or none. Requests like `definition`, `references`, and `codeAction` map to provider hooks on the server.\n\n## Mental model\n\nEditor is a thin client; server owns truth about symbols. Sync strategy is your cache invalidation problem.\n\n## Runnable experiment\n\n```bash\n# Run typescript-language-server with verbose logging and type a few characters\nnpx typescript-language-server --stdio --log-level 4\n# Watch the textDocument/didChange payloads in the log: full replacement vs a small range edit\n```\n\n## Trade-offs and failure modes\n\nIf a client claims incremental sync but sends a range that doesn't match the server's current copy of the document (a dropped or reordered message), the server's internal buffer silently diverges from reality, every subsequent answer is wrong until the next full sync.\n\n## Tool-building exercise\n\nPrototype a minimal LSP server replying to `textDocument/hover` with markdown derived from a line-based index.\n\n## Key takeaways\n\n- Capabilities gate features per client.\n- Incremental sync reduces bandwidth but complicates invalidation.\n- Positions are UTF-16 code units in LSP.",
+  "resources": [
+    {
+      "title": "Language Server Protocol",
+      "url": "https://microsoft.github.io/language-server-protocol/",
+      "type": "official protocol documentation",
+      "why": "Identifies LSP 3.18 as current and links the protocol overview and implementations."
+    },
+    {
+      "title": "Language Server Protocol 3.18 specification",
+      "url": "https://microsoft.github.io/language-server-protocol/specifications/lsp/3.18/specification/",
+      "type": "official specification",
+      "why": "Defines lifecycle, synchronization, capabilities, requests, diagnostics, progress, and position encodings."
+    },
+    {
+      "title": "Language Server Protocol 3.17 specification",
+      "url": "https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/",
+      "type": "official previous specification",
+      "why": "Useful for compatibility work with clients and servers that have not adopted 3.18."
+    }
+  ],
+  "key_takeaways": [
+    "LSP separates editor UI from language brains.",
+    "Sync mode is a performance contract.",
+    "Capabilities are negotiated at initialize; a server must not assume features the client did not advertise."
+  ],
+  "exercise": {
+    "title": "Trace a real LSP session",
+    "instructions": "Start `typescript-language-server` (or another server) with verbose logging and capture `initialize`, `didOpen`, two `didChange` messages, diagnostics, and `didClose`. Identify full versus incremental sync, position encoding, document versions, and whether diagnostics are pushed or pulled.\n\nAcceptance criteria: redact local paths; parse the JSON-RPC log with a small script; prove that document versions increase monotonically; include a non-BMP character to test position encoding; describe recovery from a dropped incremental edit; and define latency and memory telemetry for a multi-root workspace.",
+    "starter_code": "for (const line of logLines) {\n  const message = JSON.parse(line);\n  const method = message.method ?? '<response>';\n  const version = message.params?.textDocument?.version ?? '-';\n  console.log(method, version);\n}\n",
+    "deliverable": "A short capture log of the initialize exchange plus two didChange payloads, with a one-sentence answer on the dropped-message question for each sync mode.",
+    "hints": [
+      "Most editors have a 'show language server log' or 'output panel' command, check your client's LSP-related settings before trying to capture traffic manually.",
+      "Incremental sync payloads contain a `range` object; full sync payloads just contain the whole new `text`.",
+      "A dropped incremental edit desyncs the server's buffer from the real file permanently until a full resync; a dropped full-sync message just means one stale snapshot until the next edit."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "What does incremental sync require servers to handle?",
+      "kind": "mcq",
+      "choices": [
+        "Content-change events with ranges",
+        "Only full file replacements",
+        "Git diffs only",
+        "Binary patches always"
+      ],
+      "correct_answer": "Content-change events with ranges",
+      "explanation": "The misconception: assuming the server always gets the whole file on every keystroke. Incremental sync sends small range-based edits instead, which is faster over the wire but means the server must maintain an accurate running copy, any missed edit desyncs it.",
+      "section": "Core mechanics",
+      "learning_objective": "incremental sync sends ranged edits, not full documents"
+    },
+    {
+      "prompt": "Why negotiate capabilities at initialize?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Clients advertise supported features and servers declare what they can provide so both sides avoid unsupported requests and can pick optimal sync strategies.",
+      "explanation": "The misconception: assuming every LSP server speaks the entire spec. Like agreeing on a shared phrasebook before the call starts, capability negotiation lets each side only ask for (or promise) what it can actually handle.",
+      "section": "The simple version",
+      "learning_objective": "capability negotiation avoids unsupported requests on either side"
+    },
+    {
+      "prompt": "If client and server do not negotiate another position encoding, which units does LSP use by default?",
+      "kind": "mcq",
+      "choices": [
+        "UTF-16 code units",
+        "Unicode code points always",
+        "Bytes",
+        "Grapheme clusters"
+      ],
+      "correct_answer": "UTF-16 code units",
+      "explanation": "The misconception is assuming positions always count human-perceived characters or bytes. Modern LSP can negotiate supported encodings, but UTF-16 code units remain the compatibility default when another encoding is not agreed.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "understand UTF-16 as the default while respecting negotiated position encodings"
+    },
+    {
+      "prompt": "A server supports pull diagnostics but the client advertises only the older push model. What should the server do?",
+      "kind": "mcq",
+      "choices": [
+        "Honor negotiated capabilities and use a supported diagnostics path",
+        "Send pull-only requests anyway",
+        "Disable document synchronization",
+        "Convert diagnostics into hover responses"
+      ],
+      "correct_answer": "Honor negotiated capabilities and use a supported diagnostics path",
+      "explanation": "The misconception is treating the newest protocol feature as mandatory. Capability negotiation is the compatibility contract; a server must only use features the client says it understands or provide a documented fallback.",
+      "section": "Core mechanics",
+      "learning_objective": "gate protocol features on negotiated client and server capabilities"
+    },
+    {
+      "prompt": "An incremental `didChange` message is dropped and the server's document version skips from 14 to 16. Describe a safe recovery design and the telemetry you would record.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Detect the version gap, stop applying dependent ranged edits, request or trigger a full document resynchronization through the client integration, and avoid returning results from a known-stale buffer. Record version gaps, resync count, request latency, stale-result suppression, and server memory by workspace.",
+      "explanation": "The misconception is applying later ranges to a stale buffer and hoping a future edit repairs it. Incremental edits depend on exact prior text, so version validation and explicit resynchronization protect correctness.",
+      "section": "Production architecture lens",
+      "learning_objective": "recover safely from incremental document-version divergence"
+    }
+  ]
+}

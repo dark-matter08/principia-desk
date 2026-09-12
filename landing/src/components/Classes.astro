@@ -1,0 +1,37 @@
+---
+import type { Section } from "../lib/schema";
+type Classes = Extract<Section, { kind: "classes" }>;
+const { s } = Astro.props as { s: Classes };
+---
+<section class="section" id={s.key} aria-labelledby={`${s.key}-title`}>
+  <div class="frame">
+    <div class="section-head"><span class="eyebrow">{s.kicker}</span><h2 id={`${s.key}-title`}>{s.title}</h2>{s.lede && <p>{s.lede}</p>}</div>
+    <ul class="classes">
+      {s.items.map((c) => (
+        <li class="node cls">
+          <span class="code mono">{c.code}</span>
+          <span class="text"><strong>{c.name}</strong><small>{c.field}</small></span>
+          <i class="led ok" aria-hidden="true"></i>
+        </li>
+      ))}
+      <li class="node cls own">
+        <span class="code mono">+</span>
+        <span class="text"><strong>Your own</strong><small>drafted by your tutor, edited by you</small></span>
+        <i class="led accent" aria-hidden="true"></i>
+      </li>
+    </ul>
+    {s.note && <p class="note">{s.note}</p>}
+  </div>
+</section>
+<style>
+  .classes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .cls { display: flex; align-items: center; gap: 10px; padding: 12px 12px; }
+  .cls.own { border-style: dashed; border-color: color-mix(in srgb, var(--accent) 45%, var(--node-border)); }
+  .code { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--node-border); border-radius: 8px; background: var(--bg); color: var(--accent); font-size: 12px; }
+  .text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .text strong { font-size: 13.5px; font-weight: 500; }
+  .text small { font-size: 10.5px; color: var(--muted); }
+  .note { margin-top: 18px; font-size: 14px; color: var(--muted); max-width: 70ch; }
+  @media (max-width: 1000px) { .classes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 600px) { .classes { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>

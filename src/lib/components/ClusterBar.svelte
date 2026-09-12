@@ -14,7 +14,7 @@
 </script>
 
 <div class="cluster-bar">
-  <span class="path">sdr://{route} <span class="dim">·</span> cluster: local <span class="dim">·</span> region: home-1</span>
+  <span class="path">principia://{route} <span class="dim">·</span> cluster: local <span class="dim">·</span> region: home-1</span>
   <span class="status" style="color: {toneColor[tone]};">● {status}</span>
 </div>
 
@@ -33,5 +33,8 @@
   }
   .dim {
     color: var(--border);
+  }
+  @media (max-width: 720px) {
+    .cluster-bar { padding: 12px 18px 0; flex-wrap: wrap; gap: 5px 14px; font-size: 9px; letter-spacing: 0.5px; }
   }
 </style>

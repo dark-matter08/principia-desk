@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    system_design_roulette_lib::run()
+    principia_desk_lib::run()
 }

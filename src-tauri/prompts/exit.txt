@@ -1,19 +1,29 @@
-You are writing a 3-question exit check for a system design course the student claims to have just finished reading. Passing all 3 proves they actually absorbed it and unlocks the session early.
+You are writing an adaptive exit-check round for a {{FOCUS_LABEL}} course the student claims to have just finished reading. Passing every question proves they absorbed the course and unlocks the session early.
 
 Course markdown follows between the markers.
 ---COURSE START---
 {{COURSE}}
 ---COURSE END---
 
-Write exactly 3 multiple-choice questions:
-- They must test the core mechanics and trade-offs of THIS course — the things someone who skimmed would get wrong.
-- 4 plausible choices each, exactly one correct. Distractors must reflect real misconceptions, not obvious throwaways.
-- These are different from any end-of-course recap; do not reuse the course's own examples verbatim.
+Write exactly {{COUNT}} multiple-choice questions:
+- They must test the core mechanics and mental models of THIS course, what a skimmer would get wrong.
+{{TARGETING}}
+- 4 plausible choices each, exactly one correct. Distractors must reflect real misconceptions.
 - correct_answer is the exact text of the correct choice.
+- Use realistic production evidence and constraints where the course supports them: code, config, traces, performance timings, ownership boundaries, rollout failures, or browser behavior. Test the student's ability to apply the mental model, not repeat a definition.
+- Any multi-line code, configuration, log, trace, or file tree in a prompt or choice must be inside a Markdown fenced code block with an accurate language tag and a blank line before and after the fence. Use inline backticks only for short identifiers or expressions. Never indent code with spaces as a substitute for a fence.
+- Keep snippets focused (normally 4-12 lines) and include enough context to reason about them. Do not split one snippet across the prompt and choices.
+- Do not repeat or lightly rephrase any prior question listed below.
+- explanation: name the misconception a wrong answer reveals, then restate the correct mental model in plain language, an analogy is welcome when it clarifies faster than more prose. Keep it under 4 sentences.
+- section: the course's ## heading this question is drawn from.
+- learning_objective: a short (under 12 words) phrase naming the specific thing this question checks, e.g. "microtasks drain before the next macrotask".
+
+Prior questions to exclude:
+{{EXCLUSIONS}}
 
 Your entire final reply must be exactly one fenced JSON code block (```json ... ```) matching this schema, with no text before or after it:
 {
   "questions": [
-    { "prompt": string, "choices": [string,string,string,string], "correct_answer": string, "explanation": string }
+    { "prompt": string, "choices": [string,string,string,string], "correct_answer": string, "explanation": string, "section": string, "learning_objective": string }
   ]
 }

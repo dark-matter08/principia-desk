@@ -1,0 +1,104 @@
+{
+  "slug": "js-browser-security-model",
+  "kind": "retrieval",
+  "title": "CORS, CSP and the same-origin policy: retrieval check",
+  "markdown": "## Recall before you check\n\nThis retrieval pass revisits the browser security model without re-teaching it. Before opening the check, say in your own words what an origin is (scheme, host, port), what the same-origin policy blocks by default and what it does not, how CORS lets a server opt a cross-origin reader in with response headers, when the browser sends a preflight `OPTIONS` request, what `credentials: 'include'` requires of the server, and what a Content Security Policy restricts and reports.\n\n## What to bring back\n\n- Two URLs share an origin only when scheme, host and port all match; `https://app.example` and `https://api.example` are different origins.\n- The same-origin policy blocks reading cross-origin responses from scripts; it does not block sending simple requests or loading images and scripts.\n- CORS is enforced by the browser from response headers such as `Access-Control-Allow-Origin`; the request still reaches the server.\n- A preflight happens for non-simple requests: methods beyond GET/HEAD/POST, custom headers, or content types other than the three simple ones.\n- With credentials, the server must echo a specific origin and send `Access-Control-Allow-Credentials: true`; a wildcard is rejected.\n- CSP restricts which sources may load or execute; `report-to` or `report-uri` sends violation reports, and `script-src` with nonces or hashes replaces inline allowances.\n\nAnswer from memory first, then read the feedback.\n",
+  "resources": [
+    {
+      "title": "Same-origin policy",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    },
+    {
+      "title": "Cross-Origin Resource Sharing (CORS)",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    },
+    {
+      "title": "Content Security Policy",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP",
+      "type": "documentation",
+      "why": "MDN reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "An origin is scheme, host and port; CORS is enforced by the browser on the response.",
+    "Preflights come from non-simple methods, headers or content types.",
+    "CSP allows sources and reports violations; nonces or hashes replace unsafe-inline."
+  ],
+  "exercise": null,
+  "questions": [
+    {
+      "prompt": "Which pair of URLs shares an origin?",
+      "kind": "mcq",
+      "choices": [
+        "https://shop.example and https://shop.example:8443",
+        "https://shop.example/cart and https://shop.example/help",
+        "http://shop.example and https://shop.example",
+        "https://shop.example and https://api.shop.example"
+      ],
+      "correct_answer": "https://shop.example/cart and https://shop.example/help",
+      "explanation": "Only the path differs; scheme, host and port are identical.",
+      "section": "Retrieval",
+      "learning_objective": "Define an origin"
+    },
+    {
+      "prompt": "A cross-origin `fetch` fails with a CORS error in the console. What actually happened?",
+      "kind": "mcq",
+      "choices": [
+        "The request never left the browser",
+        "The request reached the server, but the response lacked headers allowing this origin to read it",
+        "The server returned 403",
+        "The browser blocked all cross-origin traffic"
+      ],
+      "correct_answer": "The request reached the server, but the response lacked headers allowing this origin to read it",
+      "explanation": "CORS gates reading the response in script; it is enforced from response headers.",
+      "section": "Retrieval",
+      "learning_objective": "Explain what a CORS failure means"
+    },
+    {
+      "prompt": "Which request triggers a preflight OPTIONS?",
+      "kind": "mcq",
+      "choices": [
+        "GET with no custom headers",
+        "POST with Content-Type: text/plain",
+        "PUT with Content-Type: application/json",
+        "A simple image load"
+      ],
+      "correct_answer": "PUT with Content-Type: application/json",
+      "explanation": "PUT and application/json are outside the simple-request rules.",
+      "section": "Retrieval",
+      "learning_objective": "Predict when a preflight occurs"
+    },
+    {
+      "prompt": "A credentialed cross-origin request needs which server response?",
+      "kind": "mcq",
+      "choices": [
+        "Access-Control-Allow-Origin: *",
+        "A specific Access-Control-Allow-Origin plus Access-Control-Allow-Credentials: true",
+        "No CORS headers at all",
+        "Only Access-Control-Allow-Credentials: true"
+      ],
+      "correct_answer": "A specific Access-Control-Allow-Origin plus Access-Control-Allow-Credentials: true",
+      "explanation": "Wildcards are rejected for credentialed requests.",
+      "section": "Retrieval",
+      "learning_objective": "Configure CORS with credentials"
+    },
+    {
+      "prompt": "What replaces `'unsafe-inline'` for scripts in a Content Security Policy?",
+      "kind": "mcq",
+      "choices": [
+        "Setting script-src to *",
+        "Nonces or hashes on the allowed inline scripts",
+        "Disabling CSP reporting",
+        "Moving scripts to a different origin"
+      ],
+      "correct_answer": "Nonces or hashes on the allowed inline scripts",
+      "explanation": "A nonce or hash allows specific inline scripts without opening all inline execution.",
+      "section": "Retrieval",
+      "learning_objective": "Harden CSP for scripts"
+    }
+  ]
+}

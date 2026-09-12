@@ -1,8 +1,28 @@
 {
   "slug": "rate-limiting",
+  "kind": "advanced",
   "title": "Rate limiting algorithms",
-  "markdown": "## Why this matters\n\nEvery public-facing system eventually meets a client that misbehaves — a buggy retry loop, a scraper, or an attacker. Rate limiting is the mechanism that converts \"one bad client takes down the service\" into \"one bad client gets 429s.\" It also shows up constantly in interviews because it touches state, distribution, and accuracy trade-offs in a small package.\n\n## Core mechanics\n\n### Token bucket\nA bucket holds up to `B` tokens, refilled at `r` tokens/second. Each request consumes one token; an empty bucket means reject (or queue). Token bucket allows bursts up to `B` while enforcing a long-term rate of `r`. Implementation is two numbers per key — `tokens` and `last_refill` — updated lazily on each request:\n\n```\ntokens = min(B, tokens + (now - last_refill) * r)\nif tokens >= 1: tokens -= 1; allow\nelse: reject\n```\n\n### Leaky bucket\nRequests enter a FIFO queue drained at a constant rate. Output traffic is perfectly smooth, but bursts pay latency (they wait in the queue) instead of being served immediately. Used where downstream must see a constant rate (e.g., feeding a fragile legacy system).\n\n### Fixed window counter\nCount requests per key per window (e.g., per minute); reject above the limit. Cheap, but suffers the boundary problem: a client can send the full limit at 0:59 and again at 1:01 — double the intended rate across the boundary.\n\n### Sliding window log\nStore a timestamp per request; count timestamps in the trailing window. Exact, but O(limit) memory per key — expensive at scale.\n\n### Sliding window counter\nThe practical compromise: weight the previous window's count by its overlap with the trailing window: `est = curr + prev * overlap_fraction`. Near-exact with O(1) memory.\n\n### Distributed enforcement\nA single Redis instance with an atomic Lua script is the standard centralized design: accurate, simple, but adds a network hop and a single point of failure. Local in-process limiters per node are fast but enforce `limit × N` globally. Common production pattern: local limiter for cheap first-pass + async-synced global budget, accepting small overshoot in exchange for availability — rate limiters should fail open for most products.\n\n## Trade-offs and failure modes\n\n- Accuracy vs cost: sliding log is exact and expensive; fixed window is cheap and gameable; sliding counter is the usual sweet spot.\n- Fail open vs fail closed: if Redis is down, do you let traffic through (availability) or block it (protection)? Decide per endpoint — login should fail closed, feed reads fail open.\n- Hot keys: a single popular API key hammers one Redis shard. Mitigate by sharding the counter and summing, accepting approximation.\n- Retry amplification: returning 429 without `Retry-After` teaches clients to hammer. Always return `Retry-After` and document jittered backoff.\n\n## Real-world example\n\nStripe rate limits with token buckets in Redis, with separate limiters for different concerns: a request rate limiter, a concurrency limiter, and load shedders that prioritize critical traffic when the fleet is degraded. The insight worth stealing: rate limiting is not one limiter — it's layers with different blast radii.\n\n## Interview framing\n\nState the algorithm menu quickly, pick token bucket or sliding window counter, then spend your time on the distributed question: where does the counter live, what happens when it's unavailable, and how clients should react (429 + Retry-After + jittered backoff). Mention per-user vs per-IP vs global keys and that the limiter itself must be cheaper than the work it protects.\n\n## Key takeaways\n\n- Token bucket = sustained rate + bounded burst with O(1) state; it is the default answer.\n- Fixed windows are gameable at boundaries; sliding window counter fixes this at O(1) cost.\n- The hard part is distribution: centralized-accurate vs local-fast, and fail-open vs fail-closed.\n- Always return Retry-After; a limiter without client guidance creates retry storms.",
-  "resources": [],
+  "markdown": "## Why this matters\n\nEvery public-facing system eventually meets a client that misbehaves, a buggy retry loop, a scraper, or an attacker. Rate limiting is the mechanism that converts \"one bad client takes down the service\" into \"one bad client gets 429s.\" It also shows up constantly in interviews because it touches state, distribution, and accuracy trade-offs in a small package.\n\n## The simple version\n\nThink of a nightclub with one bouncer and a fixed-size jar of drink tickets that refills at a steady drip. Every time someone wants a drink, they hand over one ticket; if the jar is empty, they wait. That's a **token bucket**: it refills at a steady rate but lets you spend a burst of saved-up tickets all at once if you haven't been drinking for a while.\n\nA **leaky bucket** is a different bouncer policy: instead of tickets, there's a single line into the club, and exactly one person is let in every few seconds no matter how many are waiting. No bursts, everyone waits their turn at a constant rate.\n\n```mermaid\nflowchart LR\n  subgraph TokenBucket [Token bucket]\n    Refill[Steady drip fills jar] --> Jar[\"Jar (up to B tickets)\"]\n    Jar --> Spend[Burst: spend several tickets at once]\n  end\n  subgraph LeakyBucket [Leaky bucket]\n    Queue[Requests queue up] --> Drain[Drain at fixed rate]\n    Drain --> Steady[Perfectly steady output]\n  end\n```\n\nWhere the analogy breaks: real bouncers can use judgment, TypeScript's token bucket and the software leaky bucket cannot. They're pure arithmetic, which is exactly why they're cheap (two numbers of state) but also why the *fixed window counter* variant has a sharp edge no bouncer would tolerate: it resets its count at a clock boundary, so a client can spend a full window's allowance at 0:59 and another full allowance at 1:01, double the intended rate for two seconds, purely because the counter reset rather than genuinely sliding forward in time.\n\nThe analogy breaks at distribution: separate ticket jars cannot enforce one exact global budget without coordination.\n\n## Core mechanics\n\n### Token bucket\nA bucket holds up to `B` tokens, refilled at `r` tokens/second. Each request consumes one token; an empty bucket means reject (or queue). Token bucket allows bursts up to `B` while enforcing a long-term rate of `r`. Implementation is two numbers per key`tokens` and `last_refill`updated lazily on each request:\n\n```\ntokens = min(B, tokens + (now - last_refill) * r)\nif tokens >= 1: tokens -= 1; allow\nelse: reject\n```\n\n### Leaky bucket\nRequests enter a FIFO queue drained at a constant rate. Output traffic is perfectly smooth, but bursts pay latency (they wait in the queue) instead of being served immediately. Used where downstream must see a constant rate (e.g., feeding a fragile legacy system).\n\n### Fixed window counter\nCount requests per key per window (e.g., per minute); reject above the limit. Cheap, but suffers the boundary problem described above.\n\n### Sliding window log\nStore a timestamp per request; count timestamps in the trailing window. Exact, but O(limit) memory per key, expensive at scale.\n\n### Sliding window counter\nThe practical compromise: weight the previous window's count by its overlap with the trailing window: `est = curr + prev * overlap_fraction`. Near-exact with O(1) memory.\n\n### Distributed enforcement\nA single Redis instance with an atomic Lua script is the standard centralized design: accurate, simple, but adds a network hop and a single point of failure. Local in-process limiters per node are fast but enforce `limit × N` globally. Common production pattern: local limiter for cheap first-pass + async-synced global budget, accepting small overshoot in exchange for availability, rate limiters should fail open for most products.\n\n## Trade-offs and failure modes\n\n- Accuracy vs cost: sliding log is exact and expensive; fixed window is cheap and gameable; sliding counter is the usual sweet spot.\n- Fail open vs fail closed: if Redis is down, do you let traffic through (availability) or block it (protection)? Decide per endpoint, login should fail closed, feed reads fail open.\n- Hot keys: a single popular API key hammers one Redis shard. Mitigate by sharding the counter and summing, accepting approximation.\n- Retry amplification: returning 429 without `Retry-After` teaches clients to hammer. Always return `Retry-After` and document jittered backoff.\n\n## Real-world example\n\nStripe rate limits with token buckets in Redis, with separate limiters for different concerns: a request rate limiter, a concurrency limiter, and load shedders that prioritize critical traffic when the fleet is degraded. The insight worth stealing: rate limiting is not one limiter, it's layers with different blast radii.\n\n## Interview framing\n\nState the algorithm menu quickly, pick token bucket or sliding window counter, then spend your time on the distributed question: where does the counter live, what happens when it's unavailable, and how clients should react (429 + Retry-After + jittered backoff). Mention per-user vs per-IP vs global keys and that the limiter itself must be cheaper than the work it protects.\n\n## Key takeaways\n\n- Token bucket = sustained rate + bounded burst with O(1) state; it is the default answer.\n- Fixed windows are gameable at boundaries; sliding window counter fixes this at O(1) cost.\n- The hard part is distribution: centralized-accurate vs local-fast, and fail-open vs fail-closed.\n- Always return Retry-After; a limiter without client guidance creates retry storms.\n\n## Runnable experiment\n\nRun this deterministic single-process model with Node.js. Time is supplied in seconds rather than read from a wall clock. Change the capacity to one and predict the new trace. This model does not include concurrent writes or distributed failure.\n\n```js\nlet tokens = 3, last = 0;\nfunction allow(now) {\n  tokens = Math.min(3, tokens + (now - last));\n  last = now;\n  if (tokens < 1) return false;\n  tokens -= 1; return true;\n}\nconsole.log([0, 0, 0, 0, 1].map(allow));\n// true, true, true, false, true\n```\n\n## Practical exercise\n\nImplement a token bucket and a fixed window counter as small, dependency-free functions or classes keyed by client id. Write a test harness that fires a burst of 20 requests instantly, then a steady drip of 1 request/second for 10 seconds, against both limiters with the same nominal rate. Record which requests each limiter allows or rejects, and write 2-3 sentences on where their behavior diverges and why.\n\nDeliverable: A timestamped allow/reject log for both limiters covering the burst and the steady drip, plus 2-3 sentences on where their behavior diverges.\n\n## Sources\n\n- [Primary reference 1: www.rfc-editor.org](https://www.rfc-editor.org/rfc/rfc6585.html)\n- [Primary reference 2: redis.io](https://redis.io/docs/latest/develop/programmability/eval-intro/)\n- [Primary reference 3: sre.google](https://sre.google/sre-book/handling-overload/)\n",
+  "resources": [
+    {
+      "title": "Primary reference 1: www.rfc-editor.org",
+      "url": "https://www.rfc-editor.org/rfc/rfc6585.html",
+      "type": "documentation",
+      "why": "Supports the mechanisms and failure assumptions explored in this lesson."
+    },
+    {
+      "title": "Primary reference 2: redis.io",
+      "url": "https://redis.io/docs/latest/develop/programmability/eval-intro/",
+      "type": "documentation",
+      "why": "Supports the mechanisms and failure assumptions explored in this lesson."
+    },
+    {
+      "title": "Primary reference 3: sre.google",
+      "url": "https://sre.google/sre-book/handling-overload/",
+      "type": "documentation",
+      "why": "Supports the mechanisms and failure assumptions explored in this lesson."
+    }
+  ],
   "key_takeaways": [
     "Token bucket gives sustained rate plus bounded burst with two numbers of state per key.",
     "Fixed window counters allow 2x rate at window boundaries; sliding window counters fix this cheaply.",
@@ -10,13 +30,31 @@
     "Decide fail-open vs fail-closed per endpoint, not globally.",
     "Return Retry-After or you convert rejected traffic into retry storms."
   ],
+  "exercise": {
+    "title": "Implement and compare two limiters",
+    "instructions": "Implement a token bucket and a fixed window counter as small, dependency-free functions or classes keyed by client id. Write a test harness that fires a burst of 20 requests instantly, then a steady drip of 1 request/second for 10 seconds, against both limiters with the same nominal rate. Record which requests each limiter allows or rejects, and write 2-3 sentences on where their behavior diverges and why.",
+    "starter_code": "class TokenBucket {\n  constructor(capacity, refillPerSecond) {\n    this.capacity = capacity;\n    this.tokens = capacity;\n    this.refillPerSecond = refillPerSecond;\n    this.lastRefill = Date.now();\n  }\n  allow() {\n    const now = Date.now();\n    const elapsed = (now - this.lastRefill) / 1000;\n    this.tokens = Math.min(this.capacity, this.tokens + elapsed * this.refillPerSecond);\n    this.lastRefill = now;\n    if (this.tokens >= 1) { this.tokens -= 1; return true; }\n    return false;\n  }\n}\n\nclass FixedWindowCounter {\n  constructor(limit, windowMs) {\n    this.limit = limit;\n    this.windowMs = windowMs;\n    this.windowStart = Date.now();\n    this.count = 0;\n  }\n  allow() {\n    const now = Date.now();\n    if (now - this.windowStart >= this.windowMs) {\n      this.windowStart = now;\n      this.count = 0;\n    }\n    this.count += 1;\n    return this.count <= this.limit;\n  }\n}\n\n// TODO: fire a 20-request burst, then 1 req/s for 10s, against both, and log allow/reject per request\n",
+    "deliverable": "A timestamped allow/reject log for both limiters covering the burst and the steady drip, plus 2-3 sentences on where their behavior diverges.",
+    "hints": [
+      "To see the fixed-window boundary bug clearly, time your burst so it straddles a window edge on purpose.",
+      "The token bucket should allow the initial burst up to its capacity and then throttle to the refill rate, that's the behavior to verify first.",
+      "Log a timestamp with each allow/reject decision so you can see the boundary effect in the printed output, not just count totals."
+    ]
+  },
   "questions": [
     {
       "prompt": "A client sends its full per-minute limit at 0:59 and again at 1:01, getting double throughput. Which algorithm has this flaw?",
       "kind": "mcq",
-      "choices": ["Token bucket", "Fixed window counter", "Sliding window log", "Leaky bucket"],
+      "choices": [
+        "Token bucket",
+        "Fixed window counter",
+        "Sliding window log",
+        "Leaky bucket"
+      ],
       "correct_answer": "Fixed window counter",
-      "explanation": "Fixed windows reset the count at the boundary, so back-to-back bursts on either side of it both pass. Sliding window approaches exist precisely to fix this."
+      "explanation": "The misconception: assuming all counters behave the same near a boundary. Fixed windows reset the count at the clock boundary rather than genuinely sliding, so back-to-back bursts on either side of it both pass, sliding window approaches exist precisely to fix this.",
+      "section": "Core mechanics",
+      "learning_objective": "fixed window counters double-allow bursts at window boundaries"
     },
     {
       "prompt": "Why does a token bucket allow bursts while a leaky bucket does not?",
@@ -28,14 +66,41 @@
         "They behave identically; the names are historical"
       ],
       "correct_answer": "Token bucket stores accumulated capacity that a burst can spend at once; leaky bucket drains at a constant rate so bursts queue",
-      "explanation": "Idle time fills the token bucket up to B tokens, which a burst can spend immediately. The leaky bucket's constant drain rate smooths output, making bursts wait."
+      "explanation": "The misconception: treating the two buckets as interchangeable. Like the club analogy, a jar of saved-up tickets can be spent all at once, while a one-person-at-a-time doorway can't ever let a burst through faster than its fixed drain rate.",
+      "section": "The simple version",
+      "learning_objective": "token bucket permits bursts by spending accumulated capacity; leaky bucket smooths to a constant rate"
     },
     {
       "prompt": "Your Redis-backed global rate limiter becomes unreachable. What should the API do, and why might the answer differ between the login endpoint and the feed endpoint?",
       "kind": "free",
       "choices": null,
       "correct_answer": "Most endpoints should fail open (allow traffic) because the limiter protects capacity and availability matters more than perfect limiting. Login should fail closed or fall back to a strict local limiter because rate limiting there is a security control against credential stuffing, and failing open removes that protection.",
-      "explanation": "The decision hinges on what the limiter protects: capacity (fail open) versus abuse/security (fail closed). Stating a single global answer misses the point."
+      "explanation": "The misconception: assuming there's one correct global answer. The decision hinges on what the limiter protects, plain capacity (fail open) versus abuse/security (fail closed), and that differs per endpoint.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "fail-open vs fail-closed depends on what the limiter is protecting"
+    },
+    {
+      "prompt": "Two workers read the same remaining token then both decrement it. What prevents both from admitting a request?",
+      "kind": "mcq",
+      "choices": [
+        "A longer TTL",
+        "An atomic admission-and-update operation",
+        "A larger JSON response",
+        "A client-side counter"
+      ],
+      "correct_answer": "An atomic admission-and-update operation",
+      "explanation": "Checking and updating separately creates a race; the decision and state transition must share an atomic boundary.",
+      "section": "Core mechanics",
+      "learning_objective": "Identify the atomic boundary of a distributed limiter"
+    },
+    {
+      "prompt": "A limiter permits 100 requests per fixed minute. Give a timestamped two-burst trace that exceeds 100 requests in a rolling minute.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Send 100 requests just before a window reset and 100 just after it; both fixed windows admit their allowance while a rolling minute contains 200.",
+      "explanation": "The reset is aligned with the fixed clock boundary rather than with each request history.",
+      "section": "Core mechanics",
+      "learning_objective": "Demonstrate a fixed-window boundary burst"
     }
   ]
 }

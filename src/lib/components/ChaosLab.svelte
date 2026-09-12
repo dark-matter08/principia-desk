@@ -120,7 +120,7 @@
 
 <div class="lab blueprint theme-noir">
   <div class="lab-top mono">
-    <span>sdr://chaos-lab · this display is sealed — the session runs on your main screen</span>
+    <span>sdr://chaos-lab · this display is sealed; the session runs on your main screen</span>
     {#if mmss}<span class="ttl">TTL {mmss}</span>{/if}
   </div>
 
@@ -173,7 +173,7 @@
     <span class="stat ok">200 OK: {served}</span>
     <span class="stat err">DLQ: {dlq}</span>
     <span class="stat warn">cache misses: {cacheMisses}</span>
-    <span class="stat" class:err={breakerOpen}>{breakerOpen ? 'CIRCUIT BREAKER OPEN — failing fast' : 'breaker: closed'}</span>
+    <span class="stat" class:err={breakerOpen}>{breakerOpen ? 'CIRCUIT BREAKER OPEN · failing fast' : 'breaker: closed'}</span>
   </div>
 </div>
 

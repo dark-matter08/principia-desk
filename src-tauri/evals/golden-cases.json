@@ -1,0 +1,58 @@
+[
+  {
+    "slug": "js-event-loop",
+    "dossier": "Day 4. The learner can explain promises but confuses microtask checkpoints with rendering opportunities. No cumulative browser trace exists yet."
+  },
+  {
+    "slug": "js-navigation-api",
+    "dossier": "Day 18. History and bfcache are practiced. The learner needs a production navigation failure investigation and progressive-enhancement decision."
+  },
+  {
+    "slug": "ts-generics-variance",
+    "dossier": "Day 6. Structural typing is practiced. The learner previously exposed an unreadable generic component API and needs to understand assignability."
+  },
+  {
+    "slug": "ts-runtime-schema-libraries",
+    "dossier": "Day 20. Runtime validation boundaries are practiced. The learner must choose between handwritten, generated, and schema-first validation."
+  },
+  {
+    "slug": "fa-rendering-strategy",
+    "dossier": "Day 8. The learner knows rendering vocabulary but has not made route-level decisions from latency, cache, accessibility, and ownership evidence."
+  },
+  {
+    "slug": "fa-auth-session-bff",
+    "dossier": "Day 21. Security trust boundaries are practiced. The learner needs an explicit browser, BFF, identity-provider, and refresh failure model."
+  },
+  {
+    "slug": "dt-ast-parsing",
+    "dossier": "Day 3. The learner has used codemods but cannot explain concrete syntax trees, source ranges, or safe transformation invariants."
+  },
+  {
+    "slug": "dt-webpack-vite-rspack-migration",
+    "dossier": "Day 28. Bundler graphs and deterministic CI are practiced. The learner needs a measured migration and rollback artifact for a large monorepo."
+  },
+  {
+    "slug": "cap-theorem",
+    "dossier": "The learner is new to distributed systems and equates availability with a host being powered on. Use a concrete partition timeline and avoid unexplained consistency vocabulary."
+  },
+  {
+    "slug": "design-kv-store",
+    "dossier": "The learner knows replication and hash rings but has not stated how concurrent versions and node failure affect returned values. Require a falsifiable consistency contract."
+  },
+  {
+    "slug": "lb-quoting",
+    "dossier": "The learner can navigate directories but has only used filenames without spaces. Teach argument boundaries before introducing any file-changing operations in the lab."
+  },
+  {
+    "slug": "lb-log-investigation",
+    "dossier": "The learner already uses pipelines and permissions but mistakes temporal correlation for proof. Require command evidence and comparison of two hypotheses from supplied logs."
+  },
+  {
+    "slug": "bs-error-handling",
+    "dossier": "The learner uses functions and arrays but assumes set -e catches every failure. Require a conditional-context example and preservation of the original exit status."
+  },
+  {
+    "slug": "bs-capstone",
+    "dossier": "The learner has practiced automation and recovery. Require concrete tests for empty input, unusual filenames, interruption and repeat execution before claiming the tool is reliable."
+  }
+]

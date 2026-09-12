@@ -1,0 +1,28 @@
+---
+import Shot from "./Shot.astro";
+import type { Section } from "../lib/schema";
+type Showcase = Extract<Section, { kind: "showcase" }>;
+const { s } = Astro.props as { s: Showcase };
+---
+<section class="section" id={s.key} aria-labelledby={`${s.key}-title`}>
+  <div class="frame">
+    <div class:list={["show", { flip: s.flip }]}>
+      <div class="copy">
+        <span class="eyebrow">{s.kicker}</span>
+        <h2 id={`${s.key}-title`}>{s.title}</h2>
+        {s.body.map((p) => <p set:html={p} />)}
+        {s.links.length > 0 && <div class="links">{s.links.map((l) => <a href={l.href} class:list={["key", l.primary ? "cta" : "ghost"]} rel={l.href.startsWith("http") ? "noopener" : undefined}>{l.label}</a>)}</div>}
+      </div>
+      <div class="pic"><Shot figure={s.figure} label={`principia://${s.key}`} /></div>
+    </div>
+  </div>
+</section>
+<style>
+  .show { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 40px; align-items: center; }
+  .show.flip .copy { order: 2; } .show.flip .pic { order: 1; }
+  .copy { display: flex; flex-direction: column; gap: 14px; }
+  .copy p { font-size: 15.5px; line-height: 1.65; color: var(--muted); }
+  .copy :global(strong) { color: var(--fg); font-weight: 500; }
+  .links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+  @media (max-width: 900px) { .show { grid-template-columns: 1fr; } .show.flip .copy { order: 1; } .show.flip .pic { order: 2; } }
+</style>

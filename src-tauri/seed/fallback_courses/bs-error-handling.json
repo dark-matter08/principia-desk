@@ -1,0 +1,104 @@
+{
+  "slug": "bs-error-handling",
+  "kind": "advanced",
+  "title": "Failure propagation and the limits of strict mode",
+  "markdown": "## Why this matters\n\nAutomation needs a clear contract when a command fails. A script that prints a plausible report and exits successfully after losing its input can mislead the next scheduled job. We will expose a hidden pipeline failure and then make a publication decision depend on a checked result.\n\n## The simple version\n\nImagine a relay team where only the last runner reports the result. If an earlier runner dropped the package, the final runner's successful arrival is insufficient evidence that the delivery worked. The analogy breaks because Bash offers explicit status rules: `pipefail` changes which pipeline status is reported, but it cannot infer whether a nonzero result is an expected condition or a broken operation.\n\n## Core mechanics\n\nA command's exit status is a small integer, independent of its stdout and stderr. A pipeline normally reports the last command's status. With `pipefail`, it reports the rightmost nonzero status, or zero when all stages succeed. Capture `$?` immediately: a later command replaces it. When every stage matters, capture `PIPESTATUS` immediately as an array; reading a later status cannot recover an overwritten pipeline history.\n\n`set -e` depends on syntactic context. Commands used as conditions and several parts of command lists do not trigger automatic exit in the same way as ordinary simple commands. Functions called in those contexts can also behave differently. A function responsible for an important operation should explicitly detect and return failures rather than relying on a global option to enforce its contract.\n\nAn `if command; then ... else ... fi` statement lets the caller distinguish success from failure. Save the failed status at the beginning of the else branch. In particular, `if ! command` negates the status; reading `$?` afterward gives the negated result, not the original failure code.\n\n## Failure modes\n\nOutput is not proof of success. A command can print partial data before returning nonzero. Keep a final published file unchanged until the complete staged output has passed validation. This reference experiment prints only messages; the later atomic-output unit adds temporary files and replacement rules.\n\nStrict options can be useful defaults, but they supplement explicit contracts. Test failures in pipelines, conditions and functions, and state which nonzero statuses your CLI treats as expected outcomes.\n\n## Runnable experiment\n\nRun this in Bash in your own terminal. It creates no files and requires no elevated permissions. Predict the output before running it.\n\n```bash\n# A subshell keeps these option changes out of your interactive shell.\n(\n  set +e\n  set +o pipefail\n  false | cat\n  printf 'without pipefail: %s\\n' \"$?\"\n  set -o pipefail\n  false | cat\n  printf 'with pipefail: %s\\n' \"$?\"\n)\n# Expected statuses: 0 then 1.\nproduce_report() {\n  printf '%s\\n' 'starting report' >&2\n  return 7\n}\nif produce_report; then\n  printf '%s\\n' 'publish report'\nelse\n  report_status=$?\n  printf 'report failed: %s\\n' \"$report_status\" >&2\nfi\n# The publish message must never appear.\n```\n\n## Practical exercise\n\nTurn the demonstration into a tiny CLI with a producer function and an explicit success/failure branch. Let a test argument choose producer status 0 or 7. Assert that only success prints a publication message, failure writes a diagnostic to stderr, and the CLI returns the original failure status. Add a pipeline case whose first stage fails and final stage succeeds.\n\nDeliverable: A script plus command transcripts showing status, stdout and stderr for success, producer failure and pipeline failure.\n\n## Key takeaways\n\n- Check status independently of printed output.\n- Pipeline and errexit behavior have specific rules and contexts.\n- Preserve failure status and publish only validated complete output.\n\n## Sources\n\n- [The Set Builtin](https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html)\n- [Pipelines](https://www.gnu.org/software/bash/manual/html_node/Pipelines.html)\n- [Exit Status](https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html)\n",
+  "resources": [
+    {
+      "title": "The Set Builtin",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/The-Set-Builtin.html",
+      "type": "documentation",
+      "why": "Bash reference for the command behavior exercised here."
+    },
+    {
+      "title": "Pipelines",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Pipelines.html",
+      "type": "documentation",
+      "why": "Bash reference for the command behavior exercised here."
+    },
+    {
+      "title": "Exit Status",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Exit-Status.html",
+      "type": "documentation",
+      "why": "Bash reference for the command behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "Check status independently of printed output.",
+    "Pipeline and errexit behavior have specific rules and contexts.",
+    "Preserve failure status and publish only validated complete output."
+  ],
+  "exercise": {
+    "title": "Do not publish after a failed producer",
+    "instructions": "Turn the demonstration into a tiny CLI with a producer function and an explicit success/failure branch. Let a test argument choose producer status 0 or 7. Assert that only success prints a publication message, failure writes a diagnostic to stderr, and the CLI returns the original failure status. Add a pipeline case whose first stage fails and final stage succeeds.",
+    "starter_code": "# A subshell keeps these option changes out of your interactive shell.\n(\n  set +e\n  set +o pipefail\n  false | cat\n  printf 'without pipefail: %s\\n' \"$?\"\n  set -o pipefail\n  false | cat\n  printf 'with pipefail: %s\\n' \"$?\"\n)\n# Expected statuses: 0 then 1.\nproduce_report() {\n  printf '%s\\n' 'starting report' >&2\n  return 7\n}\nif produce_report; then\n  printf '%s\\n' 'publish report'\nelse\n  report_status=$?\n  printf 'report failed: %s\\n' \"$report_status\" >&2\nfi\n# The publish message must never appear.",
+    "deliverable": "A script plus command transcripts showing status, stdout and stderr for success, producer failure and pipeline failure.",
+    "hints": [
+      "Save $? as the first operation in the failure branch.",
+      "Test the whole CLI from a child Bash process so its exit code is observable.",
+      "A test should fail when publication appears after a producer failure."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "With pipefail disabled, false | cat finishes with which status?",
+      "kind": "mcq",
+      "choices": [
+        "Always one",
+        "Zero if cat succeeds",
+        "The sum of all statuses",
+        "The status of false"
+      ],
+      "correct_answer": "Zero if cat succeeds",
+      "explanation": "By default a pipeline uses the final command status, so the earlier failure can be masked.",
+      "section": "Core mechanics",
+      "learning_objective": "Identify default pipeline status"
+    },
+    {
+      "prompt": "What does pipefail report when two pipeline stages fail?",
+      "kind": "mcq",
+      "choices": [
+        "The first status chronologically",
+        "The rightmost nonzero status",
+        "Always 255",
+        "Zero after output is printed"
+      ],
+      "correct_answer": "The rightmost nonzero status",
+      "explanation": "It selects the rightmost failing stage, not the first failure or a sum.",
+      "section": "Core mechanics",
+      "learning_objective": "Interpret pipefail with multiple failed stages"
+    },
+    {
+      "prompt": "Where should a caller save $? after entering the else branch of if producer?",
+      "kind": "mcq",
+      "choices": [
+        "After printing a diagnostic",
+        "After cleanup",
+        "Before running any other command",
+        "Only after the script finishes"
+      ],
+      "correct_answer": "Before running any other command",
+      "explanation": "Each command can replace the current status, including a diagnostic printf.",
+      "section": "Core mechanics",
+      "learning_objective": "Preserve the producer failure code"
+    },
+    {
+      "prompt": "Why is set -e alone insufficient to define a reliable function error contract?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Its behavior depends on contexts such as conditional tests and command lists. The function must explicitly detect failures that matter and return a meaningful status.",
+      "explanation": "The caller needs a stable interface independent of how the function was invoked.",
+      "section": "Core mechanics",
+      "learning_objective": "Explain context-sensitive errexit behavior"
+    },
+    {
+      "prompt": "A producer writes half a report and returns 7. Describe the expected CLI result and the rule for publishing that report.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Return the failure status with a diagnostic, and do not publish partial output. Stage and validate complete output before replacing the final report.",
+      "explanation": "Partial bytes and a nonzero status must not become an apparently successful publication.",
+      "section": "Core mechanics",
+      "learning_objective": "Separate generated output from successful publication"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+---
+import type { Section } from "../lib/schema";
+type Trust = Extract<Section, { kind: "trust" }>;
+const { s } = Astro.props as { s: Trust };
+---
+<section class="section" id={s.key} aria-labelledby={`${s.key}-title`}>
+  <div class="frame">
+    <div class="section-head"><span class="eyebrow">{s.kicker}</span><h2 id={`${s.key}-title`}>{s.title}</h2><p>{s.lede}</p></div>
+    <div class="two">
+      <div class="node levels">
+        <div class="node-head"><span class="name"><i class="led warn"></i>enforcement-service</span><span class="badge">per class</span></div>
+        <ol>
+          {s.levels.map((l, i) => <li><span class="mono">0{i + 1}</span><div><strong>{l.name}</strong><p>{l.body}</p></div></li>)}
+        </ol>
+      </div>
+      <div class="node ways">
+        <div class="node-head"><span class="name"><i class="led ok"></i>ways-out</span><span class="badge ok">always five</span></div>
+        <ol>
+          {s.ways.map((w, i) => <li><span class="mono">0{i + 1}</span><div><strong set:html={w.title} /><p set:html={w.body} /></div></li>)}
+        </ol>
+        <div class="keys" aria-hidden="true"><kbd>⌃</kbd><span>+</span><kbd>⌥</kbd><span>+</span><kbd>⇧</kbd><span>+</span><kbd>U</kbd><small class="mono">opens the recovery console above any window</small></div>
+      </div>
+    </div>
+    {s.note && <p class="note" set:html={s.note} />}
+  </div>
+</section>
+<style>
+  .two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 14px; align-items: start; }
+  ol { margin: 0; padding: 8px 6px; list-style: none; display: flex; flex-direction: column; }
+  li { display: flex; gap: 12px; padding: 12px 10px; border-bottom: 1px dashed var(--node-divider); }
+  li:last-child { border-bottom: 0; }
+  li > span { flex: none; width: 22px; padding-top: 3px; font-size: 10px; color: var(--accent); }
+  li strong { display: block; font-size: 14.5px; font-weight: 500; }
+  li p { margin-top: 3px; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+  li :global(code) { font-size: 12px; }
+  .keys { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; padding: 12px 16px 16px; border-top: 1px dashed var(--node-divider); color: var(--faint); }
+  .keys small { margin-left: 8px; font-size: 10px; letter-spacing: 0.5px; }
+  .note { margin-top: 18px; font-size: 14px; color: var(--muted); max-width: 78ch; }
+  .note :global(strong) { color: var(--fg); font-weight: 500; }
+  @media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+</style>

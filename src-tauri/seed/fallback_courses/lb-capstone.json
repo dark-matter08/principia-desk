@@ -1,0 +1,104 @@
+{
+  "slug": "lb-capstone",
+  "kind": "capstone",
+  "title": "Capstone lab: diagnose a broken release bundle and hand it off",
+  "markdown": "## Why this matters\n\nThe capstone asks for what the course has been building toward: a diagnosis someone else can verify. A simulated release bundle has three problems hidden in ordinary places: a path that does not match the filesystem, a permission that stops a program from running, and a log whose timestamps hide an unexplained gap. Fixing what you notice first is not the goal. The deliverable is a bundle of evidence, the minimal repairs, and a handoff note that separates what you proved from what you still suspect.\n\n## The simple version\n\nThink of the bundle as a sealed parcel with a packing slip. The slip (the configuration) claims what is inside and where; the parcel (the filesystem) shows what is actually there; the courier's log (the service log) records when things happened. Diagnosis compares the three and reports every disagreement with evidence. The analogy breaks because a parcel does not run: the program's own permission to execute is a fourth fact the slip never mentions.\n\n## The lab\n\nRun the setup below in your Linux lab. It creates a temporary directory containing `release/` with `bin`, `config`, `data` and `logs`. Nothing outside that directory is touched, and you can delete it afterwards.\n\n```bash\nlab=$(mktemp -d) && cd \"$lab\" || exit 1\nmkdir -p release/bin release/config \"release/data/quarterly report\" release/logs\nprintf '#!/bin/bash\\nprintf \"service ok\\\\n\"\\n' > release/bin/service\nchmod 644 release/bin/service\nprintf 'data_dir=/opt/release/data/quarterly-report\\n' > release/config/app.conf\nchmod 600 release/config/app.conf\nprintf 'quarter,revenue\\nq3,1200\\n' > \"release/data/quarterly report/q3.csv\"\nfor i in $(seq 1 20); do printf '2026-09-10T10:%02d:00 INFO tick\\n' \"$i\"; done > release/logs/service.log\nprintf '2026-09-10T11:45:00 ERROR data_dir missing\\n' >> release/logs/service.log\nprintf 'lab at %s\\n' \"$lab\"\n```\n\n## Core mechanics\n\nWork as hypotheses, not fixes. For each suspected problem write the hypothesis, the command that would confirm or refute it, the exact output, and the verdict.\n\nStart with the program: `ls -l release/bin/service` and `release/bin/service` show whether it can execute at all. Then the configuration: `cat release/config/app.conf` names a data directory; `ls -ld release/data/*` shows what exists. Compare the two character by character; a hyphen and a space are different names, and quoting is required to reference the real one. Finally the log: `grep -n ERROR release/logs/service.log` finds the complaint, and a small `awk` pass over the timestamps reveals that the minute-by-minute ticks stop at 10:20 and the next line is 11:45. Ask what could produce an 85-minute silence and note that the log alone cannot prove it.\n\nSelect files precisely. Use `find release -type f -newer release/config/app.conf` or `-name` patterns, quote every path with a space, and never run a repair through a glob you have not listed first.\n\n## Runnable experiment\n\nAfter the setup, run this check without changing anything; it prints one line per fact the diagnosis will rely on. Predict each line first.\n\n```bash\nstat -c '%A %n' release/bin/service\n# -rw-r--r-- release/bin/service: no execute bit\ngrep -o 'data_dir=.*' release/config/app.conf; ls -d release/data/*\n# quarterly-report versus 'quarterly report': different names\nawk -F'[T:]' '{ m=$2*60+$3; if (NR>1 && m-prev>1) print \"gap before line\", NR \":\", m-prev, \"minutes\"; prev=m }' release/logs/service.log\n# gap before line 21: 85 minutes\n```\n\n## Minimal repairs and least privilege\n\n`chmod u+x release/bin/service` repairs the execute failure and nothing else. The configuration needs either a corrected `data_dir` value or a renamed directory; choose one, record why, and do not do both. Do not widen permissions on `app.conf`: it is readable by its owner, which is all the service needs. The log gap has no repair; it becomes an open question in the handoff.\n\n## Failure modes\n\nFixing the visible symptom (the ERROR line) by editing the log proves nothing. Renaming the data directory and editing the config both \"work\" but leave a future reader unsure which one is canonical. Running `chmod -R 777 release` makes every check pass while destroying the evidence of what was wrong.\n\n## Practical exercise\n\nDeliver a directory containing: `evidence.txt` (each hypothesis with commands and verbatim output), `repairs.sh` (only the commands you actually ran, in order, with a comment per line), and `HANDOFF.md` (three sections: confirmed causes, applied repairs, open questions with the next command you would run). A teammate should be able to re-run the setup and your repairs and reach the same state.\n",
+  "resources": [
+    {
+      "title": "find invocation",
+      "url": "https://www.gnu.org/software/findutils/manual/html_node/find_html/Invoking-find.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "chmod invocation",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/chmod-invocation.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "The GNU Awk User's Guide",
+      "url": "https://www.gnu.org/software/gawk/manual/gawk.html",
+      "type": "documentation",
+      "why": "Timestamp gap analysis in the log investigation."
+    }
+  ],
+  "key_takeaways": [
+    "Write each problem as a hypothesis with the command that tests it and the verbatim result.",
+    "Repair the confirmed cause with the smallest change and record it in order.",
+    "Separate confirmed causes, applied repairs and open questions in the handoff."
+  ],
+  "exercise": {
+    "title": "Deliver the diagnosis bundle",
+    "instructions": "Run the lab setup, investigate the three suspected problems as hypotheses with evidence, apply the minimal repairs, and produce evidence.txt, repairs.sh and HANDOFF.md so a teammate can reproduce the state from the same setup.",
+    "starter_code": "# evidence.txt skeleton\n# H1: the service cannot execute\n#   ls -l release/bin/service\n#   release/bin/service\n# H2: app.conf points at a directory that does not exist\n#   cat release/config/app.conf; ls -ld release/data/*\n# H3: the log has an unexplained gap before the ERROR\n#   awk -F'[T:]' '{ m=$2*60+$3; if (NR>1 && m-prev>1) print \"gap before line\", NR, m-prev, \"minutes\"; prev=m }' release/logs/service.log\n",
+    "deliverable": "A handoff directory with evidence.txt, repairs.sh and HANDOFF.md (confirmed causes, applied repairs, open questions).",
+    "hints": [
+      "Quote the data directory path; it contains a space.",
+      "Choose one repair for the config/directory mismatch and say why.",
+      "The log gap has no repair; record the next investigative command instead."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "`release/bin/service` prints Permission denied and `ls -l` shows `-rw-r--r--`. What is the minimal repair?",
+      "kind": "mcq",
+      "choices": [
+        "chmod 777 release/bin/service",
+        "chmod u+x release/bin/service",
+        "Run it with sudo",
+        "Rename the file to service.sh"
+      ],
+      "correct_answer": "chmod u+x release/bin/service",
+      "explanation": "Only the owner's execute bit is missing; add exactly that.",
+      "section": "Minimal repairs and least privilege",
+      "learning_objective": "Repair an execution failure with the smallest mode change"
+    },
+    {
+      "prompt": "app.conf names `quarterly-report` but the directory is `quarterly report`. What is true?",
+      "kind": "mcq",
+      "choices": [
+        "They are the same path once quoted",
+        "They are different names; either the value or the directory must change, and the choice should be recorded",
+        "The space is ignored by the kernel",
+        "Both must be changed to be safe"
+      ],
+      "correct_answer": "They are different names; either the value or the directory must change, and the choice should be recorded",
+      "explanation": "A hyphen and a space are different characters; pick one canonical repair and document it.",
+      "section": "Investigation protocol",
+      "learning_objective": "Resolve a path mismatch with one documented repair"
+    },
+    {
+      "prompt": "The log ticks every minute until 10:20, then the next line is an ERROR at 11:45. What belongs in the handoff?",
+      "kind": "mcq",
+      "choices": [
+        "A repair that deletes the ERROR line",
+        "An open question about the 85-minute silence with the next command to run",
+        "A statement that the log proves the service crashed",
+        "Nothing; gaps are normal"
+      ],
+      "correct_answer": "An open question about the 85-minute silence with the next command to run",
+      "explanation": "The log shows a gap; it does not prove the cause. Hand it off as an open question.",
+      "section": "Handoff bundle",
+      "learning_objective": "Distinguish evidence from conclusions in a handoff"
+    },
+    {
+      "prompt": "Why must `repairs.sh` contain only the commands you actually ran, in order?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "So a teammate can reproduce the exact state from the same setup. Reproducibility is the point of the handoff: same setup, same repairs, same state.",
+      "explanation": "Reproducibility is the point of the handoff: same setup, same repairs, same state.",
+      "section": "Handoff bundle",
+      "learning_objective": "Make a diagnosis reproducible"
+    },
+    {
+      "prompt": "Why does `chmod -R 777 release` make every check pass yet fail the capstone?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "It grants read, write and execute to everyone on every file, which is far beyond the confirmed causes, destroys the evidence of what was actually wrong, and leaves the config mismatch and the log gap undiagnosed. The capstone asks for confirmed causes and minimal repairs, not silenced symptoms.",
+      "explanation": "Symptom silencing is not diagnosis; least privilege and evidence matter.",
+      "section": "Failure modes",
+      "learning_objective": "Explain why blanket permission changes are not a repair"
+    }
+  ]
+}

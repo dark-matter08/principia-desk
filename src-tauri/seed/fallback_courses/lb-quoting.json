@@ -1,0 +1,104 @@
+{
+  "slug": "lb-quoting",
+  "kind": "beginner",
+  "title": "Quoting, expansion and filename boundaries",
+  "markdown": "## Why this matters\n\nA command receives an argument vector, not the original line you typed. Losing the boundary around one filename can make an otherwise correct command act on different inputs. This lesson begins with observing arguments before applying the same reasoning to file operations.\n\n## The simple version\n\nImagine labeling separate envelopes before handing them to a worker. The worker sees each envelope as one item. Quoting tells Bash which expanded text should remain in one argument. The analogy breaks because quotes also select expansion rules: double quotes still allow variable expansion, while single quotes preserve literal characters. The quote marks normally do not become part of the resulting argument.\n\n## Core mechanics\n\nThe shell reads command syntax and performs applicable expansions before invoking a command. An unquoted parameter expansion can undergo word splitting and pathname expansion. If `name='quarterly report.txt'`, passing `$name` can produce two arguments; passing `\"$name\"` produces one argument containing the space.\n\nAn empty quoted expansion still supplies one empty argument. An empty unquoted expansion can disappear. Check `$#` to distinguish zero arguments from one empty argument: a formatting command can print a line even when it was supplied no data operand.\n\nSingle quotes suppress parameter expansion entirely. Double quotes expand parameters while preserving their argument boundary. Quoting should express the intended data flow; repeatedly adding quotes after a command has already split its input cannot reconstruct the lost boundaries.\n\n## Failure modes\n\nAsterisks in unquoted expanded data may match filenames in the working directory. That makes behavior depend on unrelated files. Literal quoting prevents this expansion, but it does not stop an external command from interpreting a leading hyphen as an option. When the command supports it, `--` marks the end of options; consult that command's documentation. These are two separate boundaries: the shell constructs arguments, then the program interprets them.\n\nUse the observation function below before trying any copy or move operation. No file contents are needed to understand the boundary problem.\n\n## Runnable experiment\n\nRun this in Bash in your own terminal. It creates no files and requires no elevated permissions. Predict the output before running it.\n\n```bash\nshow_args() {\n  printf 'argc=%s\\n' \"$#\"\n  printf '<%s>\\n' \"$@\"\n}\nname='quarterly report.txt'\nshow_args \"$name\"\n# argc=1; <quarterly report.txt>\nshow_args $name\n# argc=2; <quarterly> then <report.txt>\nname=''\nshow_args \"$name\"\n# argc=1; <>\nshow_args $name\n# argc=0; printf still prints <> for its missing format operand\nprintf '%s\\n' '$name' \"$name\"\n# literal $name followed by one empty line\n```\n\n## Practical exercise\n\nExtend show_args to number every argument using a for loop. Test a plain value, an empty value, a value with spaces, a literal asterisk and a leading hyphen. Use quoted expansions throughout the repaired wrapper. Record the argument count and each exact value, then explain which examples concern shell expansion and which concern option parsing.\n\nDeliverable: A numbered argument transcript covering all five cases and a short explanation of the two parsing boundaries.\n\n## Key takeaways\n\n- Observe the argument vector before debugging the called program.\n- Double quotes preserve boundaries while permitting variable expansion.\n- Treat empty arguments, wildcard characters and leading hyphens as separate cases.\n\n## Sources\n\n- [Quoting](https://www.gnu.org/software/bash/manual/html_node/Quoting.html)\n- [Shell Expansions](https://www.gnu.org/software/bash/manual/html_node/Shell-Expansions.html)\n- [printf invocation](https://www.gnu.org/software/coreutils/manual/html_node/printf-invocation.html)\n",
+  "resources": [
+    {
+      "title": "Quoting",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Quoting.html",
+      "type": "documentation",
+      "why": "Bash reference for the command behavior exercised here."
+    },
+    {
+      "title": "Shell Expansions",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Shell-Expansions.html",
+      "type": "documentation",
+      "why": "Bash reference for the command behavior exercised here."
+    },
+    {
+      "title": "printf invocation",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/printf-invocation.html",
+      "type": "documentation",
+      "why": "Bash reference for the command behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "Observe the argument vector before debugging the called program.",
+    "Double quotes preserve boundaries while permitting variable expansion.",
+    "Treat empty arguments, wildcard characters and leading hyphens as separate cases."
+  ],
+  "exercise": {
+    "title": "Observe arguments before manipulating files",
+    "instructions": "Extend show_args to number every argument using a for loop. Test a plain value, an empty value, a value with spaces, a literal asterisk and a leading hyphen. Use quoted expansions throughout the repaired wrapper. Record the argument count and each exact value, then explain which examples concern shell expansion and which concern option parsing.",
+    "starter_code": "show_args() {\n  printf 'argc=%s\\n' \"$#\"\n  printf '<%s>\\n' \"$@\"\n}\nname='quarterly report.txt'\nshow_args \"$name\"\n# argc=1; <quarterly report.txt>\nshow_args $name\n# argc=2; <quarterly> then <report.txt>\nname=''\nshow_args \"$name\"\n# argc=1; <>\nshow_args $name\n# argc=0; printf still prints <> for its missing format operand\nprintf '%s\\n' '$name' \"$name\"\n# literal $name followed by one empty line",
+    "deliverable": "A numbered argument transcript covering all five cases and a short explanation of the two parsing boundaries.",
+    "hints": [
+      "Use for arg in \"$@\" to preserve each supplied argument.",
+      "Use a counter and printf; do not turn the argument vector back into one string.",
+      "An empty argument and no arguments need separate test cases."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "With name=\"quarterly report.txt\", which expression passes exactly one argument containing the full name?",
+      "kind": "mcq",
+      "choices": [
+        "$name",
+        "\"$name\"",
+        "'$name'",
+        "name"
+      ],
+      "correct_answer": "\"$name\"",
+      "explanation": "Double quotes preserve the expanded value as one argument. The space remains data.",
+      "section": "Core mechanics",
+      "learning_objective": "Preserve a spaced filename as one argument"
+    },
+    {
+      "prompt": "An empty variable is expanded as \"$name\". How many arguments does that expression supply?",
+      "kind": "mcq",
+      "choices": [
+        "Zero arguments",
+        "One empty argument",
+        "Two arguments",
+        "A literal quote character"
+      ],
+      "correct_answer": "One empty argument",
+      "explanation": "Quoted empty expansion preserves an argument; unquoted empty expansion may disappear.",
+      "section": "Core mechanics",
+      "learning_objective": "Distinguish empty from absent arguments"
+    },
+    {
+      "prompt": "Why can an unquoted variable containing an asterisk behave differently after another file is created?",
+      "kind": "mcq",
+      "choices": [
+        "Bash edits the variable permanently",
+        "Pathname expansion can match the new file",
+        "The terminal changes its encoding",
+        "Single quotes expand wildcards"
+      ],
+      "correct_answer": "Pathname expansion can match the new file",
+      "explanation": "The shell expands unquoted patterns using directory contents before the command receives its operands.",
+      "section": "Core mechanics",
+      "learning_objective": "Identify pathname expansion of data"
+    },
+    {
+      "prompt": "Explain the difference between single-quoting the text $name and double-quoting it.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Single quotes pass the literal characters $name. Double quotes expand the variable while keeping the result in one argument.",
+      "explanation": "Quote choice governs expansion as well as argument boundaries.",
+      "section": "Core mechanics",
+      "learning_objective": "Explain the expansion rules of single and double quotes"
+    },
+    {
+      "prompt": "A quoted filename starts with a hyphen. Why might a command still reject it, and what should you check?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Quoting preserves one argument, but the command may interpret that argument as an option. Check whether it supports -- before filename operands or use a documented unambiguous path form.",
+      "explanation": "Shell parsing and program option parsing are different stages.",
+      "section": "Core mechanics",
+      "learning_objective": "Distinguish quoting from end-of-options handling"
+    }
+  ]
+}

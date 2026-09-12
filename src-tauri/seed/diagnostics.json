@@ -1,0 +1,3227 @@
+{
+  "schema_version": 1,
+  "courses": [
+    {
+      "course_id": "linux-bash",
+      "version": "entry-v1",
+      "estimated_minutes": 14,
+      "scope_note": "Twelve short questions, three for each stage of this course, so the check can place you at any stage rather than guessing past the ones it never sampled.",
+      "questions": [
+        {
+          "id": "linux-bash-entry-1",
+          "criterion": "linux-bash-criterion-1",
+          "competency": "lb-navigation",
+          "entry_point": "foundations",
+          "label": "Resolve a relative path",
+          "prompt": "Your working directory is `/home/lee/project`. Where does `../notes` point?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "/home/lee/notes"
+            },
+            {
+              "id": "2",
+              "text": "/notes"
+            },
+            {
+              "id": "3",
+              "text": "/home/lee/project/notes"
+            }
+          ],
+          "answer": "1",
+          "explanation": ".. selects the parent directory before notes is resolved.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-2",
+          "criterion": "linux-bash-criterion-2",
+          "competency": "lb-quoting",
+          "entry_point": "foundations",
+          "label": "Quote a value with spaces",
+          "prompt": "A variable holds `my report.txt`. Which command removes exactly that one file?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "rm \"$name\""
+            },
+            {
+              "id": "2",
+              "text": "rm $name"
+            },
+            {
+              "id": "3",
+              "text": "rm '$name'"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Double quotes expand the variable and keep the spaces inside one argument; unquoted splits it into two names, single quotes pass the literal text `$name`.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-3",
+          "criterion": "linux-bash-criterion-3",
+          "competency": "lb-streams",
+          "entry_point": "foundations",
+          "label": "Separate output from errors",
+          "prompt": "`find / -name core 2>/dev/null` does what to the messages about unreadable directories?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Discards them while ordinary results still print"
+            },
+            {
+              "id": "2",
+              "text": "Discards every line including the results"
+            },
+            {
+              "id": "3",
+              "text": "Writes them to a file called 2"
+            }
+          ],
+          "answer": "1",
+          "explanation": "2> redirects the error stream only, leaving standard output untouched.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-4",
+          "criterion": "linux-bash-criterion-4",
+          "competency": "lb-pipelines",
+          "entry_point": "mechanisms",
+          "label": "Trace a pipeline's exit status",
+          "prompt": "In `grep pattern file | sort`, which command's exit status does the shell report by default?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "sort, the last command in the pipeline"
+            },
+            {
+              "id": "2",
+              "text": "grep, the first command"
+            },
+            {
+              "id": "3",
+              "text": "The highest status of the two"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A pipeline's status is the status of its final command unless pipefail is set.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-5",
+          "criterion": "linux-bash-criterion-5",
+          "competency": "lb-search",
+          "entry_point": "mechanisms",
+          "label": "Search file contents recursively",
+          "prompt": "Which command lists files under the current tree whose contents mention `timeout`?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "grep -r timeout ."
+            },
+            {
+              "id": "2",
+              "text": "find . -name timeout"
+            },
+            {
+              "id": "3",
+              "text": "ls -R | grep timeout"
+            }
+          ],
+          "answer": "1",
+          "explanation": "grep -r reads file contents; find -name and ls match file names only.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-6",
+          "criterion": "linux-bash-criterion-6",
+          "competency": "lb-permissions",
+          "entry_point": "mechanisms",
+          "label": "Read a permission string",
+          "prompt": "A file shows `-rw-r--r--` and belongs to another user. You are not root. What can you do?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Read it only"
+            },
+            {
+              "id": "2",
+              "text": "Read and write it"
+            },
+            {
+              "id": "3",
+              "text": "Nothing at all"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The last triplet applies to others: read, no write, no execute.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-7",
+          "criterion": "linux-bash-criterion-7",
+          "competency": "lb-processes",
+          "entry_point": "production",
+          "label": "Stop a process without losing its work",
+          "prompt": "A long job ignores Ctrl-C. Which signal asks it to shut down cleanly before you resort to force?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "SIGTERM, the default of kill"
+            },
+            {
+              "id": "2",
+              "text": "SIGKILL, which cannot be caught"
+            },
+            {
+              "id": "3",
+              "text": "SIGSTOP, which suspends it"
+            }
+          ],
+          "answer": "1",
+          "explanation": "SIGTERM can be handled, so a process can flush and exit; SIGKILL cannot be caught and loses in-flight work.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-8",
+          "criterion": "linux-bash-criterion-8",
+          "competency": "lb-environment",
+          "entry_point": "production",
+          "label": "Make a variable visible to a child",
+          "prompt": "Why does a script fail to see `API_URL` that you set with `API_URL=http://x` in your shell?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "It was never exported, so children do not inherit it"
+            },
+            {
+              "id": "2",
+              "text": "Variables cannot hold URLs"
+            },
+            {
+              "id": "3",
+              "text": "The script needs sudo"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Only exported variables enter a child process's environment.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-9",
+          "criterion": "linux-bash-criterion-9",
+          "competency": "lb-log-investigation",
+          "entry_point": "production",
+          "label": "Follow a log for a pattern",
+          "prompt": "Which command prints new matching lines as a log grows?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "tail -f app.log | grep --line-buffered ERROR"
+            },
+            {
+              "id": "2",
+              "text": "grep ERROR app.log | tail -f"
+            },
+            {
+              "id": "3",
+              "text": "cat app.log | grep ERROR"
+            }
+          ],
+          "answer": "1",
+          "explanation": "tail -f streams appended lines; grep needs line buffering to emit each match immediately.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-10",
+          "criterion": "linux-bash-criterion-10",
+          "competency": "lb-operations-lab",
+          "entry_point": "synthesis",
+          "label": "Diagnose a full disk that df disagrees about",
+          "prompt": "`df` reports a full disk but `du` on the mount finds far less. What is the usual cause?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A deleted file still held open by a running process"
+            },
+            {
+              "id": "2",
+              "text": "A corrupt filesystem needing a rebuild"
+            },
+            {
+              "id": "3",
+              "text": "du counting hard links twice"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Space is not released until the last descriptor closes, so the kernel still counts a deleted but open file.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-11",
+          "criterion": "linux-bash-criterion-11",
+          "competency": "lb-operations-lab",
+          "entry_point": "synthesis",
+          "label": "Choose a safe recovery order",
+          "prompt": "A service is down and the disk is full. Which step comes first?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Free space from a known-safe location, then restart the service"
+            },
+            {
+              "id": "2",
+              "text": "Restart the service and watch whether it recovers"
+            },
+            {
+              "id": "3",
+              "text": "Reboot the machine"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Restarting into a full disk repeats the failure; recovering the resource first is what lets the restart hold.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-entry-12",
+          "criterion": "linux-bash-criterion-12",
+          "competency": "lb-capstone",
+          "entry_point": "synthesis",
+          "label": "Make an investigation reproducible",
+          "prompt": "You fixed an incident with a chain of shell commands. What makes the work reusable rather than folklore?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A recorded script with the checks and their expected output"
+            },
+            {
+              "id": "2",
+              "text": "A screenshot of the terminal"
+            },
+            {
+              "id": "3",
+              "text": "Remembering the commands for next time"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A recorded script with its expected output can be rerun and reviewed; memory and screenshots cannot.",
+          "followup_for": null
+        },
+        {
+          "id": "linux-bash-followup-1",
+          "criterion": "linux-bash-criterion-1",
+          "competency": "lb-navigation",
+          "entry_point": "foundations",
+          "label": "Resolve a relative path",
+          "prompt": "From `/var/log/nginx`, which path does `../../tmp` reach?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "/var/tmp"
+            },
+            {
+              "id": "2",
+              "text": "/tmp"
+            },
+            {
+              "id": "3",
+              "text": "/var/log/tmp"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Two parent steps land on /var, and tmp is resolved from there.",
+          "followup_for": "linux-bash-criterion-1"
+        },
+        {
+          "id": "linux-bash-followup-2",
+          "criterion": "linux-bash-criterion-2",
+          "competency": "lb-quoting",
+          "entry_point": "foundations",
+          "label": "Quote a value with spaces",
+          "prompt": "What does `echo '$HOME'` print?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The literal text $HOME"
+            },
+            {
+              "id": "2",
+              "text": "Your home directory path"
+            },
+            {
+              "id": "3",
+              "text": "An empty line"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Single quotes suppress expansion entirely.",
+          "followup_for": "linux-bash-criterion-2"
+        }
+      ]
+    },
+    {
+      "course_id": "bash-scripting",
+      "version": "entry-v1",
+      "estimated_minutes": 14,
+      "scope_note": "Twelve short questions, three for each stage of this course, so the check can place you at any stage rather than guessing past the ones it never sampled.",
+      "questions": [
+        {
+          "id": "bash-scripting-entry-1",
+          "criterion": "bash-scripting-criterion-1",
+          "competency": "bs-script-contract",
+          "entry_point": "foundations",
+          "label": "Give a script a usable contract",
+          "prompt": "What does `set -euo pipefail` at the top of a script change?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "It stops on an error, an unset variable, or a failing pipeline stage"
+            },
+            {
+              "id": "2",
+              "text": "It enables verbose tracing of every command"
+            },
+            {
+              "id": "3",
+              "text": "It makes the script run as root"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Each flag turns a silent failure into a stop: -e on error, -u on unset variables, pipefail on a failing stage inside a pipeline.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-2",
+          "criterion": "bash-scripting-criterion-2",
+          "competency": "bs-arguments",
+          "entry_point": "foundations",
+          "label": "Handle arguments safely",
+          "prompt": "Inside a script, which form passes every argument through unchanged, including ones with spaces?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "\"$@\""
+            },
+            {
+              "id": "2",
+              "text": "$*"
+            },
+            {
+              "id": "3",
+              "text": "$@ without quotes"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Quoted \"$@\" expands to one word per argument; the others join or re-split them.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-3",
+          "criterion": "bash-scripting-criterion-3",
+          "competency": "bs-status",
+          "entry_point": "foundations",
+          "label": "Act on an exit status",
+          "prompt": "Which line runs `cleanup` only when `build` fails?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "build || cleanup"
+            },
+            {
+              "id": "2",
+              "text": "build && cleanup"
+            },
+            {
+              "id": "3",
+              "text": "build; cleanup"
+            }
+          ],
+          "answer": "1",
+          "explanation": "|| runs the right side when the left side exits non-zero.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-4",
+          "criterion": "bash-scripting-criterion-4",
+          "competency": "bs-functions",
+          "entry_point": "mechanisms",
+          "label": "Return a value from a function",
+          "prompt": "How does a Bash function usefully hand a string back to its caller?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "It echoes the string and the caller captures it with $( )"
+            },
+            {
+              "id": "2",
+              "text": "It uses return with the string"
+            },
+            {
+              "id": "3",
+              "text": "It assigns to $?"
+            }
+          ],
+          "answer": "1",
+          "explanation": "return carries only a small integer status; output capture is how a string travels.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-5",
+          "criterion": "bash-scripting-criterion-5",
+          "competency": "bs-error-handling",
+          "entry_point": "mechanisms",
+          "label": "Clean up on any exit",
+          "prompt": "Which mechanism removes a temporary file whether the script succeeds, fails or is interrupted?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "trap 'rm -f \"$tmp\"' EXIT"
+            },
+            {
+              "id": "2",
+              "text": "rm -f \"$tmp\" on the last line"
+            },
+            {
+              "id": "3",
+              "text": "set -e"
+            }
+          ],
+          "answer": "1",
+          "explanation": "An EXIT trap runs on normal and abnormal termination alike.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-6",
+          "criterion": "bash-scripting-criterion-6",
+          "competency": "bs-text-data",
+          "entry_point": "mechanisms",
+          "label": "Read a file line by line without mangling it",
+          "prompt": "Which loop preserves backslashes and leading spaces on each line?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "while IFS= read -r line; do ...; done < file"
+            },
+            {
+              "id": "2",
+              "text": "for line in $(cat file); do ...; done"
+            },
+            {
+              "id": "3",
+              "text": "while read line; do ...; done < file"
+            }
+          ],
+          "answer": "1",
+          "explanation": "IFS= keeps leading and trailing whitespace and -r stops backslash interpretation; word splitting breaks the for loop.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-7",
+          "criterion": "bash-scripting-criterion-7",
+          "competency": "bs-atomic-output",
+          "entry_point": "production",
+          "label": "Publish a file atomically",
+          "prompt": "A reader must never see a half-written config. Which approach guarantees that?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Write to a temporary file on the same filesystem, then rename it over the target"
+            },
+            {
+              "id": "2",
+              "text": "Truncate the target and write into it"
+            },
+            {
+              "id": "3",
+              "text": "Write to the target and chmod it afterwards"
+            }
+          ],
+          "answer": "1",
+          "explanation": "rename is atomic within a filesystem, so a reader sees either the old file or the new one.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-8",
+          "criterion": "bash-scripting-criterion-8",
+          "competency": "bs-idempotent-automation",
+          "entry_point": "production",
+          "label": "Make a script safe to rerun",
+          "prompt": "What makes a provisioning script idempotent?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Running it twice leaves the same result as running it once"
+            },
+            {
+              "id": "2",
+              "text": "It refuses to run if it ran before"
+            },
+            {
+              "id": "3",
+              "text": "It logs every run"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Idempotence is about the end state, not about blocking or recording repeats.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-9",
+          "criterion": "bash-scripting-criterion-9",
+          "competency": "bs-debug-testing",
+          "entry_point": "production",
+          "label": "Find where a script went wrong",
+          "prompt": "Which change shows each command with its expanded arguments as it runs?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "set -x"
+            },
+            {
+              "id": "2",
+              "text": "set -e"
+            },
+            {
+              "id": "3",
+              "text": "set -u"
+            }
+          ],
+          "answer": "1",
+          "explanation": "-x traces execution; the others change failure behaviour.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-10",
+          "criterion": "bash-scripting-criterion-10",
+          "competency": "bs-job-control",
+          "entry_point": "synthesis",
+          "label": "Run work in parallel and collect it",
+          "prompt": "You start three background jobs with &. What makes the script fail when any of them fails?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "wait on each process id and check each status"
+            },
+            {
+              "id": "2",
+              "text": "wait with no arguments and check $?"
+            },
+            {
+              "id": "3",
+              "text": "Nothing: background failures cannot be detected"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A bare wait returns the status of the last job only; waiting per process id surfaces each one.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-11",
+          "criterion": "bash-scripting-criterion-11",
+          "competency": "bs-automation-lab",
+          "entry_point": "synthesis",
+          "label": "Keep a scheduled script from overlapping itself",
+          "prompt": "A cron script sometimes runs twice at once. Which fix prevents that?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Take an exclusive lock, for example with flock, and exit when it is held"
+            },
+            {
+              "id": "2",
+              "text": "Increase the cron interval"
+            },
+            {
+              "id": "3",
+              "text": "Add sleep at the start"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A lock makes the constraint explicit; timing changes only make a collision less likely.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-entry-12",
+          "criterion": "bash-scripting-criterion-12",
+          "competency": "bs-capstone",
+          "entry_point": "synthesis",
+          "label": "Decide what a script should not do",
+          "prompt": "When does a shell script stop being the right tool?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "When it needs structured data, concurrency and real error types"
+            },
+            {
+              "id": "2",
+              "text": "When it grows past one hundred lines"
+            },
+            {
+              "id": "3",
+              "text": "When it calls more than three external commands"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Length and command count are not the limit; structured data, concurrency and error handling are where the shell's model runs out.",
+          "followup_for": null
+        },
+        {
+          "id": "bash-scripting-followup-1",
+          "criterion": "bash-scripting-criterion-1",
+          "competency": "bs-script-contract",
+          "entry_point": "foundations",
+          "label": "Give a script a usable contract",
+          "prompt": "With `set -u`, what happens at `echo \"$missing\"` when `missing` was never set?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The script exits with an error"
+            },
+            {
+              "id": "2",
+              "text": "It prints an empty line"
+            },
+            {
+              "id": "3",
+              "text": "It prints the word missing"
+            }
+          ],
+          "answer": "1",
+          "explanation": "-u turns an unset variable into a failure rather than an empty expansion.",
+          "followup_for": "bash-scripting-criterion-1"
+        },
+        {
+          "id": "bash-scripting-followup-2",
+          "criterion": "bash-scripting-criterion-2",
+          "competency": "bs-arguments",
+          "entry_point": "foundations",
+          "label": "Handle arguments safely",
+          "prompt": "A script is called with one argument `two words`. What does `echo $1` print compared with `echo \"$1\"`?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Both print two words, but only the quoted form keeps it as one argument"
+            },
+            {
+              "id": "2",
+              "text": "Only the unquoted form prints anything"
+            },
+            {
+              "id": "3",
+              "text": "The quoted form prints $1 literally"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Unquoted expansion re-splits on whitespace, which matters the moment the value is passed on.",
+          "followup_for": "bash-scripting-criterion-2"
+        }
+      ]
+    },
+    {
+      "course_id": "javascript",
+      "version": "entry-v1",
+      "estimated_minutes": 15,
+      "scope_note": "Twelve short questions, three for each stage of this course, so the check can place you at any stage rather than guessing past the ones it never sampled.",
+      "questions": [
+        {
+          "id": "javascript-entry-1",
+          "criterion": "javascript-criterion-1",
+          "competency": "js-event-loop",
+          "entry_point": "foundations",
+          "label": "Order synchronous, microtask and timer work",
+          "prompt": "A script logs A, schedules a promise callback logging B, and a zero-delay timer logging C. What order prints?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A, B, C"
+            },
+            {
+              "id": "2",
+              "text": "A, C, B"
+            },
+            {
+              "id": "3",
+              "text": "B, A, C"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Microtasks drain completely after the synchronous run and before the next timer task.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-2",
+          "criterion": "javascript-criterion-2",
+          "competency": "js-closures-scope",
+          "entry_point": "foundations",
+          "label": "Capture a loop variable",
+          "prompt": "A for loop with var creates three callbacks reading the counter. What do they log after the loop?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The final value three times"
+            },
+            {
+              "id": "2",
+              "text": "Zero, one and two"
+            },
+            {
+              "id": "3",
+              "text": "Undefined three times"
+            }
+          ],
+          "answer": "1",
+          "explanation": "var has function scope, so every callback closes over the same binding; let would create one per iteration.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-3",
+          "criterion": "javascript-criterion-3",
+          "competency": "js-prototypes",
+          "entry_point": "foundations",
+          "label": "Explain property lookup",
+          "prompt": "An object has no own `toString`, yet calling it works. Why?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Lookup walks the prototype chain until it finds the property"
+            },
+            {
+              "id": "2",
+              "text": "The engine generates one automatically"
+            },
+            {
+              "id": "3",
+              "text": "toString is a global function"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Property access follows the prototype chain, which is how inherited methods resolve.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-4",
+          "criterion": "javascript-criterion-4",
+          "competency": "js-promises-microtasks",
+          "entry_point": "mechanisms",
+          "label": "Reason about await scheduling",
+          "prompt": "Where does the code after an `await` resume?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "In a microtask once the awaited value settles"
+            },
+            {
+              "id": "2",
+              "text": "Synchronously, right after the expression"
+            },
+            {
+              "id": "3",
+              "text": "In the next macrotask"
+            }
+          ],
+          "answer": "1",
+          "explanation": "await suspends the function and schedules the continuation as a microtask.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-5",
+          "criterion": "javascript-criterion-5",
+          "competency": "js-async-await-internals",
+          "entry_point": "mechanisms",
+          "label": "Run independent work concurrently",
+          "prompt": "Two independent fetches are awaited on consecutive lines. What changes with Promise.all?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "They run concurrently instead of one after the other"
+            },
+            {
+              "id": "2",
+              "text": "They become synchronous"
+            },
+            {
+              "id": "3",
+              "text": "Errors stop being thrown"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Sequential awaits start the second request only after the first settles; Promise.all starts both and waits for the pair.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-6",
+          "criterion": "javascript-criterion-6",
+          "competency": "js-error-stacks",
+          "entry_point": "mechanisms",
+          "label": "Keep an error's origin",
+          "prompt": "You catch an error and rethrow `new Error('failed')`. What is lost?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The original stack and message, unless you pass it as the cause"
+            },
+            {
+              "id": "2",
+              "text": "Nothing, stacks are merged"
+            },
+            {
+              "id": "3",
+              "text": "The error type only"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A fresh Error starts a new stack; the cause option keeps the original attached.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-7",
+          "criterion": "javascript-criterion-7",
+          "competency": "js-web-workers",
+          "entry_point": "production",
+          "label": "Move work off the main thread",
+          "prompt": "A one-second computation freezes the interface. What does a worker change?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "It runs on another thread, so rendering and input keep going"
+            },
+            {
+              "id": "2",
+              "text": "It makes the computation faster"
+            },
+            {
+              "id": "3",
+              "text": "It defers the computation to idle time"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A worker removes the work from the thread that renders and handles input; the work itself takes the same time.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-8",
+          "criterion": "javascript-criterion-8",
+          "competency": "js-gc-generational",
+          "entry_point": "production",
+          "label": "Explain a growing heap",
+          "prompt": "A page holds a listener on a removed element and memory climbs. Why is the element not collected?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The listener keeps a reference reachable, so it cannot be collected"
+            },
+            {
+              "id": "2",
+              "text": "Collection only runs on reload"
+            },
+            {
+              "id": "3",
+              "text": "Removed elements are never collected"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Reachability decides collection, and a live listener keeps a path to the element.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-9",
+          "criterion": "javascript-criterion-9",
+          "competency": "js-interpreter-jit",
+          "entry_point": "production",
+          "label": "Explain why a hot function slows down",
+          "prompt": "A hot function is called with objects of differing shapes and gets slower. What happened?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Its inline caches went polymorphic, so the fast path was lost"
+            },
+            {
+              "id": "2",
+              "text": "The function was garbage collected"
+            },
+            {
+              "id": "3",
+              "text": "The engine stopped optimising all code"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Consistent object shapes let a call site stay monomorphic; varied shapes force a slower lookup.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-10",
+          "criterion": "javascript-criterion-10",
+          "competency": "js-atomics-sharedarraybuffer",
+          "entry_point": "synthesis",
+          "label": "Share memory between threads safely",
+          "prompt": "Two workers update the same SharedArrayBuffer slot. What makes the update correct?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "An atomic read-modify-write operation"
+            },
+            {
+              "id": "2",
+              "text": "A plain assignment, since writes are ordered"
+            },
+            {
+              "id": "3",
+              "text": "Copying the buffer for each worker"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Plain reads and writes on shared memory race; atomics provide indivisible updates.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-11",
+          "criterion": "javascript-criterion-11",
+          "competency": "js-webgpu-offscreen-canvas",
+          "entry_point": "synthesis",
+          "label": "Keep animation smooth under load",
+          "prompt": "Rendering on the main thread stutters during data processing. Which change keeps frames steady?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Render from a worker with an OffscreenCanvas"
+            },
+            {
+              "id": "2",
+              "text": "Increase the frame rate"
+            },
+            {
+              "id": "3",
+              "text": "Batch all drawing into one long task"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Moving rendering off the contended thread is what protects the frame budget.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-entry-12",
+          "criterion": "javascript-criterion-12",
+          "competency": "js-temporal-internals",
+          "entry_point": "synthesis",
+          "label": "Handle a real scheduling bug",
+          "prompt": "A daily reminder fires an hour late twice a year. What is the underlying mistake?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Storing a wall-clock time and treating it as a fixed offset across daylight saving"
+            },
+            {
+              "id": "2",
+              "text": "A clock drift on the server"
+            },
+            {
+              "id": "3",
+              "text": "A leap second"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A wall-clock time needs its zone re-resolved per day; a fixed offset breaks at a transition.",
+          "followup_for": null
+        },
+        {
+          "id": "javascript-followup-1",
+          "criterion": "javascript-criterion-1",
+          "competency": "js-event-loop",
+          "entry_point": "foundations",
+          "label": "Order synchronous, microtask and timer work",
+          "prompt": "A promise callback schedules another promise callback. When does a pending zero-delay timer run?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "After the microtask queue is empty"
+            },
+            {
+              "id": "2",
+              "text": "Between the two promise callbacks"
+            },
+            {
+              "id": "3",
+              "text": "Before either promise callback"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The loop drains microtasks fully, including ones queued by other microtasks, before the next task.",
+          "followup_for": "javascript-criterion-1"
+        },
+        {
+          "id": "javascript-followup-2",
+          "criterion": "javascript-criterion-2",
+          "competency": "js-closures-scope",
+          "entry_point": "foundations",
+          "label": "Capture a loop variable",
+          "prompt": "Replacing var with let in that loop changes the logs to what?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Zero, one and two"
+            },
+            {
+              "id": "2",
+              "text": "The final value three times"
+            },
+            {
+              "id": "3",
+              "text": "A reference error"
+            }
+          ],
+          "answer": "1",
+          "explanation": "let creates a fresh binding per iteration, which each callback captures.",
+          "followup_for": "javascript-criterion-2"
+        }
+      ]
+    },
+    {
+      "course_id": "typescript",
+      "version": "entry-v1",
+      "estimated_minutes": 15,
+      "scope_note": "Twelve short questions, three for each stage of this course, so the check can place you at any stage rather than guessing past the ones it never sampled.",
+      "questions": [
+        {
+          "id": "typescript-entry-1",
+          "criterion": "typescript-criterion-1",
+          "competency": "ts-structural-typing",
+          "entry_point": "foundations",
+          "label": "Explain why a value is assignable",
+          "prompt": "A function takes `{ name: string }`. You pass an object with `name` and `age`. What happens?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "It is accepted, because the type only requires name"
+            },
+            {
+              "id": "2",
+              "text": "It is rejected for the extra property"
+            },
+            {
+              "id": "3",
+              "text": "It is accepted only with a cast"
+            }
+          ],
+          "answer": "1",
+          "explanation": "TypeScript is structural: a value with at least the required members fits. Excess property checks apply to fresh object literals only.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-2",
+          "criterion": "typescript-criterion-2",
+          "competency": "ts-unknown-any-never",
+          "entry_point": "foundations",
+          "label": "Choose between unknown and any",
+          "prompt": "Why prefer `unknown` over `any` for a value parsed from JSON?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "unknown forces a check before use, any disables checking"
+            },
+            {
+              "id": "2",
+              "text": "unknown is faster at runtime"
+            },
+            {
+              "id": "3",
+              "text": "They are identical to the compiler"
+            }
+          ],
+          "answer": "1",
+          "explanation": "unknown keeps the value opaque until you narrow it; any removes checking entirely.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-3",
+          "criterion": "typescript-criterion-3",
+          "competency": "ts-function-contracts",
+          "entry_point": "foundations",
+          "label": "Read a function contract",
+          "prompt": "What does `(items: readonly string[]) => void` promise the caller?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The function will not modify the array it receives"
+            },
+            {
+              "id": "2",
+              "text": "The array contents are frozen at runtime"
+            },
+            {
+              "id": "3",
+              "text": "The caller must pass a literal array"
+            }
+          ],
+          "answer": "1",
+          "explanation": "readonly is a compile-time contract about this reference; it does not freeze the object at runtime.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-4",
+          "criterion": "typescript-criterion-4",
+          "competency": "ts-type-guards-narrowing",
+          "entry_point": "mechanisms",
+          "label": "Narrow a union",
+          "prompt": "After `if (typeof value === 'string')`, what is the type in the else branch of `string | number`?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "number"
+            },
+            {
+              "id": "2",
+              "text": "string | number"
+            },
+            {
+              "id": "3",
+              "text": "never"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A successful narrowing removes the matched member from the remaining branch.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-5",
+          "criterion": "typescript-criterion-5",
+          "competency": "ts-generics-variance",
+          "entry_point": "mechanisms",
+          "label": "Reason about generic assignability",
+          "prompt": "Why is `Array<Dog>` not safely assignable to `Array<Animal>` in a mutable position?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Because you could then push a Cat into an array of Dogs"
+            },
+            {
+              "id": "2",
+              "text": "Because generics are invariant by syntax"
+            },
+            {
+              "id": "3",
+              "text": "Because Dog does not extend Animal structurally"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Mutability is what breaks covariance: a writable wider array would accept the wrong element.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-6",
+          "criterion": "typescript-criterion-6",
+          "competency": "ts-inference-flow",
+          "entry_point": "mechanisms",
+          "label": "Predict an inferred type",
+          "prompt": "`const x = [1, 2, 3]` infers what, and why does `as const` change it?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "number[]; as const infers a readonly tuple of literals"
+            },
+            {
+              "id": "2",
+              "text": "[1, 2, 3]; as const has no effect"
+            },
+            {
+              "id": "3",
+              "text": "any[]; as const adds annotations"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Inference widens literals in a mutable position; as const keeps the literal types and makes it readonly.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-7",
+          "criterion": "typescript-criterion-7",
+          "competency": "ts-emit-declarations",
+          "entry_point": "production",
+          "label": "Explain a declaration build failure",
+          "prompt": "A library builds fine but declaration emit fails on an exported function. What is the usual cause?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Its inferred return type names a type that is not exported"
+            },
+            {
+              "id": "2",
+              "text": "Declarations require explicit any"
+            },
+            {
+              "id": "3",
+              "text": "The target is too old"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A public signature must be nameable in the emitted declarations, so the referenced type has to be exported too.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-8",
+          "criterion": "typescript-criterion-8",
+          "competency": "ts-project-references",
+          "entry_point": "production",
+          "label": "Speed up a monorepo build",
+          "prompt": "What do project references give a large repository?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Incremental builds where only changed projects rebuild"
+            },
+            {
+              "id": "2",
+              "text": "A single merged output file"
+            },
+            {
+              "id": "3",
+              "text": "Automatic dependency installation"
+            }
+          ],
+          "answer": "1",
+          "explanation": "References make the dependency graph explicit so tsc can rebuild only what changed.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-9",
+          "criterion": "typescript-criterion-9",
+          "competency": "ts-control-flow-analysis",
+          "entry_point": "production",
+          "label": "Explain a lost narrowing",
+          "prompt": "A property is narrowed, then used inside a callback, and the narrowing is gone. Why?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The compiler cannot prove the property did not change before the callback ran"
+            },
+            {
+              "id": "2",
+              "text": "Callbacks always erase types"
+            },
+            {
+              "id": "3",
+              "text": "Narrowing works only on parameters"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Mutable properties lose narrowing across a function boundary; a local const captures it.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-10",
+          "criterion": "typescript-criterion-10",
+          "competency": "ts-performance-large-codebases",
+          "entry_point": "synthesis",
+          "label": "Diagnose a slow type-check",
+          "prompt": "Type-checking a large project takes minutes. Which change usually helps most?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Replacing deep conditional and mapped type chains on hot paths with explicit types"
+            },
+            {
+              "id": "2",
+              "text": "Turning strict off"
+            },
+            {
+              "id": "3",
+              "text": "Upgrading the target"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Type-level computation dominates check time in large projects; strictness and target do not.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-11",
+          "criterion": "typescript-criterion-11",
+          "competency": "ts-performance-large-codebases",
+          "entry_point": "synthesis",
+          "label": "Keep inference useful at scale",
+          "prompt": "Why annotate the return type of a widely used exported function?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "It stops a change from silently rippling through every caller's inferred types"
+            },
+            {
+              "id": "2",
+              "text": "It makes the function faster"
+            },
+            {
+              "id": "3",
+              "text": "It is required for exports"
+            }
+          ],
+          "answer": "1",
+          "explanation": "An explicit signature pins the contract, so a change becomes an error at the source rather than a surprise downstream.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-entry-12",
+          "criterion": "typescript-criterion-12",
+          "competency": "ts-native-compiler-operations",
+          "entry_point": "synthesis",
+          "label": "Choose the right level of type safety",
+          "prompt": "Where is a runtime check still required despite full type coverage?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "At every boundary where external data enters the program"
+            },
+            {
+              "id": "2",
+              "text": "Nowhere, types are checked at runtime"
+            },
+            {
+              "id": "3",
+              "text": "Only in test code"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Types describe the program's interior; data crossing a boundary has to be validated at runtime.",
+          "followup_for": null
+        },
+        {
+          "id": "typescript-followup-1",
+          "criterion": "typescript-criterion-1",
+          "competency": "ts-structural-typing",
+          "entry_point": "foundations",
+          "label": "Explain why a value is assignable",
+          "prompt": "Passing the object literal `{ name: 'a', age: 2 }` directly to that parameter does what?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "It is rejected by the excess property check on fresh literals"
+            },
+            {
+              "id": "2",
+              "text": "It is accepted like a variable would be"
+            },
+            {
+              "id": "3",
+              "text": "It requires readonly"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Fresh object literals get an extra check that a named variable does not.",
+          "followup_for": "typescript-criterion-1"
+        },
+        {
+          "id": "typescript-followup-2",
+          "criterion": "typescript-criterion-2",
+          "competency": "ts-unknown-any-never",
+          "entry_point": "foundations",
+          "label": "Choose between unknown and any",
+          "prompt": "What does a variable of type `never` mean at a point in the code?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "That point is unreachable"
+            },
+            {
+              "id": "2",
+              "text": "The value may be anything"
+            },
+            {
+              "id": "3",
+              "text": "The value is null"
+            }
+          ],
+          "answer": "1",
+          "explanation": "never is the empty type, so reaching it is a contradiction the compiler can use for exhaustiveness.",
+          "followup_for": "typescript-criterion-2"
+        }
+      ]
+    },
+    {
+      "course_id": "frontend-architecture",
+      "version": "entry-v1",
+      "estimated_minutes": 15,
+      "scope_note": "Twelve short questions, three for each stage of this course, so the check can place you at any stage rather than guessing past the ones it never sampled.",
+      "questions": [
+        {
+          "id": "frontend-architecture-entry-1",
+          "criterion": "frontend-architecture-criterion-1",
+          "competency": "fa-state-placement",
+          "entry_point": "foundations",
+          "label": "Place state correctly",
+          "prompt": "Two sibling components need the same value. Where should it live?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "In their nearest common ancestor, or a store both read"
+            },
+            {
+              "id": "2",
+              "text": "Duplicated in each sibling"
+            },
+            {
+              "id": "3",
+              "text": "In module scope as a mutable variable"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A single owner above both keeps them consistent; duplicates drift and module globals leak across trees.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-2",
+          "criterion": "frontend-architecture-criterion-2",
+          "competency": "fa-component-api-design",
+          "entry_point": "foundations",
+          "label": "Design a component boundary",
+          "prompt": "A component takes fifteen boolean props. What does that usually signal?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Several components are hiding inside one"
+            },
+            {
+              "id": "2",
+              "text": "A need for better prop documentation"
+            },
+            {
+              "id": "3",
+              "text": "That the component should be memoised"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A wide boolean surface is variation that wants separate components or composition.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-3",
+          "criterion": "frontend-architecture-criterion-3",
+          "competency": "fa-server-client-boundaries",
+          "entry_point": "foundations",
+          "label": "Decide what crosses the boundary",
+          "prompt": "Why not pass a database row straight to a client component?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "It ships fields the client must not see and couples the interface to the schema"
+            },
+            {
+              "id": "2",
+              "text": "Serialisation is too slow"
+            },
+            {
+              "id": "3",
+              "text": "The client cannot parse objects"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The boundary is where you choose a shape: exposure and coupling are the costs, not speed.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-4",
+          "criterion": "frontend-architecture-criterion-4",
+          "competency": "fa-rendering-strategy",
+          "entry_point": "mechanisms",
+          "label": "Choose a rendering strategy",
+          "prompt": "Content is identical for every visitor and changes hourly. Which strategy fits?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Static generation with revalidation"
+            },
+            {
+              "id": "2",
+              "text": "Client-side rendering after load"
+            },
+            {
+              "id": "3",
+              "text": "Server rendering on every request"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Shared, slowly changing content is cacheable; per-request rendering pays for nothing.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-5",
+          "criterion": "frontend-architecture-criterion-5",
+          "competency": "fa-data-cache-model",
+          "entry_point": "mechanisms",
+          "label": "Reason about a cache key",
+          "prompt": "A list and its detail view disagree after an edit. What is the usual cause?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The mutation invalidated one cache key and not the other"
+            },
+            {
+              "id": "2",
+              "text": "The server returned stale data"
+            },
+            {
+              "id": "3",
+              "text": "The component did not re-render"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Two views are two entries; correctness depends on invalidating every key the write affects.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-6",
+          "criterion": "frontend-architecture-criterion-6",
+          "competency": "fa-async-ui-state-machines",
+          "entry_point": "mechanisms",
+          "label": "Model an async interaction",
+          "prompt": "Why model a form as a state machine rather than several booleans?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Impossible combinations such as loading and error together stop existing"
+            },
+            {
+              "id": "2",
+              "text": "It removes the need for validation"
+            },
+            {
+              "id": "3",
+              "text": "It makes rendering faster"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A machine encodes which states exist and which transitions are legal; independent booleans allow contradictions.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-7",
+          "criterion": "frontend-architecture-criterion-7",
+          "competency": "fa-cache-consistency-mutations",
+          "entry_point": "production",
+          "label": "Handle an optimistic update",
+          "prompt": "An optimistic update succeeds locally but the request fails. What must the code do?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Roll back to the previous value and surface the failure"
+            },
+            {
+              "id": "2",
+              "text": "Retry silently forever"
+            },
+            {
+              "id": "3",
+              "text": "Keep the optimistic value"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Optimism is a loan against the server; a failure has to return the interface to a truthful state.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-8",
+          "criterion": "frontend-architecture-criterion-8",
+          "competency": "fa-progressive-delivery",
+          "entry_point": "production",
+          "label": "Ship a risky change safely",
+          "prompt": "Which technique limits the blast radius of a risky frontend change?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Releasing behind a flag to a small share of traffic first"
+            },
+            {
+              "id": "2",
+              "text": "Deploying at a quiet hour"
+            },
+            {
+              "id": "3",
+              "text": "Testing more thoroughly before release"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Progressive exposure bounds who is affected and lets you stop; timing and testing do not bound it.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-9",
+          "criterion": "frontend-architecture-criterion-9",
+          "competency": "fa-microfrontend-decisions",
+          "entry_point": "production",
+          "label": "Judge a microfrontend split",
+          "prompt": "When does splitting an application across teams pay for itself?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "When independent deployment is worth the runtime and duplication costs"
+            },
+            {
+              "id": "2",
+              "text": "Whenever the codebase passes a size threshold"
+            },
+            {
+              "id": "3",
+              "text": "When each page has its own route"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The split buys deployment independence and charges runtime complexity; size alone is not the trade.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-10",
+          "criterion": "frontend-architecture-criterion-10",
+          "competency": "fa-edge-middleware-geo",
+          "entry_point": "synthesis",
+          "label": "Decide what belongs at the edge",
+          "prompt": "Which work belongs in edge middleware rather than the origin?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Cheap request-shaping such as redirects, locale and auth checks"
+            },
+            {
+              "id": "2",
+              "text": "Rendering the full page"
+            },
+            {
+              "id": "3",
+              "text": "Database transactions"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Edge code runs before the origin with tight limits; it shapes requests rather than doing heavy work.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-11",
+          "criterion": "frontend-architecture-criterion-11",
+          "competency": "fa-server-component-mutation-boundaries",
+          "entry_point": "synthesis",
+          "label": "Keep a mutation honest",
+          "prompt": "After a server mutation, what keeps the client view correct?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Revalidating the data the mutation affected"
+            },
+            {
+              "id": "2",
+              "text": "Reloading the whole page"
+            },
+            {
+              "id": "3",
+              "text": "Trusting the optimistic update"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The mutation has to name what it invalidated; a full reload is a blunt version of the same idea.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-entry-12",
+          "criterion": "frontend-architecture-criterion-12",
+          "competency": "fa-monorepo-modularity",
+          "entry_point": "synthesis",
+          "label": "Defend an architecture decision",
+          "prompt": "What makes an architecture decision record useful a year later?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The constraints and rejected alternatives, not just the choice"
+            },
+            {
+              "id": "2",
+              "text": "A diagram of the final system"
+            },
+            {
+              "id": "3",
+              "text": "The date and the author"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The reasoning is what lets a later reader tell whether the constraints still hold.",
+          "followup_for": null
+        },
+        {
+          "id": "frontend-architecture-followup-1",
+          "criterion": "frontend-architecture-criterion-1",
+          "competency": "fa-state-placement",
+          "entry_point": "foundations",
+          "label": "Place state correctly",
+          "prompt": "That shared value is only used by one sibling after a refactor. What should happen?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Move it back down into the component that uses it"
+            },
+            {
+              "id": "2",
+              "text": "Leave it where it is"
+            },
+            {
+              "id": "3",
+              "text": "Promote it to a global store"
+            }
+          ],
+          "answer": "1",
+          "explanation": "State belongs as low as it can sit; leaving it high keeps unrelated renders coupled.",
+          "followup_for": "frontend-architecture-criterion-1"
+        },
+        {
+          "id": "frontend-architecture-followup-2",
+          "criterion": "frontend-architecture-criterion-2",
+          "competency": "fa-component-api-design",
+          "entry_point": "foundations",
+          "label": "Design a component boundary",
+          "prompt": "Which prop signature better expresses three mutually exclusive appearances?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "variant: 'primary' | 'ghost' | 'danger'"
+            },
+            {
+              "id": "2",
+              "text": "isPrimary, isGhost, isDanger booleans"
+            },
+            {
+              "id": "3",
+              "text": "A style object"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A union makes the exclusivity impossible to violate; three booleans allow contradictions.",
+          "followup_for": "frontend-architecture-criterion-2"
+        }
+      ]
+    },
+    {
+      "course_id": "developer-tooling",
+      "version": "entry-v1",
+      "estimated_minutes": 15,
+      "scope_note": "Twelve short questions, three for each stage of this course, so the check can place you at any stage rather than guessing past the ones it never sampled.",
+      "questions": [
+        {
+          "id": "developer-tooling-entry-1",
+          "criterion": "developer-tooling-criterion-1",
+          "competency": "dt-cli-design",
+          "entry_point": "foundations",
+          "label": "Design a command line contract",
+          "prompt": "What should a tool print to standard output when its result is meant to be piped?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Only the machine-readable result, with progress on standard error"
+            },
+            {
+              "id": "2",
+              "text": "The result and progress together"
+            },
+            {
+              "id": "3",
+              "text": "Nothing until it finishes"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Separating streams is what lets a tool be composed; progress on stdout corrupts the pipe.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-2",
+          "criterion": "developer-tooling-criterion-2",
+          "competency": "dt-ast-parsing",
+          "entry_point": "foundations",
+          "label": "Choose between a regex and a parser",
+          "prompt": "Why rename a symbol with an abstract syntax tree rather than a regular expression?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Only the tree distinguishes the symbol from a string or comment that looks like it"
+            },
+            {
+              "id": "2",
+              "text": "Regular expressions are slower"
+            },
+            {
+              "id": "3",
+              "text": "The tree preserves formatting automatically"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A parser knows what each token means; a pattern matches text wherever it appears.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-3",
+          "criterion": "developer-tooling-criterion-3",
+          "competency": "dt-web-platform-targets",
+          "entry_point": "foundations",
+          "label": "Pick a build target",
+          "prompt": "What does setting a lower build target change?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "More syntax is transpiled and polyfilled, so bundles grow"
+            },
+            {
+              "id": "2",
+              "text": "Only the type checking level"
+            },
+            {
+              "id": "3",
+              "text": "Which package manager is used"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The target decides how much the compiler rewrites, which shows up as output size and speed.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-4",
+          "criterion": "developer-tooling-criterion-4",
+          "competency": "dt-bundler-graph",
+          "entry_point": "mechanisms",
+          "label": "Explain a bundle that is too large",
+          "prompt": "Tree shaking leaves an unused module in the bundle. What usually prevents its removal?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A side effect the bundler cannot prove is unused"
+            },
+            {
+              "id": "2",
+              "text": "A missing minifier"
+            },
+            {
+              "id": "3",
+              "text": "Dynamic imports"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Elimination needs proof of purity; an unmarked side effect forces the bundler to keep the module.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-5",
+          "criterion": "developer-tooling-criterion-5",
+          "competency": "dt-watch-mode-incremental",
+          "entry_point": "mechanisms",
+          "label": "Make a watch loop fast",
+          "prompt": "What makes an incremental rebuild fast after one file changes?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Reusing cached results for everything the change cannot affect"
+            },
+            {
+              "id": "2",
+              "text": "Watching fewer directories"
+            },
+            {
+              "id": "3",
+              "text": "Running the build in parallel"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The dependency graph bounds the work; parallelism only speeds up work you still do.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-6",
+          "criterion": "developer-tooling-criterion-6",
+          "competency": "dt-source-maps-v3",
+          "entry_point": "mechanisms",
+          "label": "Debug a minified stack",
+          "prompt": "A production stack trace points at column 4,000 of one line. What restores the original location?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A source map published alongside the bundle"
+            },
+            {
+              "id": "2",
+              "text": "Turning off minification in production"
+            },
+            {
+              "id": "3",
+              "text": "A longer stack trace limit"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A source map is the mapping back to the authored file, line and column.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-7",
+          "criterion": "developer-tooling-criterion-7",
+          "competency": "dt-test-runner-isolation",
+          "entry_point": "production",
+          "label": "Explain a test that only fails in a suite",
+          "prompt": "A test passes alone and fails in the suite. What is the likely cause?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Shared state left behind by another test"
+            },
+            {
+              "id": "2",
+              "text": "A slow machine"
+            },
+            {
+              "id": "3",
+              "text": "A missing assertion"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Order dependence comes from state that outlives a test; isolation or explicit cleanup fixes it.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-8",
+          "criterion": "developer-tooling-criterion-8",
+          "competency": "dt-monorepo-task-runners",
+          "entry_point": "production",
+          "label": "Cache a task correctly",
+          "prompt": "What must a task cache key include to be safe?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Every input that changes the output, including configuration and tool version"
+            },
+            {
+              "id": "2",
+              "text": "The task name and the date"
+            },
+            {
+              "id": "3",
+              "text": "The output size"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A cache is only correct when its key covers all inputs; missing one returns stale output.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-9",
+          "criterion": "developer-tooling-criterion-9",
+          "competency": "dt-lint-rule-engine",
+          "entry_point": "production",
+          "label": "Judge a lint rule",
+          "prompt": "When is a lint rule worth its noise?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "When it catches a real defect class and has few false positives"
+            },
+            {
+              "id": "2",
+              "text": "When it enforces a team's formatting taste"
+            },
+            {
+              "id": "3",
+              "text": "When it runs quickly"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Value is the defect class it prevents against the cost of its false positives.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-10",
+          "criterion": "developer-tooling-criterion-10",
+          "competency": "dt-agent-tooling-mcp",
+          "entry_point": "synthesis",
+          "label": "Expose a tool to an agent safely",
+          "prompt": "What matters most when exposing a build tool to an automated agent?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A narrow, declared surface with explicit permissions"
+            },
+            {
+              "id": "2",
+              "text": "A natural-language interface"
+            },
+            {
+              "id": "3",
+              "text": "Returning as much context as possible"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A tool the agent can misuse is a liability; a narrow declared surface bounds what can happen.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-11",
+          "criterion": "developer-tooling-criterion-11",
+          "competency": "dt-lighthouse-ci-budgets",
+          "entry_point": "synthesis",
+          "label": "Make a performance budget stick",
+          "prompt": "Which budget actually prevents regressions?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "One enforced in continuous integration that fails the build"
+            },
+            {
+              "id": "2",
+              "text": "One documented in the repository"
+            },
+            {
+              "id": "3",
+              "text": "One reviewed monthly"
+            }
+          ],
+          "answer": "1",
+          "explanation": "An unenforced budget is a wish; the failing build is what stops the regression landing.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-entry-12",
+          "criterion": "developer-tooling-criterion-12",
+          "competency": "dt-webpack-vite-rspack-migration",
+          "entry_point": "synthesis",
+          "label": "Sequence a toolchain migration",
+          "prompt": "How do you migrate a large build to a new bundler with least risk?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Run both and compare output and timings until the new one matches"
+            },
+            {
+              "id": "2",
+              "text": "Switch entirely on a quiet day"
+            },
+            {
+              "id": "3",
+              "text": "Rewrite the configuration from scratch first"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Running in parallel gives evidence of equivalence before you depend on it.",
+          "followup_for": null
+        },
+        {
+          "id": "developer-tooling-followup-1",
+          "criterion": "developer-tooling-criterion-1",
+          "competency": "dt-cli-design",
+          "entry_point": "foundations",
+          "label": "Design a command line contract",
+          "prompt": "What should a tool's exit status be when it finds problems it was asked to report?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Non-zero, so a script can act on it"
+            },
+            {
+              "id": "2",
+              "text": "Always zero, since it ran successfully"
+            },
+            {
+              "id": "3",
+              "text": "Zero unless the tool itself crashed"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The status is the machine-readable verdict; scripts branch on it.",
+          "followup_for": "developer-tooling-criterion-1"
+        },
+        {
+          "id": "developer-tooling-followup-2",
+          "criterion": "developer-tooling-criterion-2",
+          "competency": "dt-ast-parsing",
+          "entry_point": "foundations",
+          "label": "Choose between a regex and a parser",
+          "prompt": "A codemod must keep comments and formatting. What does that require?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A parser that records trivia and a printer that re-emits it"
+            },
+            {
+              "id": "2",
+              "text": "A stricter regular expression"
+            },
+            {
+              "id": "3",
+              "text": "Formatting the output afterwards"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Comments and whitespace survive only if the tool represents them and prints them back.",
+          "followup_for": "developer-tooling-criterion-2"
+        }
+      ]
+    },
+    {
+      "course_id": "system-design",
+      "version": "entry-v1",
+      "estimated_minutes": 15,
+      "scope_note": "Twelve short questions, three for each stage of this course, so the check can place you at any stage rather than guessing past the ones it never sampled.",
+      "questions": [
+        {
+          "id": "system-design-entry-1",
+          "criterion": "system-design-criterion-1",
+          "competency": "latency-numbers",
+          "entry_point": "foundations",
+          "label": "Estimate a workload",
+          "prompt": "A service handles 8,600,000 requests a day, roughly evenly spread. What is the average rate?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "About 100 per second"
+            },
+            {
+              "id": "2",
+              "text": "About 1,000 per second"
+            },
+            {
+              "id": "3",
+              "text": "About 10 per second"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A day is about 86,400 seconds, so 8.6 million requests average roughly 100 per second.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-2",
+          "criterion": "system-design-criterion-2",
+          "competency": "consistency-models",
+          "entry_point": "foundations",
+          "label": "Tell two consistency models apart",
+          "prompt": "A read immediately after a successful write returns the old value. Which model permits this?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Eventual consistency"
+            },
+            {
+              "id": "2",
+              "text": "Linearizability"
+            },
+            {
+              "id": "3",
+              "text": "Strict serializability"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Only eventual consistency allows a read to trail a completed write; the others forbid it.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-3",
+          "criterion": "system-design-criterion-3",
+          "competency": "stateless-stateful",
+          "entry_point": "foundations",
+          "label": "Recognise what blocks horizontal scaling",
+          "prompt": "A web tier keeps session data in process memory. What breaks when you add a second instance?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Requests routed to the other instance lose the session"
+            },
+            {
+              "id": "2",
+              "text": "Nothing, sessions replicate automatically"
+            },
+            {
+              "id": "3",
+              "text": "Only logging becomes harder"
+            }
+          ],
+          "answer": "1",
+          "explanation": "State held in one process is invisible to the others, so scaling out needs the state moved to a shared store or the routing pinned.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-4",
+          "criterion": "system-design-criterion-4",
+          "competency": "quorums",
+          "entry_point": "mechanisms",
+          "label": "Check quorum overlap",
+          "prompt": "With five replicas, a write quorum of three and a read quorum of two, can a read miss the newest committed write?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Yes, because three plus two does not exceed five"
+            },
+            {
+              "id": "2",
+              "text": "No, the quorums always overlap"
+            },
+            {
+              "id": "3",
+              "text": "Only during a network partition"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Overlap needs W + R greater than N; three plus two equals five, so a read set can avoid every writer.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-5",
+          "criterion": "system-design-criterion-5",
+          "competency": "sharding",
+          "entry_point": "mechanisms",
+          "label": "Recognise skew",
+          "prompt": "Sharding by customer identifier leaves one shard at 80% CPU and the others idle. What is happening?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A few very large customers concentrate load on one shard"
+            },
+            {
+              "id": "2",
+              "text": "The hash function is broken"
+            },
+            {
+              "id": "3",
+              "text": "The shard count is too high"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Partitioning by an entity with a skewed size distribution concentrates load regardless of hashing quality.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-6",
+          "criterion": "system-design-criterion-6",
+          "competency": "replication",
+          "entry_point": "mechanisms",
+          "label": "Reason about replication lag",
+          "prompt": "Reads are served from an asynchronous replica. A user updates a profile and immediately reloads. What can they see?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Their old profile, until the replica catches up"
+            },
+            {
+              "id": "2",
+              "text": "Their new profile, always"
+            },
+            {
+              "id": "3",
+              "text": "An error from the replica"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Asynchronous replication acknowledges the write before the replica applies it, so a following read can trail.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-7",
+          "criterion": "system-design-criterion-7",
+          "competency": "outbox-pattern",
+          "entry_point": "production",
+          "label": "Coordinate state with event publication",
+          "prompt": "A service commits a row and then publishes an event. The process dies in between. What does the outbox pattern change?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The event is written in the same transaction and published later by a reader"
+            },
+            {
+              "id": "2",
+              "text": "The publish happens before the commit"
+            },
+            {
+              "id": "3",
+              "text": "Events are dropped when the process dies"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Writing the event with the data makes the pair atomic; a separate reader then publishes, so a crash cannot lose one half.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-8",
+          "criterion": "system-design-criterion-8",
+          "competency": "graceful-degradation",
+          "entry_point": "production",
+          "label": "Protect a dependency under failure",
+          "prompt": "A downstream service starts timing out and your latency climbs. What does a circuit breaker do?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Stops calling it for a period so callers fail fast and the dependency can recover"
+            },
+            {
+              "id": "2",
+              "text": "Retries faster to get through"
+            },
+            {
+              "id": "3",
+              "text": "Queues requests until the dependency returns"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Failing fast sheds load from a struggling dependency; retries and unbounded queues add to it.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-9",
+          "criterion": "system-design-criterion-9",
+          "competency": "rate-limiting",
+          "entry_point": "production",
+          "label": "Choose a limiter for bursty traffic",
+          "prompt": "Clients send short bursts within a fair long-run rate. Which limiter admits the burst without raising the average?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A token bucket with a burst size"
+            },
+            {
+              "id": "2",
+              "text": "A fixed window counter"
+            },
+            {
+              "id": "3",
+              "text": "A hard per-second cap"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A token bucket accumulates allowance up to the burst size while bounding the sustained rate.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-10",
+          "criterion": "system-design-criterion-10",
+          "competency": "design-news-feed",
+          "entry_point": "synthesis",
+          "label": "Choose a fan-out strategy",
+          "prompt": "A social feed has a few accounts with millions of followers. Which approach handles them?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Fan out on write for ordinary accounts and read-time merge for the huge ones"
+            },
+            {
+              "id": "2",
+              "text": "Fan out on write for everyone"
+            },
+            {
+              "id": "3",
+              "text": "Read-time merge for everyone"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Writing millions of copies per post is the cost that forces a hybrid; ordinary accounts stay cheap on write.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-11",
+          "criterion": "system-design-criterion-11",
+          "competency": "design-chat",
+          "entry_point": "synthesis",
+          "label": "Guarantee ordering a user can see",
+          "prompt": "Two messages sent by one user must never appear out of order. What gives that cheaply?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A per-conversation sequence assigned by the server"
+            },
+            {
+              "id": "2",
+              "text": "Client timestamps"
+            },
+            {
+              "id": "3",
+              "text": "A global total order across all conversations"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Ordering is only observable within a conversation, so a per-conversation sequence is enough and a global order is far more costly.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-entry-12",
+          "criterion": "system-design-criterion-12",
+          "competency": "design-rate-limiter",
+          "entry_point": "synthesis",
+          "label": "Defend a design under load",
+          "prompt": "You claim a design survives a tenfold traffic increase. What evidence makes that credible?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Named bottleneck, its measured limit, and what changes when it is reached"
+            },
+            {
+              "id": "2",
+              "text": "A diagram with more boxes"
+            },
+            {
+              "id": "3",
+              "text": "A statement that the services scale horizontally"
+            }
+          ],
+          "answer": "1",
+          "explanation": "A defensible claim names the limiting resource with a number and the response when it binds.",
+          "followup_for": null
+        },
+        {
+          "id": "system-design-followup-1",
+          "criterion": "system-design-criterion-1",
+          "competency": "latency-numbers",
+          "entry_point": "foundations",
+          "label": "Estimate a workload",
+          "prompt": "Peak traffic is five times the average of 100 requests per second, and each request takes 20 ms. Roughly how many concurrent requests are in flight at peak?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "About 10"
+            },
+            {
+              "id": "2",
+              "text": "About 100"
+            },
+            {
+              "id": "3",
+              "text": "About 500"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Little's law: 500 per second times 0.02 seconds is about 10 in flight.",
+          "followup_for": "system-design-criterion-1"
+        },
+        {
+          "id": "system-design-followup-2",
+          "criterion": "system-design-criterion-2",
+          "competency": "consistency-models",
+          "entry_point": "foundations",
+          "label": "Tell two consistency models apart",
+          "prompt": "Which guarantee does read-your-writes add over plain eventual consistency?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "A client always sees its own completed writes"
+            },
+            {
+              "id": "2",
+              "text": "Every client sees the same order of writes"
+            },
+            {
+              "id": "3",
+              "text": "Writes never conflict"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Read-your-writes is a session guarantee about the writer's own reads, not a global ordering.",
+          "followup_for": "system-design-criterion-2"
+        }
+      ]
+    },
+    {
+      "course_id": "german",
+      "version": "entry-v1",
+      "estimated_minutes": 14,
+      "scope_note": "Twelve short questions, three for each level from A1 to B2, so the check can place you at any level rather than stopping at the highest one it sampled. Reading and grammar only: speaking and listening are assessed inside lessons.",
+      "questions": [
+        {
+          "id": "german-entry-1",
+          "criterion": "german-criterion-1",
+          "competency": "reading",
+          "entry_point": "A1",
+          "label": "A1: identify a meeting time",
+          "prompt": "Read: „Der Kurs beginnt am Montag um neun Uhr.“ Wann beginnt der Kurs?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Monday at nine"
+            },
+            {
+              "id": "2",
+              "text": "Tuesday at nine"
+            },
+            {
+              "id": "3",
+              "text": "Monday at five"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Montag is Monday and neun Uhr is nine o'clock.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-2",
+          "criterion": "german-criterion-2",
+          "competency": "grammar",
+          "entry_point": "A1",
+          "label": "A1: match a verb to its subject",
+          "prompt": "Choose the form: „Ich ___ in Berlin.“",
+          "choices": [
+            {
+              "id": "1",
+              "text": "wohne"
+            },
+            {
+              "id": "2",
+              "text": "wohnst"
+            },
+            {
+              "id": "3",
+              "text": "wohnt"
+            }
+          ],
+          "answer": "1",
+          "explanation": "First person singular takes the -e ending.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-3",
+          "criterion": "german-criterion-3",
+          "competency": "vocabulary_pragmatics",
+          "entry_point": "A1",
+          "label": "A1: choose a polite opening",
+          "prompt": "You enter a shop in the morning. Which greeting fits?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Guten Morgen"
+            },
+            {
+              "id": "2",
+              "text": "Gute Nacht"
+            },
+            {
+              "id": "3",
+              "text": "Tschüss"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Gute Nacht is for leaving at night and Tschüss is a goodbye.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-4",
+          "criterion": "german-criterion-4",
+          "competency": "reading",
+          "entry_point": "A2",
+          "label": "A2: interpret a changed arrangement",
+          "prompt": "Read: „Der Termin am Dienstag fällt aus. Wir treffen uns stattdessen am Donnerstag.“ Was gilt?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The meeting moves to Thursday"
+            },
+            {
+              "id": "2",
+              "text": "The meeting stays on Tuesday"
+            },
+            {
+              "id": "3",
+              "text": "The meeting is cancelled entirely"
+            }
+          ],
+          "answer": "1",
+          "explanation": "fällt aus cancels Tuesday and stattdessen introduces the replacement day.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-5",
+          "criterion": "german-criterion-5",
+          "competency": "grammar",
+          "entry_point": "A2",
+          "label": "A2: place a past tense",
+          "prompt": "Complete: „Gestern ___ ich einen Film gesehen.“",
+          "choices": [
+            {
+              "id": "1",
+              "text": "habe"
+            },
+            {
+              "id": "2",
+              "text": "bin"
+            },
+            {
+              "id": "3",
+              "text": "werde"
+            }
+          ],
+          "answer": "1",
+          "explanation": "sehen forms the perfect with haben; bin is for verbs of motion and change of state.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-6",
+          "criterion": "german-criterion-6",
+          "competency": "writing",
+          "entry_point": "A2",
+          "label": "A2: ask for a change politely",
+          "prompt": "You must move an appointment. Which sentence asks politely?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Könnten wir den Termin verschieben?"
+            },
+            {
+              "id": "2",
+              "text": "Ich verschiebe den Termin."
+            },
+            {
+              "id": "3",
+              "text": "Der Termin ist verschoben."
+            }
+          ],
+          "answer": "1",
+          "explanation": "The subjunctive könnten makes it a request rather than an announcement.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-7",
+          "criterion": "german-criterion-7",
+          "competency": "reading",
+          "entry_point": "B1",
+          "label": "B1: follow an argument",
+          "prompt": "Read: „Das Angebot klingt gut, allerdings sind die Kosten zu hoch.“ Was meint der Autor?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "He likes it but rejects it on cost"
+            },
+            {
+              "id": "2",
+              "text": "He fully agrees"
+            },
+            {
+              "id": "3",
+              "text": "He finds the cost acceptable"
+            }
+          ],
+          "answer": "1",
+          "explanation": "allerdings introduces the reservation that carries the writer's real position.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-8",
+          "criterion": "german-criterion-8",
+          "competency": "grammar",
+          "entry_point": "B1",
+          "label": "B1: express a condition",
+          "prompt": "Complete: „Wenn ich mehr Zeit ___, würde ich Italienisch lernen.“",
+          "choices": [
+            {
+              "id": "1",
+              "text": "hätte"
+            },
+            {
+              "id": "2",
+              "text": "habe"
+            },
+            {
+              "id": "3",
+              "text": "hatte"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The unreal condition needs the subjunctive hätte to match würde.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-9",
+          "criterion": "german-criterion-9",
+          "competency": "vocabulary_pragmatics",
+          "entry_point": "B1",
+          "label": "B1: read register",
+          "prompt": "Which closing belongs in a formal email?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Mit freundlichen Grüßen"
+            },
+            {
+              "id": "2",
+              "text": "Liebe Grüße"
+            },
+            {
+              "id": "3",
+              "text": "Bis dann"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The other two are informal sign-offs for people you know.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-10",
+          "criterion": "german-criterion-10",
+          "competency": "reading",
+          "entry_point": "B2",
+          "label": "B2: detect an implied stance",
+          "prompt": "Read: „Der Vorschlag ist zweifellos ambitioniert – ob er finanzierbar ist, steht auf einem anderen Blatt.“ Wie steht der Autor dazu?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Impressed but doubtful about funding"
+            },
+            {
+              "id": "2",
+              "text": "Entirely supportive"
+            },
+            {
+              "id": "3",
+              "text": "Opposed to the ambition"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The idiom steht auf einem anderen Blatt sets the funding question aside as unresolved.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-11",
+          "criterion": "german-criterion-11",
+          "competency": "grammar",
+          "entry_point": "B2",
+          "label": "B2: handle reported speech",
+          "prompt": "Report this: „Ich komme später.“ → Er sagte, ___.",
+          "choices": [
+            {
+              "id": "1",
+              "text": "er komme später"
+            },
+            {
+              "id": "2",
+              "text": "er kommt später"
+            },
+            {
+              "id": "3",
+              "text": "er kam später"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Reported speech in careful written German uses Konjunktiv I.",
+          "followup_for": null
+        },
+        {
+          "id": "german-entry-12",
+          "criterion": "german-criterion-12",
+          "competency": "writing",
+          "entry_point": "B2",
+          "label": "B2: structure a written argument",
+          "prompt": "Which opening sets up an argued position?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Im Folgenden möchte ich begründen, warum …"
+            },
+            {
+              "id": "2",
+              "text": "Ich schreibe über …"
+            },
+            {
+              "id": "3",
+              "text": "Hier sind einige Punkte."
+            }
+          ],
+          "answer": "1",
+          "explanation": "It announces a claim and its justification rather than a topic or a list.",
+          "followup_for": null
+        },
+        {
+          "id": "german-followup-1",
+          "criterion": "german-criterion-1",
+          "competency": "reading",
+          "entry_point": "A1",
+          "label": "A1: identify a meeting time",
+          "prompt": "Read: „Wir treffen uns um halb acht.“ Wie spät ist das?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "7:30"
+            },
+            {
+              "id": "2",
+              "text": "8:30"
+            },
+            {
+              "id": "3",
+              "text": "8:00"
+            }
+          ],
+          "answer": "1",
+          "explanation": "halb acht is half an hour before eight, not after.",
+          "followup_for": "german-criterion-1"
+        },
+        {
+          "id": "german-followup-2",
+          "criterion": "german-criterion-2",
+          "competency": "grammar",
+          "entry_point": "A1",
+          "label": "A1: match a verb to its subject",
+          "prompt": "Choose the form: „Du ___ sehr gut Deutsch.“",
+          "choices": [
+            {
+              "id": "1",
+              "text": "sprichst"
+            },
+            {
+              "id": "2",
+              "text": "spreche"
+            },
+            {
+              "id": "3",
+              "text": "spricht"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Second person singular takes -st, with the stem vowel change.",
+          "followup_for": "german-criterion-2"
+        }
+      ]
+    },
+    {
+      "course_id": "italian",
+      "version": "entry-v1",
+      "estimated_minutes": 14,
+      "scope_note": "Twelve short questions, three for each level from A1 to B2, so the check can place you at any level rather than stopping at the highest one it sampled. Reading and grammar only: speaking and listening are assessed inside lessons.",
+      "questions": [
+        {
+          "id": "italian-entry-1",
+          "criterion": "italian-criterion-1",
+          "competency": "reading",
+          "entry_point": "A1",
+          "label": "A1: identify a meeting time",
+          "prompt": "Leggi: «Il corso inizia lunedì alle nove.» Quando inizia?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Monday at nine"
+            },
+            {
+              "id": "2",
+              "text": "Tuesday at nine"
+            },
+            {
+              "id": "3",
+              "text": "Monday at five"
+            }
+          ],
+          "answer": "1",
+          "explanation": "lunedì is Monday and alle nove is at nine.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-2",
+          "criterion": "italian-criterion-2",
+          "competency": "grammar",
+          "entry_point": "A1",
+          "label": "A1: match a verb to its subject",
+          "prompt": "Scegli la forma: «Io ___ a Roma.»",
+          "choices": [
+            {
+              "id": "1",
+              "text": "abito"
+            },
+            {
+              "id": "2",
+              "text": "abiti"
+            },
+            {
+              "id": "3",
+              "text": "abita"
+            }
+          ],
+          "answer": "1",
+          "explanation": "First person singular of -are verbs ends in -o.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-3",
+          "criterion": "italian-criterion-3",
+          "competency": "vocabulary_pragmatics",
+          "entry_point": "A1",
+          "label": "A1: choose a polite opening",
+          "prompt": "You enter a shop in the morning. Which greeting fits?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Buongiorno"
+            },
+            {
+              "id": "2",
+              "text": "Buonanotte"
+            },
+            {
+              "id": "3",
+              "text": "Ciao ciao"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Buonanotte is for leaving at night and the third is an informal goodbye.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-4",
+          "criterion": "italian-criterion-4",
+          "competency": "reading",
+          "entry_point": "A2",
+          "label": "A2: interpret a changed arrangement",
+          "prompt": "Leggi: «L'incontro di martedì è annullato. Ci vediamo invece giovedì.» Qual è la situazione?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "The meeting moves to Thursday"
+            },
+            {
+              "id": "2",
+              "text": "The meeting stays on Tuesday"
+            },
+            {
+              "id": "3",
+              "text": "The meeting is cancelled entirely"
+            }
+          ],
+          "answer": "1",
+          "explanation": "annullato cancels Tuesday and invece introduces the replacement day.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-5",
+          "criterion": "italian-criterion-5",
+          "competency": "grammar",
+          "entry_point": "A2",
+          "label": "A2: place a past tense",
+          "prompt": "Completa: «Ieri ___ visto un film.»",
+          "choices": [
+            {
+              "id": "1",
+              "text": "ho"
+            },
+            {
+              "id": "2",
+              "text": "sono"
+            },
+            {
+              "id": "3",
+              "text": "avrò"
+            }
+          ],
+          "answer": "1",
+          "explanation": "vedere forms the passato prossimo with avere.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-6",
+          "criterion": "italian-criterion-6",
+          "competency": "writing",
+          "entry_point": "A2",
+          "label": "A2: ask for a change politely",
+          "prompt": "You must move an appointment. Which sentence asks politely?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Potremmo spostare l'appuntamento?"
+            },
+            {
+              "id": "2",
+              "text": "Sposto l'appuntamento."
+            },
+            {
+              "id": "3",
+              "text": "L'appuntamento è spostato."
+            }
+          ],
+          "answer": "1",
+          "explanation": "The conditional potremmo makes it a request rather than a decision already taken.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-7",
+          "criterion": "italian-criterion-7",
+          "competency": "reading",
+          "entry_point": "B1",
+          "label": "B1: follow an argument",
+          "prompt": "Leggi: «La proposta è interessante, tuttavia i costi sono troppo alti.» Cosa pensa l'autore?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "He likes it but rejects it on cost"
+            },
+            {
+              "id": "2",
+              "text": "He fully agrees"
+            },
+            {
+              "id": "3",
+              "text": "He finds the cost acceptable"
+            }
+          ],
+          "answer": "1",
+          "explanation": "tuttavia introduces the reservation that carries the writer's real position.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-8",
+          "criterion": "italian-criterion-8",
+          "competency": "grammar",
+          "entry_point": "B1",
+          "label": "B1: express a condition",
+          "prompt": "Completa: «Se ___ più tempo, studierei il tedesco.»",
+          "choices": [
+            {
+              "id": "1",
+              "text": "avessi"
+            },
+            {
+              "id": "2",
+              "text": "ho"
+            },
+            {
+              "id": "3",
+              "text": "avrò"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The unreal condition takes the imperfect subjunctive with the conditional.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-9",
+          "criterion": "italian-criterion-9",
+          "competency": "vocabulary_pragmatics",
+          "entry_point": "B1",
+          "label": "B1: read register",
+          "prompt": "Which closing belongs in a formal email?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Cordiali saluti"
+            },
+            {
+              "id": "2",
+              "text": "Un abbraccio"
+            },
+            {
+              "id": "3",
+              "text": "A presto"
+            }
+          ],
+          "answer": "1",
+          "explanation": "The other two are warm closings for people you know.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-10",
+          "criterion": "italian-criterion-10",
+          "competency": "reading",
+          "entry_point": "B2",
+          "label": "B2: detect an implied stance",
+          "prompt": "Leggi: «La proposta è senza dubbio ambiziosa; se sia sostenibile, è un altro discorso.» Qual è la posizione?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Impressed but doubtful about feasibility"
+            },
+            {
+              "id": "2",
+              "text": "Entirely supportive"
+            },
+            {
+              "id": "3",
+              "text": "Opposed to the ambition"
+            }
+          ],
+          "answer": "1",
+          "explanation": "è un altro discorso sets the feasibility question aside as unresolved.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-11",
+          "criterion": "italian-criterion-11",
+          "competency": "grammar",
+          "entry_point": "B2",
+          "label": "B2: handle reported speech",
+          "prompt": "Riporta: «Arrivo più tardi.» → Ha detto che ___.",
+          "choices": [
+            {
+              "id": "1",
+              "text": "sarebbe arrivato più tardi"
+            },
+            {
+              "id": "2",
+              "text": "arriva più tardi"
+            },
+            {
+              "id": "3",
+              "text": "arrivava"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Reported speech after a past verb shifts a future intention to the past conditional.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-entry-12",
+          "criterion": "italian-criterion-12",
+          "competency": "writing",
+          "entry_point": "B2",
+          "label": "B2: structure a written argument",
+          "prompt": "Which opening sets up an argued position?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "Di seguito spiego perché …"
+            },
+            {
+              "id": "2",
+              "text": "Scrivo a proposito di …"
+            },
+            {
+              "id": "3",
+              "text": "Ecco alcuni punti."
+            }
+          ],
+          "answer": "1",
+          "explanation": "It announces a claim and its justification rather than a topic or a list.",
+          "followup_for": null
+        },
+        {
+          "id": "italian-followup-1",
+          "criterion": "italian-criterion-1",
+          "competency": "reading",
+          "entry_point": "A1",
+          "label": "A1: identify a meeting time",
+          "prompt": "Leggi: «Ci vediamo alle sette e mezza.» Che ora è?",
+          "choices": [
+            {
+              "id": "1",
+              "text": "7:30"
+            },
+            {
+              "id": "2",
+              "text": "6:30"
+            },
+            {
+              "id": "3",
+              "text": "7:15"
+            }
+          ],
+          "answer": "1",
+          "explanation": "e mezza adds half an hour to the stated hour.",
+          "followup_for": "italian-criterion-1"
+        },
+        {
+          "id": "italian-followup-2",
+          "criterion": "italian-criterion-2",
+          "competency": "grammar",
+          "entry_point": "A1",
+          "label": "A1: match a verb to its subject",
+          "prompt": "Scegli la forma: «Tu ___ molto bene l'italiano.»",
+          "choices": [
+            {
+              "id": "1",
+              "text": "parli"
+            },
+            {
+              "id": "2",
+              "text": "parlo"
+            },
+            {
+              "id": "3",
+              "text": "parla"
+            }
+          ],
+          "answer": "1",
+          "explanation": "Second person singular of -are verbs ends in -i.",
+          "followup_for": "italian-criterion-2"
+        }
+      ]
+    }
+  ]
+}

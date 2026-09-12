@@ -1,0 +1,35 @@
+# principia.ndelucien.com — one static web service. No database, no cache, no
+# admin: the content is baked into the image at build time.
+version: "3.8"
+
+services:
+  web:
+    image: ghcr.io/${GHCR_OWNER:-dark-matter08}/principia-landing:${IMAGE_TAG:-production}
+    # Both networks, deliberately. A service on the shared vertex_web overlay
+    # with no second membership has ambiguous swarm DNS: bare names resolve to
+    # whichever stack answers first. Being on `internal` too keeps this one's
+    # own name unambiguous.
+    networks: [internal, ingress-shared]
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+        failure_action: rollback
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 128M
+
+networks:
+  internal:
+    driver: overlay
+  # Box-wide ingress owned by the vertex stack; its nginx proxies to us by name.
+  ingress-shared:
+    external: true
+    name: vertex_web

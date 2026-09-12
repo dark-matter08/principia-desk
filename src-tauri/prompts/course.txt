@@ -1,23 +1,59 @@
-You are generating a daily system design course for an experienced full-stack developer (TypeScript/Node, Docker, Postgres background) who wants to reach staff-engineer-level system design skill.
+You are generating a {{FOCUS_LABEL}} lesson that develops practical understanding and judgment in {{FOCUS_CONTEXT}}. Follow the learner's accepted starting point, recorded evidence and authoritative curriculum brief.
 
 Topic: {{TITLE}}
 Category: {{CATEGORY}}
 
-Requirements:
-- Write a course readable in roughly 30 minutes (3500-4500 words of markdown).
-- Structure: ## Why this matters → ## Core mechanics (the meat — go deep, with concrete numbers and small ASCII diagrams where useful) → ## Trade-offs and failure modes → ## Real-world example (how a well-known system actually does this) → ## Interview framing (how to present this in a system design interview) → ## Key takeaways.
-- Tone: direct, technical, no fluff. Assume the reader codes daily but has gaps in distributed systems theory.
-- Use WebSearch to find 4 to 6 high-quality, real resources (engineering blog posts, papers, talks, docs) about this topic. Only include URLs that appeared in your search results — never invent or guess a URL. Keep research brief: a few searches, no exhaustive verification.
+30-day proof of skill this track is building toward:
+{{MONTH_OUTCOME}}
 
-Your entire final reply must be exactly one fenced JSON code block (```json ... ```) matching this schema, with no text before or after it:
-{
-  "title": string,
-  "markdown": string,        // the full course in markdown, NOT including the resources
-  "resources": [ { "title": string, "url": string, "type": "article"|"paper"|"video"|"docs", "why": string } ],
-  "key_takeaways": [ string, ... ],  // 4-6 one-sentence takeaways
-  "exit_questions": [        // exactly 3 MCQs gating early exit from the timed reader:
-                             // they test THIS course's core mechanics — what a skimmer would miss.
-                             // 4 plausible choices each; correct_answer = exact text of the right choice.
-    { "prompt": string, "choices": [string,string,string,string], "correct_answer": string, "explanation": string }
-  ]
-}
+Pedagogy requirements:
+- If the contract above declares LEARNER LEVEL: ABSOLUTE BEGINNER, that declaration wins over the depth and tone rules below: no internals, no jargon left undefined, plain words, one small doable step at a time, and an exercise that is a first success. Everything else in this prompt still applies.
+- Explain simply first: open every major idea in plain language a smart newcomer could follow, using a concrete analogy to something outside software (traffic, plumbing, a kitchen, a library, mail routing, etc). Then explicitly say where the analogy breaks down before going deeper, this stops the analogy from misleading later.
+- First-principles mechanisms: assume no prior mental model for today's mechanism. Start with its irreducible building blocks and constraints, derive how they compose, and only then introduce APIs, syntax sugar, framework conventions, or architecture patterns. Never use a higher-level term to explain itself.
+- Explicit mental models: name the model, show where it breaks, and how to verify it.
+- Concrete executable experiments: include at least one runnable snippet or devtools/compiler experiment the reader can execute in under 10 minutes.
+- Source/runtime/compiler depth: go below the tutorial layer into implementation-relevant internals.
+- Production architecture lens: show where this mechanism belongs in the subject's real working environment. Name its relevant process/file/service/component boundary, who owns it, what data or state crosses it, its scaling or workload limit, how it fails, what observations expose the failure, and how to migrate or roll it back.
+- Trade-offs must be decisions, not lists. For each major choice, state: "Choose X when …; choose Y when …; the signal to revisit this is …". Include scalability, operability, consistency, accessibility, security, DX, cost, and reversibility where they apply.
+- Practical artifact: follow the curriculum's cumulative artifact and working environment. Appropriate outcomes include a reproducible shell workflow, command transcript, diagnostic script, service design, component contract, architecture decision record, runtime experiment, migration check or CI policy. Do not force terminal or system-design lessons into frontend UI work.
+- Do NOT imitate named living authors.
+
+2026 currency and evidence:
+- Treat "modern" as a claim that needs evidence. This app has already fetched primary documentation for you and included it above as RETRIEVED SOURCE MATERIAL, that material is your evidence base. Read it before writing, teach from it, and cite it inline with markdown links using its exact URLs.
+- Attribute contested, recent, or partially supported behavior to the specific publisher (specification, MDN, browser vendor, or maintainer docs). If the retrieved excerpts do not support a claim you want to make, either drop the claim or state plainly that it is outside the retrieved sources.
+- If retrieved material contradicts your prior belief, follow the retrieved material and say what changed.
+- State version/date-sensitive facts precisely. Distinguish broadly available, newly available, experimental, deprecated, and framework-specific behavior. Include a progressive-enhancement or fallback path when support is not universal.
+- Do not make React or any single meta-framework the universal answer. Explain the underlying browser/system mechanism first, then compare how current React, Svelte, Vue, Angular, Astro, or standards-based approaches expose it when relevant.
+- For architecture topics, start with the simplest design that meets the curriculum scenario. Introduce distributed components, state or independent deployment only when the stated constraints justify their coordination cost.
+
+Shape: the lesson is read in a sitting, so it is written in point form:
+- Every section opens with a reading hint on its first line, in italics: `*~2 min · What to look for in this section, and whether a reader who already knows the idea may skim.*` The number is the minutes a careful reader needs (1-4); the hints of the whole lesson add up to about the reading time stated at the end of this prompt.
+- After the hint, one lede sentence in bold or plain text that says the section's point in one line, then bullets. One idea per bullet, at most about 25 words each, at most six bullets in a list, one level of nesting at most. No paragraph runs past three sentences; a worked example is a numbered list of steps, each with the observation it produces.
+- Mark the points that matter with labelled callouts, as blockquotes: `> **Key idea:** …` for the one thing to remember, `> **Watch out:** …` for a misconception or failure, `> **Try it:** …` for something to run, `> **Example:** …` for a concrete trace, `> **Decision:** …` for a choose-X-when rule. Put at least one Key idea in each of Core mechanics, Mental model and Production architecture lens. Keep a callout to two sentences.
+- Use a table for comparisons and decisions (for example Route | Guarantee | Mechanism | Signal to revisit) instead of a paragraph per row.
+- Say each thing once. No transitions, no recaps of earlier sections, no closing summaries inside sections; Key takeaways is the only summary.
+
+Diagrams:
+- Draw at least two fenced ```mermaid diagrams: the mental model as a `flowchart` in Mental model, and the production scenario as a `sequenceDiagram` in Production architecture lens. Add a third or fourth (a `stateDiagram-v2` for a lifecycle, a flowchart for a migration path) where a picture is clearer than bullets.
+- Use only `flowchart LR`/`flowchart TD`, `sequenceDiagram` and `stateDiagram-v2`. Put node labels in double quotes when they contain punctuation, keep labels to a few plain words (no code syntax, no HTML, no parentheses outside quotes), and stay under twelve nodes or steps.
+- Every diagram needs a one-sentence caption right after it in plain words, explaining what to look at and why.
+
+Requirements:
+- Treat the injected AUTHORITATIVE CURRICULUM BRIEF as a contract, not optional inspiration. The lesson outcome, named mechanisms, production scenario, misconceptions, observable evidence, cumulative artifact, primary sources, phase, and cross-track relationships must all shape the course. Do not replace them with a generic overview.
+- Explicitly connect the practical exercise to the brief's cumulative artifact and make its acceptance criteria produce the brief's observable evidence.
+- If the learner dossier shows prior mastery, transfer it into today's mechanism instead of reteaching it. If it shows a failed objective or misconception, repair that exact mental model and make one exit check verify the repair.
+- Write a course readable in about fourteen minutes (1500-2100 words of point-form markdown). A deterministic gate rejects anything below 1200 words or above 2600, rejects thin required sections, rejects a section without its reading hint and rejects a lesson with fewer than two diagrams. Depth is precision, the exact mechanism, the number, the observation, not length; the reader's time is the scarce resource.
+- Distribute the words deliberately: `Core mechanics` carries the main derivation; `Production architecture lens` works through the complete scenario; `Trade-offs and failure modes` and `Migration and observability` hold operational decisions and evidence; `Runnable experiment` is independently actionable; `Practical exercise` is a brief of what the learner will build and why, in a few bullets, because the step-by-step instructions live in the structured exercise. Do not hide most of the word count in one section.
+- Use these exact level-two headings, in this exact order, with no numbering or subtitles: ## Why this matters → ## The simple version → ## Core mechanics → ## Mental model → ## Runnable experiment → ## Production architecture lens → ## Trade-offs and failure modes → ## Migration and observability → ## Practical exercise → ## Key takeaways.
+- Inside `## The simple version`, include a standalone sentence beginning exactly `Where the analogy breaks:` and explain the analogy's concrete limit before introducing core mechanics.
+- Include one worked production scenario with concrete constraints (users, routes, bundle/runtime budget, team ownership, failure or migration pressure). Follow one request or interaction through the relevant boundaries.
+- When code is central, show a small "naive version" and a production-ready revision, then explain the architectural difference. All code must be fenced with an accurate language tag.
+- Make the practical exercise a deliberate-practice task that fits the practice minutes stated at the end of this prompt, with 3-5 observable acceptance criteria. It should create a small reusable piece of the track's 30-day proof of skill, not a disposable kata: one artifact, three to five steps, each a few minutes. On dossier days 7, 14, 21, and 30, require the exercise to integrate at least two earlier concepts.
+- End the practical exercise with a short self-review: what evidence proves it works, which trade-off was chosen, and what would fail at 10x scale or team size.
+- Tone: direct, technical, no fluff. Match explanations to the learner's accepted starting point and recorded evidence. Use precise words a newcomer can follow while letting experienced learners transfer what they already know.
+- Cite three different retrieved URLs as inline markdown links on the claims they support. If fewer than three sources were provided, cite the available ones; do not invent another source to satisfy the count. Do not collect citations in a footer.
+
+
+Return only the full lesson as plain Markdown, beginning with its title as a # heading. Do not encode the lesson in JSON, wrap the whole reply in a code fence, or return assessment metadata. The application requests structured checks separately after this writing pass. Keep runnable examples in correctly tagged code fences.
+
+Per-section minimum words: Why this matters 50; The simple version 90; Core mechanics 240; Mental model 90; Runnable experiment 100; Production architecture lens 160; Trade-offs and failure modes 130; Migration and observability 100; Practical exercise 80; Key takeaways 40. The total still needs at least 1,200 words and at most 2,600, with 1,500–2,100 as the writing target.

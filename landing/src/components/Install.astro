@@ -1,0 +1,41 @@
+---
+import type { Section } from "../lib/schema";
+type Install = Extract<Section, { kind: "install" }>;
+const { s } = Astro.props as { s: Install };
+---
+<section class="section" id={s.key} aria-labelledby={`${s.key}-title`}>
+  <div class="frame">
+    <div class="section-head"><span class="eyebrow">{s.kicker}</span><h2 id={`${s.key}-title`}>{s.title}</h2>{s.lede && <p>{s.lede}</p>}</div>
+    <div class="install">
+      <div class="node req">
+        <div class="node-head"><span class="name"><i class="led accent"></i>requirements</span></div>
+        <ul>{s.requirements.map((r) => <li set:html={r} />)}</ul>
+        {s.links.length > 0 && <div class="links">{s.links.map((l) => <a href={l.href} class:list={["key", l.primary ? "cta" : "ghost"]} rel="noopener">{l.label}</a>)}</div>}
+      </div>
+      <ol class="steps">
+        {s.steps.map((st, i) => (
+          <li class="node step">
+            <div class="step-head"><span class="mono no">{String(i + 1).padStart(2, "0")}</span><strong>{st.title}</strong></div>
+            <p set:html={st.body} />
+            {st.code && <pre><code>{st.code}</code></pre>}
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
+</section>
+<style>
+  .install { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 14px; align-items: start; }
+  .req ul { margin: 0; padding: 12px 16px 16px 32px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--muted); }
+  .req :global(code) { font-size: 12px; }
+  .links { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 16px; }
+  .links .key { justify-content: center; }
+  .steps { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .step { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
+  .step-head { display: flex; align-items: center; gap: 10px; }
+  .no { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--surface-2); color: var(--accent); font-size: 10px; }
+  .step strong { font-size: 15px; font-weight: 500; }
+  .step p { font-size: 14px; line-height: 1.55; color: var(--muted); }
+  .step :global(code) { font-size: 12.5px; }
+  @media (max-width: 860px) { .install { grid-template-columns: 1fr; } }
+</style>

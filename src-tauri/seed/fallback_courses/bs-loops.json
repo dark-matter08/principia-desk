@@ -1,0 +1,104 @@
+{
+  "slug": "bs-loops",
+  "kind": "retrieval",
+  "title": "Loops and record-safe input: retrieval check",
+  "markdown": "## Recall before you check\n\nThis retrieval pass revisits loops over lines and files without re-teaching them. Before opening the check, say in your own words why `while IFS= read -r line` is the record-safe way to read lines, what `for f in *.log` does when no file matches and how `shopt -s nullglob` changes it, why `for x in $(cat file)` breaks on spaces, and how `find -print0` pairs with `read -d ''` to loop over awkward filenames.\n\n## What to bring back\n\n- `while IFS= read -r line; do …; done < file` keeps leading whitespace and backslashes intact and reads exactly one line per iteration.\n- `read -r` disables backslash interpretation; without `-r`, `\\n` inside a line is mangled.\n- `for f in *.log` iterates matching names; with no match the literal pattern is used unless `nullglob` is set.\n- `for x in $(cat file)` splits on all whitespace and expands globs; it is not a line loop.\n- `find . -print0 | while IFS= read -r -d '' f; do …; done` handles spaces and newlines in names.\n- A `while read` loop in a pipeline runs in a subshell, so variables set inside it are not visible afterwards; use `done < <(cmd)` to keep them.\n\nAnswer from memory first, then read the feedback.\n",
+  "resources": [
+    {
+      "title": "Looping Constructs",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Looping-Constructs.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "Bash Builtins (read)",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Bash-Builtins.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "The Shopt Builtin (nullglob)",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "while IFS= read -r is the record-safe line loop.",
+    "nullglob makes an unmatched pattern expand to nothing instead of itself.",
+    "Loops fed by a pipeline run in a subshell; use process substitution to keep variables."
+  ],
+  "exercise": null,
+  "questions": [
+    {
+      "prompt": "Which loop reads a file one line at a time, preserving leading spaces and backslashes?",
+      "kind": "mcq",
+      "choices": [
+        "for line in $(cat file); do …; done",
+        "while IFS= read -r line; do …; done < file",
+        "while read line; do …; done < file",
+        "for line in file; do …; done"
+      ],
+      "correct_answer": "while IFS= read -r line; do …; done < file",
+      "explanation": "IFS= keeps leading whitespace; -r keeps backslashes; the redirection supplies the file.",
+      "section": "Retrieval",
+      "learning_objective": "Choose the record-safe line loop"
+    },
+    {
+      "prompt": "With no matching files, what does `for f in *.log; do echo \"$f\"; done` print by default?",
+      "kind": "mcq",
+      "choices": [
+        "Nothing",
+        "The literal text *.log",
+        "An error and exit",
+        "Every file in the directory"
+      ],
+      "correct_answer": "The literal text *.log",
+      "explanation": "An unmatched glob stays literal unless nullglob is set.",
+      "section": "Retrieval",
+      "learning_objective": "Predict unmatched glob behavior"
+    },
+    {
+      "prompt": "Why is `for x in $(cat names.txt)` wrong for names containing spaces?",
+      "kind": "mcq",
+      "choices": [
+        "cat cannot be used in loops",
+        "The unquoted substitution is split on all whitespace, so one name becomes several words",
+        "for loops only accept arrays",
+        "It reads the file twice"
+      ],
+      "correct_answer": "The unquoted substitution is split on all whitespace, so one name becomes several words",
+      "explanation": "Word splitting applies to unquoted command substitution; it also expands globs.",
+      "section": "Retrieval",
+      "learning_objective": "Explain why unquoted substitution splits records"
+    },
+    {
+      "prompt": "Which pairing loops over filenames that may contain spaces or newlines safely?",
+      "kind": "mcq",
+      "choices": [
+        "find . | while read f",
+        "ls | while read -r f",
+        "find . -print0 | while IFS= read -r -d '' f",
+        "for f in $(find .)"
+      ],
+      "correct_answer": "find . -print0 | while IFS= read -r -d '' f",
+      "explanation": "NUL-delimited names with read -d '' are the only fully safe form.",
+      "section": "Retrieval",
+      "learning_objective": "Loop over awkward filenames safely"
+    },
+    {
+      "prompt": "A counter incremented inside `cat file | while read -r line; do ((n++)); done` is 0 afterwards. Why?",
+      "kind": "mcq",
+      "choices": [
+        "read resets variables",
+        "The loop ran in a subshell because it is part of a pipeline",
+        "((n++)) is invalid in loops",
+        "cat consumed the variable"
+      ],
+      "correct_answer": "The loop ran in a subshell because it is part of a pipeline",
+      "explanation": "Use done < file or done < <(cmd) so the loop runs in the current shell.",
+      "section": "Retrieval",
+      "learning_objective": "Keep loop variables out of a subshell"
+    }
+  ]
+}

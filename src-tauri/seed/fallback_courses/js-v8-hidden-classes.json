@@ -1,0 +1,104 @@
+{
+  "slug": "js-v8-hidden-classes",
+  "kind": "advanced",
+  "title": "V8 hidden classes and inline caching",
+  "markdown": "## Why this matters\n\nObject shape changes silently destroy JavaScript performance. Hidden classes (maps) and inline caches explain why \"just add a field later\" can invalidate optimizations across hot loops.\n\n## The simple version\n\nThink of a hidden class as a warehouse's shelf plan: \"aisle 1 holds `id`, aisle 2 holds `name`, aisle 3 holds `email`.\" As long as every box (object) follows the same shelf plan, a forklift (the CPU) can grab \"aisle 2\" without ever reading the label, it just knows where `name` lives. That's an inline cache: a memorized shortcut for \"this shelf plan, this aisle.\"\n\n```mermaid\nflowchart TD\n  A[\"object literal {id, name}\"] --> B[\"Shelf plan A: id@1, name@2\"]\n  C[\"object literal {name, id}\"] --> D[\"Shelf plan B: name@1, id@2\"]\n  B --> E[Forklift memorizes: aisle 2 = name]\n  D --> F[Different plan -> forklift must re-check every time]\n```\n\nWhere the analogy breaks: a real warehouse could just relabel the shelves once. V8 can't retroactively fix a shelf plan, the moment an object's property order or set of properties differs from what a call site has seen before, a *new* shelf plan is created and the old memorized shortcut no longer applies at that site. If a loop feeds the same code mixed shelf plans, the forklift keeps re-checking on every trip, which is far slower than sticking to one plan.\n\n## Core mechanics\n\nV8 assigns a hidden class to each object shape. Adding properties in different orders or deleting properties creates new maps. ICs remember where to load a property for a given map at a call site.\n\n## Mental model\n\nTreat objects like rows in a table with a fixed column order. Changing the schema mid-flight forces new rows and misses caches.\n\n## Runnable experiment\n\n```js\n// Same shape every time (monomorphic)\nfunction makeOrdered(id, name) { return { id, name }; }\n\n// Shape varies by branch (polymorphic)\nfunction makeMixed(id, name, withExtra) {\n  const o = { id, name };\n  if (withExtra) o.extra = true; // sometimes a 3rd shape\n  return o;\n}\n\nconst N = 2_000_000;\nlet t0 = performance.now();\nfor (let i = 0; i < N; i++) { const o = makeOrdered(i, 'a'); void o.name; }\nconsole.log('monomorphic ms:', performance.now() - t0);\n\nt0 = performance.now();\nfor (let i = 0; i < N; i++) { const o = makeMixed(i, 'a', i % 2 === 0); void o.name; }\nconsole.log('polymorphic ms:', performance.now() - t0);\n```\n\n## Trade-offs and failure modes\n\nDeleting a property (`delete obj.x`) or adding properties conditionally are the two most common ways production code accidentally creates multiple shapes at one call site, deoptimizing a hot loop that looked fine in isolation.\n\n## Tool-building exercise\n\nWrite a tiny script using `process.memoryUsage` and a micro-benchmark harness to compare monomorphic vs polymorphic property access patterns.\n\n## Key takeaways\n\n- Property order defines hidden classes.\n- ICs speed monomorphic access.\n- Polymorphism deoptimizes hot paths.",
+  "resources": [
+    {
+      "title": "Maps (Hidden Classes) in V8",
+      "url": "https://v8.dev/docs/hidden-classes",
+      "type": "engine documentation",
+      "why": "Explains maps, descriptor arrays, transitions, and their relationship to inline caches."
+    },
+    {
+      "title": "Elements kinds in V8",
+      "url": "https://v8.dev/blog/elements-kinds",
+      "type": "engine documentation",
+      "why": "Shows how array element representations and polymorphism affect optimized access."
+    },
+    {
+      "title": "Indicium: V8 runtime tracer tool",
+      "url": "https://v8.dev/blog/system-analyzer",
+      "type": "engine tooling",
+      "why": "Demonstrates how to inspect map and inline-cache transitions rather than trusting a microbenchmark."
+    }
+  ],
+  "key_takeaways": [
+    "Hidden classes encode object shapes.",
+    "ICs cache property offsets per call site.",
+    "Shape changes hurt hot loops."
+  ],
+  "exercise": {
+    "title": "Find a hidden-class break in real code",
+    "instructions": "Take a browser-side normalization or list-rendering path that builds many objects. Rewrite it two ways: one stable shape with every field initialized, and one branch that conditionally adds or deletes a field. Warm both paths, profile them in Chrome DevTools, and treat timing as evidence only if repeated runs show a stable difference.\n\nAcceptance criteria: use browser `performance.now()`; consume results so dead-code elimination cannot remove work; record at least five warmed runs; identify the property-access call site that becomes polymorphic; and state why this V8-specific optimization must not dictate architecture without a measured bottleneck.",
+    "starter_code": "function stable(id, name) {\n  return { id, name };\n}\n\nfunction unstable(id, name, flag) {\n  const o = { id, name };\n  if (flag) o.extra = 1;\n  return o;\n}\n\n// TODO: benchmark both over 2_000_000 calls and log the ms difference\n",
+    "deliverable": "A printed millisecond delta between the stable and unstable versions, plus one sentence naming which call site became polymorphic and why.",
+    "hints": [
+      "Keep the property-assignment order textually identical across every call site for the 'stable' version, order, not just names, defines the shape.",
+      "Run each benchmark loop at least twice in the same process; the first run pays warm-up cost from the JIT.",
+      "If you don't see a difference, the loop body may be too trivial for V8 to bother deoptimizing, try reading the property back out and using it in a way that can't be optimized away, like summing into an accumulator."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "What triggers a new hidden class for an object?",
+      "kind": "mcq",
+      "choices": [
+        "Adding a property with a new order or name pattern",
+        "Calling JSON.stringify",
+        "Using const instead of let",
+        "Assigning numbers only"
+      ],
+      "correct_answer": "Adding a property with a new order or name pattern",
+      "explanation": "The misconception: assuming hidden classes track values or types, not structure. Like the warehouse shelf plan, it's the *layout* (which properties, in which order) that defines the class, regardless of what's stored in each slot.",
+      "section": "Core mechanics",
+      "learning_objective": "hidden classes are keyed by property order/shape, not values"
+    },
+    {
+      "prompt": "What is an inline cache?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "A per-call-site memo of which hidden class was seen and where to load a property, speeding monomorphic access until a new shape appears.",
+      "explanation": "The misconception: thinking of it as a general property lookup cache. It's scoped to one call site and one shelf plan, the forklift's memorized shortcut for aisle 2, valid only while every box follows the same plan.",
+      "section": "Core mechanics",
+      "learning_objective": "inline caches are per-call-site and per-shape"
+    },
+    {
+      "prompt": "Why is polymorphic access slower?",
+      "kind": "mcq",
+      "choices": [
+        "IC must handle multiple maps",
+        "GC runs every access",
+        "Properties move to the prototype always",
+        "Numbers box to objects"
+      ],
+      "correct_answer": "IC must handle multiple maps",
+      "explanation": "The misconception: blaming garbage collection or boxing. The real cost is the forklift re-checking the shelf plan on every trip once a call site sees more than one shape, instead of using its memorized shortcut.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "multiple shapes at one call site defeat the inline cache"
+    },
+    {
+      "prompt": "A hot object path repeatedly runs `delete record.debug`. What is the most likely V8-specific risk?",
+      "kind": "mcq",
+      "choices": [
+        "The object may move to a slower dictionary-like property representation",
+        "The object becomes immutable",
+        "The property is deleted only after garbage collection",
+        "Every number on the object becomes a BigInt"
+      ],
+      "correct_answer": "The object may move to a slower dictionary-like property representation",
+      "explanation": "The misconception is viewing delete as a free inverse of assignment. In V8, repeated shape mutation can abandon fast-property layouts and invalidate optimized assumptions at access sites.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "deleting properties can force slower object representations and deoptimization"
+    },
+    {
+      "prompt": "A benchmark shows a 12% V8 improvement after normalizing object shapes. What evidence is still required before making the pattern a team-wide architecture rule?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Verify the path is a real production bottleneck with profiles or field telemetry, repeat the benchmark with warm-up and result consumption, and check behavior on supported non-V8 engines. Keep the optimization local unless user-visible evidence justifies a broader convention.",
+      "explanation": "The misconception is promoting one engine microbenchmark into universal design guidance. Hidden classes are an implementation strategy, and architecture should follow measured user impact and the supported browser matrix.",
+      "section": "Production architecture lens",
+      "learning_objective": "separate engine-specific optimization evidence from general architecture rules"
+    }
+  ]
+}

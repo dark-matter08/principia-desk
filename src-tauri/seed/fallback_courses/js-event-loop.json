@@ -1,0 +1,111 @@
+{
+  "slug": "js-event-loop",
+  "kind": "beginner",
+  "title": "Event loop: macrotasks, microtasks, and rendering",
+  "markdown": "## Why this matters\n\nMost production JavaScript bugs that look like \"random timing\" are event-loop ordering bugs. Understanding macrotasks, microtasks, and the render step is the mental model that separates guessing from debugging.\n\n## The simple version\n\nImagine a single chef (the call stack) working one order at a time in a kitchen with two ticket spikes. The **microtask spike** holds urgent add-ons to the order already being cooked, \"also add sauce,\" \"also plate it now.\" The **macrotask spike** holds entirely new orders that walked in, a timer going off, a network reply arriving. House rule: the chef always clears the *entire* microtask spike, over and over until it's empty, before ever looking at the next new order on the macrotask spike.\n\n```mermaid\nflowchart LR\n  A[Run current macrotask] --> B{Microtask spike empty?}\n  B -- no --> C[Run one microtask]\n  C --> B\n  B -- yes --> D[Optional render]\n  D --> E[Take next macrotask]\n  E --> A\n```\n\nThe diagram's loop back from C to B is the important part: a microtask can add more microtasks, and the chef must clear those too before moving on, that's how a runaway chain of `.then()` calls can starve everything else.\n\nWhere the analogy breaks: a real chef gets tired and moves on eventually. The event loop does not, if microtasks keep enqueueing more microtasks, the \"new orders\" spike (timers, network, rendering) never gets touched at all. That failure mode has no good kitchen equivalent; it is closer to a to-do list that keeps growing faster than you can cross items off.\n\n## Core mechanics\n\nThe event loop owns a single call stack. Macrotasks (timers, I/O callbacks, message events) enqueue when their host completes. Microtasks (promise reactions, `queueMicrotask`) drain completely after the current macrotask and before the next macrotask or render.\n\n```\nrun macrotask\n  drain ALL microtasks (new microtasks enqueue recursively)\noptional render step\nnext macrotask\n```\n\n## Mental model\n\nThink of microtasks as \"finish the current turn's bookkeeping\" and macrotasks as \"start a new turn.\" `await` splits a function: code after `await` schedules as a microtask.\n\n## Runnable experiment\n\n```js\nconsole.log('A');\nsetTimeout(() => console.log('timeout'), 0);\nPromise.resolve().then(() => console.log('micro'));\nconsole.log('B');\n// A, B, micro, timeout\n```\n\n## Trade-offs and failure modes\n\nStarvation happens when microtasks enqueue more microtasks indefinitely. Long microtask chains block rendering and input. Libraries that resolve many promises synchronously can freeze the UI for a frame.\n\n## Tool-building exercise\n\nWrite a 40-line Node script that wraps `setTimeout`/`setImmediate`/`Promise` and logs task kind + order for a nested scenario. Use it to visualize scheduling in your app's boot path.\n\n## Key takeaways\n\n- Microtasks run to completion between macrotasks.\n- `await` continuation is a microtask, not a macrotask.\n- Rendering sits after microtasks in browsers.\n- Infinite microtask chains starve I/O and paint.",
+  "resources": [
+    {
+      "title": "In depth: microtasks and the JavaScript runtime environment",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide/In_depth",
+      "type": "primary documentation",
+      "why": "Connects tasks, microtask checkpoints, agents, and browser rendering."
+    },
+    {
+      "title": "JavaScript execution model",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Execution_model",
+      "type": "primary documentation",
+      "why": "Defines stacks, jobs, agents, and the language/runtime boundary."
+    },
+    {
+      "title": "Using microtasks in JavaScript",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide",
+      "type": "primary documentation",
+      "why": "Shows queueMicrotask semantics and starvation hazards."
+    },
+    {
+      "title": "Interaction to Next Paint",
+      "url": "https://web.dev/articles/inp",
+      "type": "browser-vendor guidance",
+      "why": "Ties event-loop debt and long tasks to a production responsiveness metric."
+    }
+  ],
+  "key_takeaways": [
+    "Microtasks drain fully before the next macrotask.",
+    "await continuations schedule as microtasks.",
+    "Render steps happen after microtasks in browsers.",
+    "Recursive microtasks can starve the loop."
+  ],
+  "exercise": {
+    "title": "Build a task-order visualizer",
+    "instructions": "Use a real browser page and DevTools, not Node. Schedule synchronous work, `queueMicrotask`, `Promise.then`, `requestAnimationFrame`, and `setTimeout`. Record the console order and a Performance-panel trace. Then add a recursive microtask chain long enough to delay the frame and measure the delay without freezing the tab.\n\nAcceptance criteria: predict the order before running; label each callback as task, microtask, or render callback; capture the delayed frame in a trace; explain why `requestAnimationFrame` did not interrupt the microtask checkpoint; and replace the starvation loop with chunked work that yields between tasks.",
+    "starter_code": "let n = 0;\nconst tag = (label) => console.log(`${n++} ${label}`, performance.now().toFixed(1));\n\ntag('sync-start');\nrequestAnimationFrame(() => tag('render-callback'));\nsetTimeout(() => tag('timer-task'), 0);\nPromise.resolve().then(() => tag('promise-microtask'));\nqueueMicrotask(() => tag('direct-microtask'));\ntag('sync-end');\n",
+    "deliverable": "A numbered browser log, one Performance-panel screenshot or trace, and a corrected yielding version with a short explanation of its INP impact.",
+    "hints": [
+      "Everything synchronous always runs before any task on either spike, that part never varies.",
+      "queueMicrotask and .then() both land on the same microtask spike; only their registration order among themselves matters.",
+      "A .then() chained onto another .then() does not jump the queue, it enqueues only once the first one resolves, so it lands after any microtask that was already queued."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "In what order do logs appear: sync, `setTimeout(0)`, `Promise.then`?",
+      "kind": "mcq",
+      "choices": [
+        "sync, timeout, micro",
+        "sync, micro, timeout",
+        "micro, sync, timeout",
+        "timeout, micro, sync"
+      ],
+      "correct_answer": "sync, micro, timeout",
+      "explanation": "The misconception: treating setTimeout(0) as \"immediate.\" It only reserves a spot on the macrotask spike, which is always checked after the microtask spike is fully drained. Like the kitchen analogy: the chef finishes every add-on ticket before even glancing at the next new order.",
+      "section": "Core mechanics",
+      "learning_objective": "synchronous code and microtasks both run before the next macrotask"
+    },
+    {
+      "prompt": "Why can a chain of `promise.then` handlers block rendering?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Each `.then()` schedules a microtask, and microtasks drain completely before rendering, so a long or recursive microtask chain postpones paint and input handling.",
+      "explanation": "The misconception: assuming promises are automatically 'async enough' to let the browser breathe. In plain terms, the microtask spike must be completely empty before the chef even considers rendering a frame, so a chain that keeps refilling that spike holds up the picture indefinitely.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "recursive or long microtask chains starve rendering"
+    },
+    {
+      "prompt": "Where does an async function resume after `await`?",
+      "kind": "mcq",
+      "choices": [
+        "As a new macrotask always",
+        "As a microtask",
+        "On a dedicated worker thread",
+        "Inline on the call stack"
+      ],
+      "correct_answer": "As a microtask",
+      "explanation": "The misconception: assuming await yields control all the way back to \"new business,\" i.e. the macrotask spike. It only steps back as far as the microtask spike, await desugars to a promise reaction, which is a microtask.",
+      "section": "Mental model",
+      "learning_objective": "await continuations are microtasks, not macrotasks"
+    },
+    {
+      "prompt": "A recursive `queueMicrotask` loop is running when a `requestAnimationFrame` callback is due. What happens?",
+      "kind": "mcq",
+      "choices": [
+        "The frame callback preempts the microtasks",
+        "The browser delays the frame callback until the microtask checkpoint ends",
+        "The frame callback moves to a worker",
+        "The browser converts the remaining microtasks into timers"
+      ],
+      "correct_answer": "The browser delays the frame callback until the microtask checkpoint ends",
+      "explanation": "The misconception is treating requestAnimationFrame as an interrupt. It is a rendering opportunity, not preemption; the browser must regain control after the current task and microtask checkpoint before it can run the frame callback.",
+      "section": "Trade-offs and failure modes",
+      "learning_objective": "render callbacks cannot preempt a draining microtask queue"
+    },
+    {
+      "prompt": "A click has 40 ms input delay, 8 ms handler time, and 70 ms presentation delay in a trace. Explain which event-loop evidence you would inspect first and one safe change you would test.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Inspect the long task before the handler for input delay and rendering/layout work after it for presentation delay. Break unrelated main-thread work into tasks or move suitable computation to a worker, then verify the change with the same trace and INP field data.",
+      "explanation": "The misconception is optimizing the 8 ms handler because it is attached to the click. INP includes waiting before the handler and waiting for the next paint, so the dominant evidence points elsewhere.",
+      "section": "Production architecture lens",
+      "learning_objective": "diagnose interaction latency across input delay, processing, and presentation"
+    }
+  ]
+}

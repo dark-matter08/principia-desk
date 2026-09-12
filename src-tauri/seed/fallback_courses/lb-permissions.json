@@ -1,0 +1,104 @@
+{
+  "slug": "lb-permissions",
+  "kind": "remediation",
+  "title": "Permission bits, refreshed before you change anything",
+  "markdown": "## Why this matters\n\nThis is a short refresher for a gap that shows up in later work: a fixture script that \"will not run\", a directory you can list but not enter, or a repair that grants far more access than the problem needed. You do not need the whole permissions chapter again. You need to read one `ls -l` line correctly, know what the execute bit means on files versus directories, and make the smallest change that fixes the observed failure.\n\n## The simple version\n\nEvery file carries three sets of three switches: read, write and execute for the owning user, the owning group and everyone else. `ls -l` prints them as `rwxr-x---`. Think of a building with a door key (execute on a directory lets you walk in), a window (read lets you look at names or contents) and a pen (write lets you change things). Having a window without a key means you can see the room's contents list but cannot reach anything inside it.\n\nThe analogy breaks for the superuser, who bypasses most of these checks, and for special bits (setuid, setgid, sticky) that this refresher leaves aside.\n\n## Core mechanics\n\n`-rw-r--r-- 1 ana devs 240 Sep 10 run.sh` reads as: regular file, owner `ana` may read and write, group `devs` may read, others may read, nobody may execute. `./run.sh` therefore fails with \"Permission denied\" even though `bash run.sh` works, because the second form asks the interpreter to read the file rather than the kernel to execute it.\n\nOn a directory, `x` grants traversal: entering it with `cd` and reaching the files inside by path. `r` on a directory only lets you list the names. A directory with `r` but no `x` lets `ls` print names while `ls -l` reports \"cannot access\" for each entry.\n\n`chmod u+x run.sh` adds one bit for one set. Numeric modes set all nine at once: `640` is `rw-r-----`. `id` shows which groups you belong to, and `stat -c '%A %U %G' file` prints the same facts as `ls -l` without the rest of the line.\n\n## Failure modes\n\n`chmod 777` makes a symptom disappear while granting write access to everyone; it is rarely the repair the evidence supports. Changing permissions on the wrong file because a glob matched more than you expected is common; list first, change second. Recursive changes (`chmod -R`) on a tree with directories strip the traversal bit if you apply a file mode such as `644` to everything; use `X` (capital) to add execute only to directories and already executable files.\n\n## Runnable experiment\n\nRun this in a scratch directory. It creates a few files inside a temporary lab and removes nothing outside it.\n\n```bash\nlab=$(mktemp -d) && cd \"$lab\" || exit 1\nprintf '#!/bin/bash\\nprintf \"ok\\\\n\"\\n' > run.sh\nls -l run.sh\n./run.sh\n# bash: ./run.sh: Permission denied\nbash run.sh\n# ok: the interpreter only needs to read the file\nchmod u+x run.sh && ./run.sh\n# ok\nmkdir locked && touch locked/inside && chmod u-x locked\nls locked\n# inside (names are readable)\nls -l locked/inside\n# ls: cannot access 'locked/inside': Permission denied\nchmod u+x locked && ls -l locked/inside\n```\n\n## Practical exercise\n\nTake the three failures below and write, for each, the exact `ls -l` or `stat` evidence that proves the cause and the single `chmod` that repairs only that cause: a script that is readable but not executable; a directory listable but not enterable; a data file that its group cannot read. Explain why `chmod 777` would have hidden all three and what it would have granted.\n",
+  "resources": [
+    {
+      "title": "chmod invocation",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/chmod-invocation.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "Mode Structure",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/Mode-Structure.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "stat invocation",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/stat-invocation.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "Read the nine permission characters as three sets for user, group and others.",
+    "Execute on a directory means traversal; read only lists names.",
+    "Repair the observed failure with the smallest mode change, never a blanket 777."
+  ],
+  "exercise": {
+    "title": "Repair three permission failures with evidence",
+    "instructions": "For a non-executable script, a non-enterable directory and a file its group cannot read, record the ls -l or stat evidence, apply exactly one chmod each, and re-run the failing command to show the repair. Explain what chmod 777 would have granted beyond the fix.",
+    "starter_code": "lab=$(mktemp -d) && cd \"$lab\" || exit 1\nprintf '#!/bin/bash\\nprintf \"ok\\\\n\"\\n' > run.sh\nmkdir data && printf 'q3\\n' > data/report.csv\nchmod 600 data/report.csv\nmkdir locked && touch locked/inside && chmod u-x locked\n# evidence: ls -l run.sh; ls -ld locked; stat -c '%A %U %G' data/report.csv\n",
+    "deliverable": "A transcript with evidence, the three minimal chmod commands, the re-run output, and a two-sentence note on least privilege.",
+    "hints": [
+      "stat -c '%A %U %G' prints mode, owner and group without the rest of the ls line.",
+      "u+x, g+r and similar symbolic modes change one set at a time.",
+      "Test the repair by re-running the command that failed, not by reading the mode again."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "What does `-rw-r-----` allow the owning group to do with the file?",
+      "kind": "mcq",
+      "choices": [
+        "Read and write",
+        "Read only",
+        "Execute only",
+        "Nothing"
+      ],
+      "correct_answer": "Read only",
+      "explanation": "The second triplet is the group's set: r--, read only.",
+      "section": "Core mechanics",
+      "learning_objective": "Read one ls -l permission field"
+    },
+    {
+      "prompt": "`./run.sh` prints Permission denied but `bash run.sh` works. Why?",
+      "kind": "mcq",
+      "choices": [
+        "The file has Windows line endings",
+        "The execute bit is missing; the interpreter only needs read access",
+        "bash ignores permissions entirely",
+        "The shebang line is wrong"
+      ],
+      "correct_answer": "The execute bit is missing; the interpreter only needs read access",
+      "explanation": "Direct execution needs x; passing the file to bash needs only r.",
+      "section": "Core mechanics",
+      "learning_objective": "Distinguish executing a file from reading it with an interpreter"
+    },
+    {
+      "prompt": "A directory has mode `drw-r--r--` for its owner. What can the owner do?",
+      "kind": "mcq",
+      "choices": [
+        "Enter it and open files inside",
+        "List the names inside but not reach the files",
+        "Nothing at all",
+        "Only delete it"
+      ],
+      "correct_answer": "List the names inside but not reach the files",
+      "explanation": "Without x on a directory, traversal is denied; r still lists names.",
+      "section": "Core mechanics",
+      "learning_objective": "Explain the execute bit on directories"
+    },
+    {
+      "prompt": "Which command grants execute to directories only when applying a mode recursively?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "chmod -R a+X tree. Capital X adds execute only to directories and files that already have it.",
+      "explanation": "Capital X adds execute only to directories and files that already have it.",
+      "section": "Failure modes",
+      "learning_objective": "Apply recursive modes without breaking traversal"
+    },
+    {
+      "prompt": "Why is `chmod 777 run.sh` the wrong repair for a script that fails with Permission denied, and what is the right one?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "777 grants read, write and execute to everyone, far beyond the observed failure. The evidence shows only a missing execute bit for the owner, so chmod u+x run.sh repairs exactly that.",
+      "explanation": "Least privilege: fix the bit the evidence points to.",
+      "section": "Failure modes",
+      "learning_objective": "Choose the smallest mode change that repairs an observed failure"
+    }
+  ]
+}

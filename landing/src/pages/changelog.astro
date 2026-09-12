@@ -1,0 +1,36 @@
+---
+import Base from "../layouts/Base.astro";
+import { getSite } from "../lib/content";
+import { releases, inline } from "../lib/changelog";
+const site = getSite();
+const items = releases();
+const description = "What changed in Principia Desk, release by release: from System Design Roulette 0.1.0 to the classes, the runtime, the enforcement and the class builder of today.";
+---
+<Base title={`Changelog · ${site.name}`} description={description} path="/changelog">
+  <section class="section">
+    <div class="frame">
+      <div class="section-head"><span class="eyebrow">Changelog</span><h1>What changed.</h1><p>Read from <code>CHANGELOG.md</code> in the repository at build time, so a release and its notes are one commit.</p></div>
+      <div class="releases">
+        {items.map((r) => (
+          <article class="node release" id={r.anchor}>
+            <div class="node-head"><span class="name"><i class="led accent"></i><a href={`#${r.anchor}`}>{r.heading}</a></span></div>
+            <div class="prose body">
+              {r.blocks.map((b) =>
+                b.kind === "sub" ? <h3>{b.text}</h3>
+                : b.kind === "list" ? <ul>{(b.items ?? []).map((it) => <li set:html={inline(it)} />)}</ul>
+                : <p set:html={inline(b.text ?? "")} />
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+<style>
+  h1 { font-size: clamp(32px, 4.4vw, 48px); }
+  .releases { display: flex; flex-direction: column; gap: 16px; }
+  .body { padding: 8px 20px 20px; max-width: none; }
+  .body h3 { margin-top: 20px; font-size: 12px; font-family: var(--font-mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--accent); }
+  .name a { color: var(--fg); font-size: 13px; }
+</style>

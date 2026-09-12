@@ -1,0 +1,188 @@
+name: Deploy Landing
+
+# principia.ndelucien.com: a single static web service on the shared box
+# (173.249.55.72), beside the vertex, ezz, ndelucien, sb and trl stacks. Fires
+# after Landing CI has pushed an image on main; manual dispatch takes an
+# explicit tag, which is also how you roll back (sha-abc1234).
+
+on:
+  workflow_run:
+    workflows: ["Landing CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (production, or sha-abc1234 to roll back)"
+        required: true
+        default: "production"
+        type: string
+
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: false
+
+env:
+  STACK_NAME: principia
+  IMAGE_NAME: principia-landing
+  REMOTE_DIR: /opt/principia/production
+  INGRESS_DIR: /opt/ndelucien/production/nginx-ndelucien.d
+  DOMAIN: principia.ndelucien.com
+
+jobs:
+  deploy:
+    name: Deploy
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: t
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=production" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Copy stack + ingress config
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.PRODUCTION_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          source: "landing/docker/docker-stack.production.yml,landing/docker/nginx-principia.conf"
+          target: /opt/principia/production/
+          strip_components: 1
+
+      - name: Deploy to swarm
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          IMAGE_TAG: ${{ steps.t.outputs.tag }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+        with:
+          host: ${{ secrets.PRODUCTION_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          envs: IMAGE_TAG,GHCR_OWNER
+          command_timeout: 15m
+          timeout: 60s
+          script: |
+            set -e
+            STACK=principia
+            DIR=/opt/principia/production
+            INGRESS=/opt/ndelucien/production/nginx-ndelucien.d
+            DOMAIN=principia.ndelucien.com
+            CERT=/etc/letsencrypt/live/ndelucien.com/cert.pem
+
+            # ── Ingress config, but ONLY once the certificate names this host. ──
+            # vertex_nginx fronts every site on this box. A server block naming a
+            # certificate that does not cover it fails `nginx -t`, and the next
+            # reload for ANY reason then refuses, taking the other sites down.
+            if [ -f "$CERT" ] && openssl x509 -in "$CERT" -noout -text | grep -q "DNS:${DOMAIN}"; then
+              mkdir -p "$INGRESS"
+              cp "$DIR/docker/nginx-principia.conf" "$INGRESS/principia.conf"
+              # root's umask makes new files 0600, which the nginx worker (uid
+              # 101) cannot read. Set the modes explicitly every time.
+              chmod 755 "$INGRESS"
+              chmod 644 "$INGRESS/principia.conf"
+              echo "ingress config installed"
+            else
+              echo "::warning::ndelucien.com's certificate does not cover ${DOMAIN} yet; ingress config NOT installed."
+              echo "::warning::Add the A record, then: make -C landing cert (expands the certificate), then re-run this deploy."
+              echo "::warning::The stack still deploys and is reachable inside the overlay."
+            fi
+
+            echo "${{ secrets.GHRC_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            # Pull explicitly and hard-fail: `stack deploy` falls back to whatever
+            # is already on the box, which ships stale and reports success.
+            IMG="ghcr.io/${GHCR_OWNER}/principia-landing:${IMAGE_TAG}"
+            ok=false
+            for attempt in 1 2 3 4 5; do
+              if docker pull "$IMG" 2>&1 | tee /tmp/principia-pull.log; then
+                grep -qE "^(Status: Downloaded|Status: Image is up to date|Digest:)" /tmp/principia-pull.log && { ok=true; break; }
+              fi
+              echo "pull attempt $attempt failed; retrying in 10s"; sleep 10
+            done
+            [ "$ok" = "true" ] || { echo "::error::could not pull $IMG after 5 attempts; refusing to ship stale"; exit 1; }
+
+            export IMAGE_TAG GHCR_OWNER
+            docker stack deploy \
+              -c "$DIR/docker/docker-stack.production.yml" \
+              --with-registry-auth --resolve-image=always "$STACK"
+
+            # Assert the tag we asked for is the tag that is running: Swarm rolls
+            # back a task that fails to boot and the deploy would look successful.
+            echo "waiting for ${STACK}_web to converge on ${IMAGE_TAG}..."
+            for attempt in $(seq 1 30); do
+              running=$(docker service inspect ${STACK}_web --format '{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null | sed 's/@.*//')
+              state=$(docker service inspect ${STACK}_web --format '{{if .UpdateStatus}}{{.UpdateStatus.State}}{{else}}none{{end}}' 2>/dev/null)
+              case "$running" in
+                *:"${IMAGE_TAG}")
+                  if [ "$state" != "updating" ]; then echo "running ${IMAGE_TAG} (state: $state)"; break; fi
+                  ;;
+              esac
+              if [ "$attempt" -eq 30 ]; then
+                echo "::error::${STACK}_web did not converge on ${IMAGE_TAG} (running: $running, state: $state)"
+                docker service ps ${STACK}_web --no-trunc | head -10
+                exit 1
+              fi
+              sleep 5
+            done
+
+            # Prove the container is serving before claiming anything about the
+            # public URL, from inside the running task.
+            CID=$(docker ps -q -f name=${STACK}_web | head -1)
+            [ -n "$CID" ] || { echo "::error::no running ${STACK}_web container"; exit 1; }
+            BODY=$(docker exec "$CID" wget -qO- http://127.0.0.1:9940/ 2>/dev/null) \
+              || { echo "::error::${STACK}_web is not answering on :9940"; docker logs --tail 30 "$CID"; exit 1; }
+            printf '%s' "$BODY" | grep -q "Principia Desk" \
+              || { echo "::error::${STACK}_web answered, but the page has no content in it"; exit 1; }
+            echo "container is serving $(printf '%s' "$BODY" | wc -c) bytes"
+
+            # Reload the shared nginx last, and only if its config still tests clean.
+            if [ -f "$INGRESS/principia.conf" ]; then
+              NGINX_CID=$(docker ps -q -f name=vertex_nginx | head -1)
+              if [ -n "$NGINX_CID" ]; then
+                if docker exec "$NGINX_CID" nginx -t; then
+                  docker kill -s HUP "$NGINX_CID" && echo "ingress nginx reloaded"
+                else
+                  echo "::error::nginx -t failed; NOT reloading. The other sites keep serving the old config."
+                  exit 1
+                fi
+              fi
+            fi
+
+      - name: Verify the live site
+        continue-on-error: true
+        run: |
+          for i in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://${{ env.DOMAIN }}/" || echo 000)
+            if [ "$code" = "200" ]; then
+              curl -s "https://${{ env.DOMAIN }}/" | grep -q "Principia Desk" \
+                && { echo "live: https://${{ env.DOMAIN }} → 200, content present"; exit 0; }
+            fi
+            echo "attempt $i: HTTP $code"
+            sleep 10
+          done
+          echo "::warning::${{ env.DOMAIN }} is not serving publicly yet; expected until the A record and the certificate are in place."
+
+      - name: Prune
+        if: always()
+        continue-on-error: true
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PRODUCTION_SSH_HOST }}
+          username: ${{ secrets.PRODUCTION_SSH_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          command_timeout: 5m
+          timeout: 60s
+          script: |
+            docker container prune -f || true
+            docker image prune -f || true
+            df -h / | tail -1

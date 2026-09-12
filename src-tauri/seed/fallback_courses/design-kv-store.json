@@ -1,0 +1,110 @@
+{
+  "slug": "design-kv-store",
+  "kind": "capstone",
+  "title": "Capstone lab: a key-value store model with failure traces and a consistency specification",
+  "markdown": "## Why this matters\n\nThe capstone combines partitioning, replication and storage into one testable model of a distributed key-value service. The deliverable is not a production database; it is a specification of what the service guarantees, an executable model small enough to trace by hand, and failure traces that show the guarantee holding or, honestly, where it does not. Combining familiar components does not define a consistency guarantee; writing the traces does.\n\n## The simple version\n\nThink of the store as a post office with several branches. Consistent hashing decides which branches hold a copy of each letter; replication keeps N copies; quorums decide how many branches must confirm a write (W) and how many must be asked on a read (R) before the office answers. If W plus R exceeds N, every read overlaps at least one branch that saw the latest write. The analogy breaks at \"latest\": branches can hold different versions of the same letter after a partition, so each copy carries a version, and the office must decide how to reconcile disagreement instead of hoping it never happens.\n\n## The lab\n\nRun the setup in an isolated directory. It creates a Node project with a model skeleton and a trace runner; nothing outside the temporary directory is touched.\n\n```bash\nlab=$(mktemp -d) && cd \"$lab\" || exit 1\nmkdir -p src traces\ncat > src/model.mjs <<'JS'\n// A single-process model: nodes are objects; the network is a function you can make fail.\nexport function makeCluster(names, { n = 3, w = 2, r = 2 } = {}) {\n  const nodes = new Map(names.map((name) => [name, { name, up: true, data: new Map(), log: [] }]));\n  const ring = [...names].sort();\n  const owners = (key) => { const start = [...key].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % ring.length, 0); return Array.from({ length: n }, (_, i) => nodes.get(ring[(start + i) % ring.length])); };\n  const put = (key, value, version) => {\n    const acks = owners(key).filter((node) => node.up).map((node) => { node.data.set(key, { value, version }); node.log.push({ key, value, version }); return node.name; });\n    if (acks.length < w) throw new Error(`write needs ${w} acks, got ${acks.length}`);\n    return acks;\n  };\n  const get = (key) => {\n    const replies = owners(key).filter((node) => node.up).map((node) => node.data.get(key)).filter(Boolean);\n    if (replies.length < r) throw new Error(`read needs ${r} replies, got ${replies.length}`);\n    return replies.reduce((best, cur) => (!best || cur.version > best.version ? cur : best), null);\n  };\n  return { nodes, owners, put, get };\n}\nJS\nprintf 'lab at %s\\n' \"$lab\"\n```\n\n## Core mechanics\n\nReplica placement: the first N owners on the sorted ring hold each key; adding or removing a node moves only the keys whose owner set changed. Versioned writes: every write carries a version (a counter per key or a vector clock), and reads return the highest version among R replies, then repair stale replicas with it. Log recovery: a node that rejoins replays its log against the current owners and accepts newer versions from them before it serves reads. The consistency specification states, for the chosen N, W and R, which of the models from the course the service provides for a single key (for W + R > N and a single writer: read-your-writes and monotonic reads; without a coordinator it does not provide linearizability across concurrent writers) and what a client must do about concurrent versions.\n\n## Runnable experiment\n\nPredict each line, then run it with `node` from the lab root.\n\n```js\nimport { makeCluster } from './src/model.mjs';\nconst c = makeCluster(['a', 'b', 'c', 'd'], { n: 3, w: 2, r: 2 });\nconsole.log(c.owners('user:1').map((x) => x.name));  // three names from the ring\nconsole.log(c.put('user:1', 'v1', 1));               // three acks\nc.owners('user:1')[0].up = false;                     // one owner leaves during the next write\nconsole.log(c.put('user:1', 'v2', 2));               // two acks: the write still meets W\nconsole.log(c.get('user:1').value);                   // v2: R=2 overlaps a replica that has version 2\nc.owners('user:1')[0].up = true;                      // the node rejoins with stale data\nconsole.log(c.owners('user:1')[0].data.get('user:1')); // { value: 'v1', version: 1 }: stale until recovered\n```\n\nWrite the recovery step yourself: on rejoin, the node asks its co-owners for their versions and keeps the highest, then re-run the last line.\n\n## Failure modes\n\nChoosing W = 1 and R = 1 for speed and calling the store \"consistent\" hides that reads can miss writes. Reconciling by wall-clock timestamps loses writes when clocks skew. Letting a rejoining node serve reads before recovery returns stale data with a valid-looking version. Moving all keys when one node joins defeats the point of the ring. A specification that says \"eventually consistent\" without stating the session guarantees leaves the application unable to reason about its own reads.\n\n## Practical exercise\n\nDeliver the model and its specification: `src/model.mjs` with versioned writes, quorum reads with read repair, recovery on rejoin and a stable ring; `traces/` with at least three executable failure traces (an owner leaving mid-write, a node rejoining stale, a partition that splits the owners) each asserting the guarantee or documenting the violation; and `SPEC.md` stating N, W, R, the single-key guarantees provided and not provided, the reconciliation rule for concurrent versions, and the recovery protocol.\n",
+  "resources": [
+    {
+      "title": "Dynamo: Amazon's Highly Available Key-value Store",
+      "url": "https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf",
+      "type": "documentation",
+      "why": "The canonical design for rings, quorums and versioned reconciliation."
+    },
+    {
+      "title": "Jepsen: Consistency models",
+      "url": "https://jepsen.io/consistency",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Consistent Hashing and Random Trees (Karger et al.)",
+      "url": "https://www.cs.princeton.edu/courses/archive/spr17/cos418/papers/karger97consistent.pdf",
+      "type": "documentation",
+      "why": "Reference for the behavior exercised here."
+    },
+    {
+      "title": "Node.js test runner",
+      "url": "https://nodejs.org/api/test.html",
+      "type": "documentation",
+      "why": "Runs the failure traces as tests."
+    }
+  ],
+  "key_takeaways": [
+    "Write the consistency specification for the chosen N, W and R; components alone do not define a guarantee.",
+    "Version every write and reconcile by version with read repair, never by wall-clock time.",
+    "A rejoining node recovers from its co-owners before it serves reads."
+  ],
+  "exercise": {
+    "title": "Deliver the model, traces and specification",
+    "instructions": "Complete the model with versioned writes, quorum reads with read repair, recovery on rejoin and a stable ring; write three executable failure traces (owner leaves mid-write, stale rejoin, partition across owners) that assert or document the guarantee; and write SPEC.md with N, W, R, the guarantees provided and not provided, the reconciliation rule and the recovery protocol.",
+    "starter_code": "// traces/rejoin.test.mjs (sketch)\nimport test from 'node:test';\nimport assert from 'node:assert/strict';\nimport { makeCluster } from '../src/model.mjs';\ntest('a rejoining node recovers the newest version before serving', () => {\n  const c = makeCluster(['a', 'b', 'c', 'd']);\n  c.put('k', 'v1', 1);\n  const [stale] = c.owners('k'); stale.up = false;\n  c.put('k', 'v2', 2);\n  stale.up = true;\n  c.recover(stale);  // you write this\n  assert.equal(stale.data.get('k').version, 2);\n});\n",
+    "deliverable": "src/model.mjs, three passing or documented failure traces, and SPEC.md.",
+    "hints": [
+      "Recovery is: ask co-owners, keep the highest version per key, replay your own log for keys they lack.",
+      "Read repair writes the winning version back to stale replicas after a read.",
+      "State in SPEC.md what happens when two writers produce the same version number."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "With N = 3, W = 2 and R = 2, why does a read after a completed write return the new value even if one owner is down?",
+      "kind": "mcq",
+      "choices": [
+        "Because all three replicas always agree",
+        "Because W + R > N guarantees the read overlaps a replica that acknowledged the write",
+        "Because the coordinator caches writes",
+        "Because the down node is skipped"
+      ],
+      "correct_answer": "Because W + R > N guarantees the read overlaps a replica that acknowledged the write",
+      "explanation": "Quorum overlap is the mechanism; the read picks the highest version among its replies.",
+      "section": "Core mechanics",
+      "learning_objective": "Explain quorum overlap"
+    },
+    {
+      "prompt": "Two replicas hold different versions of a key after a partition. Which reconciliation rule does the lab require?",
+      "kind": "mcq",
+      "choices": [
+        "The newer wall-clock timestamp wins",
+        "The higher version wins, then read repair updates the stale replica",
+        "The replica with more keys wins",
+        "Both values are discarded"
+      ],
+      "correct_answer": "The higher version wins, then read repair updates the stale replica",
+      "explanation": "Versions, not clocks, order writes; read repair converges replicas.",
+      "section": "Core mechanics",
+      "learning_objective": "Reconcile by version"
+    },
+    {
+      "prompt": "What must a rejoining node do before serving reads?",
+      "kind": "mcq",
+      "choices": [
+        "Nothing; its data is authoritative",
+        "Recover the newest versions from its co-owners and replay its own log",
+        "Delete all its data",
+        "Become the coordinator"
+      ],
+      "correct_answer": "Recover the newest versions from its co-owners and replay its own log",
+      "explanation": "Serving before recovery returns stale data with a valid-looking version.",
+      "section": "Core mechanics",
+      "learning_objective": "Recover on rejoin"
+    },
+    {
+      "prompt": "The team sets W = 1 and R = 1 for latency and writes 'consistent' in the spec. Explain what the spec should say instead.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "With W + R not exceeding N, a read may hit a replica that never saw the write, so the store offers no read-your-writes or monotonic-reads guarantee for that configuration; it is eventually consistent per key with convergence through read repair and anti-entropy. The spec must name those session guarantees as not provided and describe how clients handle stale reads, or raise W and R until quorums overlap.",
+      "explanation": "Guarantees follow from N, W and R, not from the word consistent.",
+      "section": "Failure modes",
+      "learning_objective": "Write an honest consistency specification"
+    },
+    {
+      "prompt": "Why does the model refuse to provide linearizability across concurrent writers without a coordinator, and what would add it?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Two writers can assign versions independently and reach different replicas first, so there is no single real-time order that all reads observe; the quorum only guarantees overlap, not a total order. Linearizability needs a serialization point: a per-key leader or a consensus protocol that orders writes before they are applied, at the cost of availability under partition.",
+      "explanation": "Ordering concurrent writes requires coordination.",
+      "section": "Failure modes",
+      "learning_objective": "Explain the limit of quorum-based stores"
+    }
+  ]
+}

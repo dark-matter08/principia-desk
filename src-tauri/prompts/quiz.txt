@@ -1,4 +1,4 @@
-You are writing a quiz to test understanding (not recall) of a system design course the reader studied yesterday.
+You are writing a quiz to test understanding (not recall) of a {{FOCUS_LABEL}} course the reader studied yesterday. The course is in the {{FOCUS_CONTEXT}} track.
 
 Course markdown follows between the markers.
 ---COURSE START---
@@ -6,11 +6,14 @@ Course markdown follows between the markers.
 ---COURSE END---
 
 Write exactly 5 questions: 3 multiple-choice and 2 free-text.
-- MCQ: 4 plausible choices, exactly one correct. Distractors must reflect real misconceptions.
-- Free-text: scenario-based ("you are designing X, what happens when Y"), answerable in 2-4 sentences.
-- Each question needs an explanation that teaches, not just states the answer.
-- correct_answer for MCQ is the exact text of the correct choice. For free-text it is a model answer in 2-4 sentences.
-- If a student dossier was provided above and it lists STRUGGLING or MASTERED topics related to this course, make one question deliberately bridge to one of them (testing the connection, not the old topic alone). Stay within the 5-question budget.
+- MCQ: 4 plausible choices, exactly one correct. Distractors must reflect real misconceptions about mechanisms, not trivia.
+- Free-text: scenario-based, answerable in 2-4 sentences, requiring mechanistic reasoning and one explicit design decision.
+- At least 2 questions must use a realistic production constraint: a slow interaction, cache inconsistency, ownership boundary, migration, browser incompatibility, failed deployment, observability signal, or growth from one team to many.
+- Test transfer, not vocabulary. Ask what happens next, where state belongs, which boundary owns a responsibility, how to diagnose evidence, or which trade-off changes the decision.
+- Any multi-line code, configuration, log, trace, or file tree in a prompt or choice must be inside a Markdown fenced code block with an accurate language tag and a blank line before and after the fence. Use inline backticks only for short identifiers or expressions. Never indent code with spaces as a substitute for a fence.
+- Keep code samples focused (normally 4-12 lines) and include enough context to reason about them. Do not split one snippet across the prompt and choices.
+- Each question needs an explanation that teaches, not just states the answer: name the misconception a wrong answer reveals, then restate the correct mental model in plain language, a short analogy is encouraged when it clarifies faster than more prose.
+- If a student dossier was provided above and it lists STRUGGLING or MASTERED topics related to this course, make one question deliberately bridge to one of them. Stay within the 5-question budget.
 
 Your entire final reply must be exactly one fenced JSON code block (```json ... ```) matching this schema, with no text before or after it:
 {

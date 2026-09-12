@@ -1,0 +1,29 @@
+---
+import Base from "../layouts/Base.astro";
+import { getSite } from "../lib/content";
+const site = getSite();
+const description = "What Principia Desk does with your data: everything stays on your machine except the prompts your own tutor needs, and this site makes no request to anyone.";
+---
+<Base title={`Privacy · ${site.name}`} description={description} path="/privacy">
+  <section class="section">
+    <div class="frame prose">
+      <span class="eyebrow">Privacy</span>
+      <h1>Nothing leaves your machine that you did not point somewhere.</h1>
+      <h2>This site</h2>
+      <p>principia.ndelucien.com is static files served by nginx. It sets no cookies, loads no analytics, no fonts from a CDN and no scripts from anyone. The server keeps ordinary access logs for a short time to notice abuse.</p>
+      <h2>The desk</h2>
+      <ul>
+        <li><strong>Your data</strong> is a SQLite database under <code>~/Library/Application Support/com.darkmatter.principia-desk/</code>, with a backup before every schema upgrade. Exports go to <code>Documents/Principia Desk/</code>. There is no account and no server of ours.</li>
+        <li><strong>Your keys</strong> live in the macOS Keychain under the <code>principia-desk</code> service, or in environment variables you set. They are sent only to the provider they belong to.</li>
+        <li><strong>Your tutor</strong> receives the topic, its curriculum brief, your learning goal, your progress on that class and the pages the desk fetched. It does not receive your keys, your escape phrase or other classes. What the provider does with a prompt is governed by the provider's own terms; Ollama on your machine sends nothing anywhere.</li>
+        <li><strong>The desk fetches</strong> pages from the documentation hosts a course allows, and, only if you configure one, asks a search engine (SearXNG, Brave or Tavily) for candidate pages on those hosts.</li>
+        <li><strong>No telemetry.</strong> The desk does not report usage, crashes or anything else to us.</li>
+      </ul>
+      <h2>Questions</h2>
+      <p>Write to <a href="mailto:contact@ndelucien.com">contact@ndelucien.com</a>. Security reports follow <a href="https://github.com/dark-matter08/system-design-roulette/blob/main/SECURITY.md" rel="noopener">SECURITY.md</a>.</p>
+    </div>
+  </section>
+</Base>
+<style>
+  h1 { font-size: clamp(30px, 4vw, 44px); margin: 12px 0 8px; color: var(--fg); }
+</style>

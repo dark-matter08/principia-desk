@@ -1,0 +1,22 @@
+---
+import type { Section } from "../lib/schema";
+import Hero from "./Hero.astro";
+import Steps from "./Steps.astro";
+import Features from "./Features.astro";
+import Classes from "./Classes.astro";
+import Showcase from "./Showcase.astro";
+import Trust from "./Trust.astro";
+import Install from "./Install.astro";
+import Faq from "./Faq.astro";
+import Cta from "./Cta.astro";
+const { section } = Astro.props as { section: Section };
+---
+{section.kind === "hero" && <Hero s={section} />}
+{section.kind === "steps" && <Steps s={section} />}
+{section.kind === "features" && <Features s={section} />}
+{section.kind === "classes" && <Classes s={section} />}
+{section.kind === "showcase" && <Showcase s={section} />}
+{section.kind === "trust" && <Trust s={section} />}
+{section.kind === "install" && <Install s={section} />}
+{section.kind === "faq" && <Faq s={section} />}
+{section.kind === "cta" && <Cta s={section} />}

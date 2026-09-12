@@ -1,0 +1,99 @@
+---
+import "../styles/global.css";
+import { getSite } from "../lib/content";
+interface Props {
+  title: string;
+  description: string;
+  /** Path of this page, for the canonical URL. */
+  path: string;
+  /** JSON-LD objects to emit, already shaped. */
+  jsonLd?: unknown[];
+  ogImage?: string;
+}
+const site = getSite();
+const { title, description, path, jsonLd = [], ogImage = "/og.png" } = Astro.props;
+const url = new URL(path, site.url).toString();
+const image = new URL(ogImage, site.url).toString();
+// No font CDN, no analytics, no framework runtime: this page makes zero requests
+// to any origin but its own, which is what lets /privacy be short.
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={url} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.png" sizes="192x192" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#141118" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="author" content="Nde Che Lucien" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={url} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${site.name}: ${site.tagline}`} />
+    <meta property="og:locale" content="en_US" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+
+    {jsonLd.map((item) => <script type="application/ld+json" set:html={JSON.stringify(item)} />)}
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="top">
+      <div class="frame row">
+        <a class="brand" href="/" aria-label="Principia Desk home">
+          <img src="/logo-mark.svg" width="34" height="34" alt="" />
+          <span>Principia Desk<small class="mono">personal learning system</small></span>
+        </a>
+        <nav aria-label="Site">
+          {site.nav.map((l) => <a href={l.href} class:list={{ key: l.primary, cta: l.primary }} rel={l.href.startsWith("http") ? "noopener" : undefined}>{l.label}</a>)}
+        </nav>
+      </div>
+    </header>
+    <main id="main"><slot /></main>
+    <footer class="foot">
+      <div class="frame">
+        <div class="foot-row">
+          <p class="mono">{site.footer.note}</p>
+          <nav aria-label="Footer">
+            {site.footer.links.map((l) => <a href={l.href} rel={l.href.startsWith("http") ? "noopener" : undefined}>{l.label}</a>)}
+          </nav>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .skip { position: absolute; top: -60px; left: 12px; padding: 8px 12px; background: var(--surface); color: var(--fg); z-index: 9; }
+  .skip:focus { top: 8px; }
+  .top { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px dashed var(--node-border); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 12px 0; }
+  .brand { display: flex; align-items: center; gap: 11px; color: var(--fg); font: 500 19px/1.15 var(--font-display); }
+  .brand:hover { text-decoration: none; }
+  .brand small { display: block; margin-top: 4px; font-size: 8.5px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--faint); }
+  nav[aria-label="Site"] { display: flex; align-items: center; gap: 18px; font: 12px var(--font-mono); letter-spacing: 0.4px; }
+  nav[aria-label="Site"] a { color: var(--muted); }
+  nav[aria-label="Site"] a:hover { color: var(--fg); text-decoration: none; }
+  nav[aria-label="Site"] a.key { color: var(--accent-fg); min-height: 34px; padding: 8px 14px 8px 16px; font-size: 11px; }
+  .foot { border-top: 1px dashed var(--node-border); padding: 34px 0 48px; margin-top: 40px; }
+  .foot-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  .foot p { font-size: 11px; color: var(--faint); }
+  .foot nav { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; }
+  .foot nav a { color: var(--muted); }
+  @media (max-width: 720px) { nav[aria-label="Site"] a:not(.key) { display: none; } }
+</style>

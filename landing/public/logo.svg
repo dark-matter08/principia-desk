@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 212" width="760" height="212">
+<g transform="translate(6,6)">
+
+  <!-- blueprint ring -->
+  <circle cx="100" cy="100" r="93" fill="none" stroke="#534ab7" stroke-width="2.4"
+          stroke-dasharray="7 6" opacity="0.85"/>
+  <!-- ingress pipe -->
+  <line x1="100" y1="-2" x2="100" y2="14" stroke="#ef9f27" stroke-width="3.4"
+        stroke-dasharray="5 4" stroke-linecap="round"/>
+  <!-- shard ring -->
+  <path d="M104.88,20.15 A80,80 0 0,1 153.01,40.08 L126.50,70.04 A40,40 0 0,0 102.44,60.07 Z" fill="#ef9f27"/><path d="M159.92,46.99 A80,80 0 0,1 179.85,95.12 L139.93,97.56 A40,40 0 0,0 129.96,73.50 Z" fill="#262030" stroke="#3a3344" stroke-width="1.6"/><path d="M179.85,104.88 A80,80 0 0,1 159.92,153.01 L129.96,126.50 A40,40 0 0,0 139.93,102.44 Z" fill="#262030" stroke="#3a3344" stroke-width="1.6"/><path d="M153.01,159.92 A80,80 0 0,1 104.88,179.85 L102.44,139.93 A40,40 0 0,0 126.50,129.96 Z" fill="#262030" stroke="#3a3344" stroke-width="1.6"/><path d="M95.12,179.85 A80,80 0 0,1 46.99,159.92 L73.50,129.96 A40,40 0 0,0 97.56,139.93 Z" fill="#262030" stroke="#3a3344" stroke-width="1.6"/><path d="M40.08,153.01 A80,80 0 0,1 20.15,104.88 L60.07,102.44 A40,40 0 0,0 70.04,126.50 Z" fill="#262030" stroke="#3a3344" stroke-width="1.6"/><path d="M20.15,95.12 A80,80 0 0,1 40.08,46.99 L70.04,73.50 A40,40 0 0,0 60.07,97.56 Z" fill="#262030" stroke="#3a3344" stroke-width="1.6"/><path d="M46.99,40.08 A80,80 0 0,1 95.12,20.15 L97.56,60.07 A40,40 0 0,0 73.50,70.04 Z" fill="#262030" stroke="#3a3344" stroke-width="1.6"/>
+  <!-- leader LED on the elected shard -->
+  <circle cx="122.96"
+          cy="44.57" r="5.5" fill="#141118"/>
+  <circle cx="122.96"
+          cy="44.57" r="3.4" fill="#9fe1cb"/>
+  <!-- hub -->
+  <circle cx="100" cy="100" r="26" fill="#1b1721" stroke="#534ab7" stroke-width="2"
+          stroke-dasharray="4.5 3.5"/>
+  <circle cx="100" cy="100" r="5" fill="#ef9f27"/>
+
+</g>
+<g font-family="JetBrains Mono, SFMono-Regular, Menlo, monospace">
+  <text x="250" y="92" font-size="44" font-weight="700" letter-spacing="6" fill="#f2ede4">SYSTEM DESIGN</text>
+  <text x="250" y="148" font-size="44" font-weight="700" letter-spacing="6" fill="#ef9f27">ROULETTE</text>
+  <text x="252" y="182" font-size="15" letter-spacing="3.5" fill="#5e5750">SDR://DAILY-TRAINING-CLUSTER</text>
+</g>
+</svg>

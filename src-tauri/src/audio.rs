@@ -30,9 +30,8 @@ pub struct AudioView {
 }
 
 pub fn get_script(conn: &Connection, course_id: i64) -> db::Result<Option<AudioView>> {
-    let mut stmt = conn.prepare(
-        "SELECT lines_json, engine, audio_dir FROM audio_scripts WHERE course_id = ?1",
-    )?;
+    let mut stmt = conn
+        .prepare("SELECT lines_json, engine, audio_dir FROM audio_scripts WHERE course_id = ?1")?;
     let mut rows = stmt.query(params![course_id])?;
     Ok(match rows.next()? {
         Some(r) => {
@@ -73,7 +72,11 @@ pub fn save_script(conn: &Connection, course_id: i64, lines: &[ScriptLine]) -> d
 /// VibeVoice venv layout created by scripts/provision-vibevoice.sh.
 pub fn vibevoice_python(data_dir: &Path) -> Option<PathBuf> {
     let py = data_dir.join("vibevoice-venv/bin/python");
-    if py.exists() { Some(py) } else { None }
+    if py.exists() {
+        Some(py)
+    } else {
+        None
+    }
 }
 
 /// Render every line to data_dir/audio/<date>/seg_NNN.wav via mlx-audio.
@@ -123,7 +126,10 @@ print("done", len(lines))
     .map_err(|_| "vibevoice render timed out".to_string())?
     .map_err(|e| e.to_string())?;
     if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).chars().take(500).collect());
+        return Err(String::from_utf8_lossy(&output.stderr)
+            .chars()
+            .take(500)
+            .collect());
     }
     Ok(out_dir)
 }

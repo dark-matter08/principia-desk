@@ -1,0 +1,110 @@
+{
+  "slug": "bs-capstone",
+  "kind": "capstone",
+  "title": "Capstone lab: a tested log-reporting tool with predictable failure behavior",
+  "markdown": "## Why this matters\n\nThe capstone delivers what the course promised: a command-line tool whose behavior under bad input, repeated runs and interruption is demonstrated rather than assumed. A small team will schedule it, so the interesting questions are operational: what happens when the input directory is missing, when a filename contains a space, when the tool runs twice, and when it is killed halfway through writing its report.\n\n## The simple version\n\nA scheduled tool is like a vending machine: it must respond the same way to the same coins every time, refuse bad coins with a clear message rather than swallowing them, and never leave a half-dispensed item in the tray when the power fails. The interface is the coin slot, the exit code is the display, and the atomic publish is the tray. The analogy breaks because a script's inputs can be adversarial in ways coins are not: a filename that looks like an option or contains a space is still a legitimate input the tool must handle.\n\n## The tool\n\n`report.sh` summarizes `.log` files in an input directory: for each file it counts lines and ERROR lines, then writes one report file with a header, one row per input file, and a footer with totals. The interface is fixed so the tests can be written first:\n\n```text\nusage: report.sh --input DIR --out FILE [--help]\nexit 0  report written or unchanged\nexit 1  runtime failure (unreadable input, cannot write output)\nexit 2  usage error (missing or unknown option, missing DIR)\n```\n\n## Lab setup\n\nRun the setup in your Linux lab. It creates a temporary directory with fixtures that have deliberately awkward names and contents, and touches nothing outside it.\n\n```bash\nlab=$(mktemp -d) && cd \"$lab\" || exit 1\nmkdir -p logs out\nprintf 'INFO start\\nERROR disk\\nINFO end\\n' > 'logs/service one.log'\nprintf 'INFO only\\n' > 'logs/-dash.log'\n: > logs/empty.log\nprintf 'not a log\\n' > logs/notes.txt\nprintf 'lab at %s\\n' \"$lab\"\n```\n\n## Core mechanics\n\nParse options with a `while` loop over `\"$@\"` and `case`; reject unknown options with a usage message on stderr and exit 2. Validate that `--input` is a readable directory and that the output directory exists and is writable before doing any work. Select inputs with a quoted glob and `nullglob`, so a directory without logs produces a report with zero rows rather than a literal `*.log` row. Iterate with `for f in \"$dir\"/*.log` and count with `wc -l < \"$f\"` and `grep -c ERROR -- \"$f\" || true` so a file with no errors is a zero, not a failure.\n\nWrite the report to a temporary file created with `mktemp` inside the output directory, register `trap 'rm -f -- \"$tmp\"' EXIT`, and publish it with `mv -f -- \"$tmp\" \"$out\"` only after every row succeeded. A second run must produce a byte-identical report when the inputs did not change; use `cmp -s` to skip the move and still exit 0.\n\n## Runnable experiment\n\nBefore writing the tool, predict what these commands print in the lab; they show the traps the tests will rely on.\n\n```bash\ngrep -c ERROR -- logs/-dash.log; printf 'status=%s\\n' \"$?\"\n# 0 then status=1: no match is status 1, which || true must absorb\nshopt -s nullglob; for f in logs/*.log; do printf '<%s>\\n' \"$f\"; done\n# three bracketed names, one with a space and one with a leading hyphen\nfor f in $(ls logs); do printf '<%s>\\n' \"$f\"; done\n# 'service one.log' arrives as two words\n```\n\n## Tests first\n\n`test.sh` runs the tool against the fixtures and checks: the success case produces three rows and correct totals; `--input missing` exits 2 with a stderr message; an unreadable output directory (`chmod 500 out`) exits 1 and leaves no partial file behind; a second identical run exits 0 and leaves the report unchanged; killing the tool during a slow run (insert `sleep 2` behind a `REPORT_SLOW=1` variable) leaves no temporary file. Each test prints `PASS` or `FAIL` with the observed exit status.\n\n## Failure modes\n\nPublishing by writing directly to the final path leaves a half-written report when the tool is interrupted. `grep -c` on a file with no matches exits 1 and, under `set -e`, aborts the row. Iterating `ls \"$dir\"` splits names on spaces. Forgetting `--` lets `-dash.log` be read as an option by `grep`. A test suite that only exercises the happy path proves nothing about scheduled operation.\n\n## Practical exercise\n\nA directory with `report.sh`, `test.sh`, the fixture setup, a `README.md` documenting the interface, exit codes and unsupported inputs, and a short design reflection: what you chose not to support and why, and which test you would add next.\n",
+  "resources": [
+    {
+      "title": "Bash Conditional Constructs (case)",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Conditional-Constructs.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "Bourne Shell Builtins (trap)",
+      "url": "https://www.gnu.org/software/bash/manual/html_node/Bourne-Shell-Builtins.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "mktemp invocation",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/mktemp-invocation.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "mv invocation",
+      "url": "https://www.gnu.org/software/coreutils/manual/html_node/mv-invocation.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "Fix the interface and exit codes first, then write tests that exercise failure paths.",
+    "Write to a mktemp file with a cleanup trap and publish with mv only after validation.",
+    "A repeat run must be idempotent: compare and skip, then exit 0."
+  ],
+  "exercise": {
+    "title": "Deliver the tested report tool",
+    "instructions": "Build report.sh with the fixed interface, atomic publication and idempotent repeat runs; write test.sh covering success, usage error, unwritable output, repeat run and interruption; document the interface, exit codes and unsupported inputs in README.md with a short design reflection.",
+    "starter_code": "#!/bin/bash\nset -u\nusage() { printf 'usage: report.sh --input DIR --out FILE\\n' >&2; exit 2; }\ninput=''; out=''\nwhile [ \"$#\" -gt 0 ]; do\n  case $1 in\n    --input) input=${2:-}; shift 2 ;;\n    --out) out=${2:-}; shift 2 ;;\n    --help) usage ;;\n    *) usage ;;\n  esac\ndone\n[[ -d \"$input\" && -r \"$input\" ]] || usage\noutdir=$(dirname -- \"$out\")\n[[ -d \"$outdir\" && -w \"$outdir\" ]] || { printf 'cannot write to %s\\n' \"$outdir\" >&2; exit 1; }\ntmp=$(mktemp -- \"$outdir/.report.XXXXXX\") || exit 1\ntrap 'rm -f -- \"$tmp\"' EXIT\nshopt -s nullglob\n# rows: for f in \"$input\"/*.log; do lines=$(wc -l < \"$f\"); errors=$(grep -c ERROR -- \"$f\" || true); ...; done\n# publish: cmp -s -- \"$tmp\" \"$out\" || mv -f -- \"$tmp\" \"$out\"\n",
+    "deliverable": "A directory with report.sh, test.sh, the fixture setup, README.md and a design reflection.",
+    "hints": [
+      "grep -c exits 1 for zero matches; append || true so a clean file is a zero row.",
+      "Create the temporary file in the output directory so mv is a rename, not a copy.",
+      "Test the interruption case by killing the tool mid-run and listing the output directory afterwards."
+    ]
+  },
+  "questions": [
+    {
+      "prompt": "Why write the report to a `mktemp` file and `mv` it into place at the end?",
+      "kind": "mcq",
+      "choices": [
+        "mv is faster than writing",
+        "An interrupted run never leaves a half-written report at the final path",
+        "Temporary files are exempt from permissions",
+        "mktemp validates the report format"
+      ],
+      "correct_answer": "An interrupted run never leaves a half-written report at the final path",
+      "explanation": "The final path only ever holds a complete report; the trap removes the temporary file on interruption.",
+      "section": "Required behavior",
+      "learning_objective": "Publish output atomically"
+    },
+    {
+      "prompt": "`grep -c ERROR -- \"$f\"` exits 1 for a file with no errors. What keeps that from aborting the row?",
+      "kind": "mcq",
+      "choices": [
+        "Using grep -q instead",
+        "Appending || true so the zero count is accepted",
+        "Redirecting stderr to /dev/null",
+        "Wrapping it in $( )"
+      ],
+      "correct_answer": "Appending || true so the zero count is accepted",
+      "explanation": "Zero matches is a valid result here; || true keeps the status from being treated as failure.",
+      "section": "Required behavior",
+      "learning_objective": "Handle grep's no-match status in a count"
+    },
+    {
+      "prompt": "What should a second identical run do?",
+      "kind": "mcq",
+      "choices": [
+        "Append a second copy of the rows",
+        "Compare the new output and leave the report unchanged, exiting 0",
+        "Exit 1 because the report exists",
+        "Delete the previous report first"
+      ],
+      "correct_answer": "Compare the new output and leave the report unchanged, exiting 0",
+      "explanation": "Idempotent automation: same inputs, same report, success status.",
+      "section": "Required behavior",
+      "learning_objective": "Make repeat runs idempotent"
+    },
+    {
+      "prompt": "Why does `for f in $(ls \"$dir\")` fail the fixture `service one.log`?",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "The unquoted substitution splits the name into two words. Iterate a quoted glob (\"$dir\"/*.log) with nullglob instead.",
+      "explanation": "Iterate a quoted glob (\"$dir\"/*.log) with nullglob instead.",
+      "section": "Failure modes",
+      "learning_objective": "Select input files safely"
+    },
+    {
+      "prompt": "Describe the five tests test.sh must run and what each one proves about scheduled operation.",
+      "kind": "free",
+      "choices": null,
+      "correct_answer": "Success on the fixtures proves the report format and totals; --input missing exiting 2 proves usage errors are reported; an unwritable output directory exiting 1 with no partial file proves runtime failures are clean; a second identical run exiting 0 with an unchanged report proves idempotence; killing the tool mid-run and finding no temporary file proves the cleanup trap works. Together they cover failure paths, repeat runs and interruption as well as the happy path.",
+      "explanation": "Scheduled automation is judged by its failure and repeat behavior.",
+      "section": "Tests first",
+      "learning_objective": "Design a test suite for operational behavior"
+    }
+  ]
+}

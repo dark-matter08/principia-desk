@@ -1,0 +1,98 @@
+{
+  "slug": "lb-search",
+  "kind": "retrieval",
+  "title": "Finding files and matching text: retrieval check",
+  "markdown": "## Recall before you check\n\nThis retrieval pass revisits finding files and matching text without re-teaching it. Before you open the check, say in your own words how `find` selects files by name, type and modification time, how `grep` searches recursively and reports file names, and why filenames with spaces need `-print0` with `xargs -0` or `-exec ... {} +`. Recall the difference between a fixed-string search and a regular expression, and what `grep` exit status 1 means.\n\n## What to bring back\n\n- `find DIR -type f -name '*.log'` matches names against a quoted pattern; unquoted patterns expand in the shell first.\n- `find DIR -mtime -1` selects files modified in the last day; `-newer FILE` compares against another file.\n- `grep -rn PATTERN DIR` searches recursively with line numbers; `-l` lists only matching file names; `-F` treats the pattern as a fixed string.\n- `find ... -print0 | xargs -0 CMD` keeps filenames with spaces intact; `-exec CMD {} +` runs the command with many files at once.\n- `grep` exits 1 when nothing matched and 2 on an error such as an unreadable file.\n\nThe questions below use different examples from your lesson. Answer from memory first, then read the feedback.\n",
+  "resources": [
+    {
+      "title": "find invocation",
+      "url": "https://www.gnu.org/software/findutils/manual/html_node/find_html/Invoking-find.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    },
+    {
+      "title": "grep invocation",
+      "url": "https://www.gnu.org/software/grep/manual/html_node/Invoking-grep.html",
+      "type": "documentation",
+      "why": "GNU reference for the behavior exercised here."
+    }
+  ],
+  "key_takeaways": [
+    "Quote find patterns so the shell does not expand them first.",
+    "Use -print0 with xargs -0 or -exec {} + for filenames with spaces.",
+    "grep status 1 means no match; 2 means an error."
+  ],
+  "exercise": null,
+  "questions": [
+    {
+      "prompt": "Which command lists only regular files ending in .log under `logs`, including subdirectories?",
+      "kind": "mcq",
+      "choices": [
+        "find logs -name *.log",
+        "find logs -type f -name '*.log'",
+        "ls logs/*.log",
+        "grep -r .log logs"
+      ],
+      "correct_answer": "find logs -type f -name '*.log'",
+      "explanation": "-type f restricts to regular files; the quoted pattern is matched by find, not the shell.",
+      "section": "Retrieval",
+      "learning_objective": "Select files by type and quoted name pattern"
+    },
+    {
+      "prompt": "You need the names of files under `src` that contain the text `TODO`, without the matching lines. Which option?",
+      "kind": "mcq",
+      "choices": [
+        "grep -rn TODO src",
+        "grep -rl TODO src",
+        "grep -c TODO src",
+        "find src -name TODO"
+      ],
+      "correct_answer": "grep -rl TODO src",
+      "explanation": "-l prints only file names with at least one match; -r recurses.",
+      "section": "Retrieval",
+      "learning_objective": "List matching files rather than lines"
+    },
+    {
+      "prompt": "Why pair `find -print0` with `xargs -0`?",
+      "kind": "mcq",
+      "choices": [
+        "It makes find faster",
+        "Filenames are separated by NUL so spaces and newlines in names stay intact",
+        "It sorts the results",
+        "It limits results to one file"
+      ],
+      "correct_answer": "Filenames are separated by NUL so spaces and newlines in names stay intact",
+      "explanation": "NUL cannot appear in a filename, so it is the only safe separator.",
+      "section": "Retrieval",
+      "learning_objective": "Pass awkward filenames safely to another command"
+    },
+    {
+      "prompt": "Which grep option searches for the literal text `a.b` rather than a pattern where `.` matches any character?",
+      "kind": "mcq",
+      "choices": [
+        "-E",
+        "-F",
+        "-i",
+        "-v"
+      ],
+      "correct_answer": "-F",
+      "explanation": "-F treats the pattern as a fixed string.",
+      "section": "Retrieval",
+      "learning_objective": "Choose fixed-string search when the text contains regex characters"
+    },
+    {
+      "prompt": "`find data -mtime -1 -type f` lists which files?",
+      "kind": "mcq",
+      "choices": [
+        "Files older than one day",
+        "Regular files modified within the last day",
+        "Directories created today",
+        "Files larger than one megabyte"
+      ],
+      "correct_answer": "Regular files modified within the last day",
+      "explanation": "-mtime -1 selects modification times less than one day ago.",
+      "section": "Retrieval",
+      "learning_objective": "Select recently modified files"
+    }
+  ]
+}
