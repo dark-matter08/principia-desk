@@ -1550,7 +1550,8 @@ pub struct CurriculumConceptView {
     pub artifact: String,
     pub related_concepts: Vec<String>,
     /// Route status against the accepted path: completed_here, prior_knowledge_checked,
-    /// bypassed_by_choice, needs_refresher, not_assessed, bridge, in_progress or upcoming.
+    /// bypassed_by_choice, needs_refresher, not_assessed, bridge, in_progress (a lesson
+    /// open right now), taught (a lesson behind it, not yet mastered) or upcoming.
     pub path_status: String,
     /// Core topic still required by the accepted route.
     pub required: bool,
@@ -1566,6 +1567,9 @@ pub struct PathCoverage {
     pub required_done: usize,
     pub coverage_total: usize,
     pub coverage_done: usize,
+    /// Core topics with a lesson behind them, mastered or not: what the
+    /// overview calls practised.
+    pub taught: usize,
     pub bypassed: usize,
     pub checked: usize,
     pub refreshers: usize,
@@ -1632,11 +1636,27 @@ pub fn curriculum_map(conn: &Connection, focus: &str) -> Result<CurriculumMapVie
     let listed = |list: &[crate::domain::placement::PathTopic], slug: &str| {
         list.iter().any(|t| t.id == slug)
     };
+    // The topic a lesson is open on right now, if any: the one topic that
+    // reads as in progress. Every other topic with a lesson behind it reads
+    // as taught until mastery says otherwise.
+    let open_slugs: std::collections::HashSet<String> = conn
+        .prepare(
+            "SELECT json_extract(context_json, '$.selection.slug') FROM study_sessions
+             WHERE status = 'active' AND owner_kind = 'class' AND owner_id = ?1",
+        )
+        .and_then(|mut statement| {
+            statement
+                .query_map([focus], |row| row.get::<_, Option<String>>(0))?
+                .collect::<rusqlite::Result<Vec<_>>>()
+        })
+        .map(|rows| rows.into_iter().flatten().collect())
+        .unwrap_or_default();
     for concept in &mut concepts {
         let completed = crate::selection::is_completed(&concept.mastery_state);
         let slug = concept.slug.as_str();
         let (status, on_route) = match plan {
             _ if completed => ("completed_here", true),
+            _ if open_slugs.contains(slug) => ("in_progress", true),
             Some(plan) if listed(&plan.bridges, slug) => ("bridge", true),
             Some(plan) if listed(&plan.checked, slug) => ("prior_knowledge_checked", false),
             Some(plan) if listed(&plan.bypassed, slug) => ("bypassed_by_choice", false),
@@ -1653,7 +1673,7 @@ pub fn curriculum_map(conn: &Connection, focus: &str) -> Result<CurriculumMapVie
                 },
                 false,
             ),
-            _ if concept.mastery_state != "unseen" => ("in_progress", true),
+            _ if concept.mastery_state != "unseen" => ("taught", true),
             _ => ("upcoming", true),
         };
         concept.path_status = status.into();
@@ -1682,6 +1702,7 @@ pub fn curriculum_map(conn: &Connection, focus: &str) -> Result<CurriculumMapVie
                 .clone()
                 .filter(|c| crate::selection::is_completed(&c.mastery_state))
                 .count(),
+            taught: core.clone().filter(|c| c.mastery_state != "unseen").count(),
             bypassed: concepts
                 .iter()
                 .filter(|c| c.path_status == "bypassed_by_choice")

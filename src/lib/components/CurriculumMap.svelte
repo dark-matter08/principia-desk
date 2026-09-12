@@ -31,11 +31,12 @@
     not_assessed: { label: 'Not assessed', tone: 'muted', meaning: 'Before your starting point and never sampled: unknown rather than failed.' },
     bridge: { label: 'Bridge lesson', tone: 'warn', meaning: 'A gap seen during practice. A short lesson is queued before more dependent work.' },
     in_progress: { label: 'In progress', tone: 'accent', meaning: 'A lesson on this topic is open right now.' },
+    taught: { label: 'Taught', tone: 'teal', meaning: 'A lesson on this topic is done. It counts as mastered once the checks and the retrieval that follow show it stuck.' },
     upcoming: { label: 'Upcoming', tone: 'faint', meaning: 'On your route and still ahead of you.' },
   };
   /** Only the states actually present, so the legend explains what is on screen. */
   const legend = $derived([...new Set(map.concepts.map((c) => c.path_status))].map((status) => ({ status, ...BADGES[status] })).filter((row) => row.label));
-  const canBypass = (status: CurriculumConceptView['path_status']) => ['upcoming', 'in_progress', 'needs_refresher'].includes(status);
+  const canBypass = (status: CurriculumConceptView['path_status']) => ['upcoming', 'in_progress', 'taught', 'needs_refresher'].includes(status);
   const canInclude = (status: CurriculumConceptView['path_status']) => ['bypassed_by_choice', 'not_assessed', 'prior_knowledge_checked'].includes(status);
 
   const uid = $props.id();
@@ -82,12 +83,13 @@
       <p>{map.month_outcome}</p>
       {#if map.path}
         <dl class="coverage mono" aria-label="Route and coverage">
-          <div><dt>Required on your route</dt><dd>{map.path.required_done} / {map.path.required_total}</dd></div>
-          <div><dt>Course coverage</dt><dd>{map.path.coverage_done} / {map.path.coverage_total} core</dd></div>
+          <div><dt>Taught</dt><dd>{map.path.taught ?? 0} / {map.path.coverage_total} core</dd></div>
+          <div><dt>Mastered on your route</dt><dd>{map.path.required_done} / {map.path.required_total}</dd></div>
+          <div><dt>Course coverage</dt><dd>{map.path.coverage_done} / {map.path.coverage_total} core mastered</dd></div>
           <div><dt>Route</dt><dd>revision {map.path.revision} · from {map.path.entry_label}</dd></div>
           <div><dt>Set aside</dt><dd>{map.path.bypassed} bypassed · {map.path.checked} checked · {map.path.refreshers} refreshers{#if map.path.bridges} · {map.path.bridges} bridges{/if}</dd></div>
         </dl>
-        <p class="coverage-note">Set-aside and checked topics count toward neither denominator; revising the route never rewrites earlier results.</p>
+        <p class="coverage-note">Taught counts a lesson done; mastered needs the checks and retrieval after it to hold. Set-aside and checked topics count toward neither denominator; revising the route never rewrites earlier results.</p>
         {#if legend.length}
           <details class="legend"><summary>What these labels mean</summary>
             <dl>{#each legend as row (row.status)}<div><dt><span class={`badge tone-${row.tone}`}>{row.label}</span></dt><dd>{row.meaning}</dd></div>{/each}</dl>
@@ -120,12 +122,13 @@
     {#each phases.filter(p => conceptsFor(p.id).length) as phase (phase.id)}
       {@const concepts = conceptsFor(phase.id)}
       {@const done = concepts.filter((concept) => complete(concept.mastery_state)).length}
+      {@const taught = concepts.filter((concept) => concept.mastery_state !== 'unseen').length}
       <section class:current={map.current_phase === phase.id} class:folded={isFolded(phase.id)} class="phase" aria-label={phase.label}>
         <div class="phase-head">
           <button type="button" class="phase-fold" aria-expanded={!isFolded(phase.id)} aria-controls={`${uid}-${phase.id}`} onclick={() => toggle(phase.id)}>
             <span class="chevron" aria-hidden="true"><ChevronDown size={15} /></span>
             <strong>{phase.label}</strong>
-            <span class="count mono">{done}/{concepts.length}</span>
+            <span class="count mono" title={`${taught} taught · ${done} mastered · ${concepts.length} topics`}>{taught}/{concepts.length}{#if done} · {done} mastered{/if}</span>
             {#if map.current_phase === phase.id}<small class="you-are-here">current phase</small>{/if}
             {#if isFolded(phase.id)}<small class="folded-note mono">{concepts.length} {concepts.length === 1 ? 'topic' : 'topics'} folded away</small>{/if}
           </button>
@@ -149,7 +152,7 @@
                 <span class="meta mono">
                   <span class={`badge tone-${BADGES[concept.path_status]?.tone ?? 'faint'}`} title={BADGES[concept.path_status]?.meaning ?? ''}>{BADGES[concept.path_status]?.label ?? concept.path_status}</span>
                   {#if concept.required}<span class="badge tone-accent">required</span>{/if}
-                  {concept.mastery_state}
+                  {concept.mastery_state === 'unseen' ? 'not taught yet' : concept.mastery_state}
                   {#if concept.prerequisites.length}
                     · <Link2 size={10} /> {prerequisiteTitles(concept.prerequisites)}
                   {/if}

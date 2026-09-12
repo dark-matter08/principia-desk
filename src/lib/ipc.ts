@@ -400,6 +400,7 @@ export type PathStatus =
   | 'not_assessed'
   | 'bridge'
   | 'in_progress'
+  | 'taught'
   | 'upcoming';
 
 /** Remaining required work on the accepted route beside full-course coverage. */
@@ -410,6 +411,8 @@ export interface PathCoverage {
   required_done: number;
   coverage_total: number;
   coverage_done: number;
+  /** Core topics with a lesson behind them, mastered or not. */
+  taught?: number;
   bypassed: number;
   checked: number;
   refreshers: number;
