@@ -2,7 +2,9 @@
 
 All notable changes to Principia Desk. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions are git tags.
 
-## [Unreleased] · Principia Desk
+## [Unreleased]
+
+## [0.2.0] · 2026-09-12 · Principia Desk
 
 The product that System Design Roulette became. Same database, same visual character, a different shape: classes you schedule instead of one daily roulette.
 
