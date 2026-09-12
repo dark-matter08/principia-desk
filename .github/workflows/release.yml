@@ -1,44 +1,126 @@
 name: Release
 
-# Builds run ONLY when you push a version tag (e.g. `git tag v0.1.0 && git push origin v0.1.0`).
-# Nothing builds on ordinary pushes — pushing a tag is the explicit "build a release" signal.
-# Manual runs are also allowed via the Actions tab (workflow_dispatch).
+# Runs when a version tag is pushed (`git tag v0.2.0 && git push origin v0.2.0`),
+# which is also what creating a release in the GitHub interface does, or by hand
+# from the Actions tab with a tag that already exists. Nothing builds on ordinary
+# pushes. One job verifies the tree; then one job per platform builds the
+# installers the way the branch-binaries run proved out, and attaches them to
+# the release for that tag (created if the tag has none):
+#
+#   macOS      Principia Desk_<v>_aarch64.dmg   Principia Desk_<v>_x86_64.dmg
+#   Windows    Principia Desk_<v>_x64_en-US.msi  Principia Desk_<v>_x64-setup.exe
+#   Linux      principia-desk_<v>_amd64.deb  principia-desk-<v>-1.x86_64.rpm  principia-desk_<v>_amd64.AppImage
+#
+# The installers are unsigned; the README says how to open them.
 on:
   push:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "An existing version tag to build, e.g. v0.2.0"
+        required: true
+        type: string
 
 permissions:
-  contents: write # needed to create the GitHub Release and upload bundles
+  contents: write # the release and its assets
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 env:
-  # Survive transient crates.io fetch hiccups instead of failing the build.
   CARGO_NET_RETRY: "10"
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+  RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
 
 jobs:
-  release:
+  verify:
+    name: Verify the tree
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: The tag names the version the app carries
+        run: |
+          tag="${RELEASE_TAG#v}"
+          app="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          pkg="$(node -p "require('./package.json').version")"
+          crate="$(grep -m1 '^version' src-tauri/Cargo.toml | sed -E 's/.*"([^"]+)".*/\1/')"
+          echo "tag $tag · tauri.conf.json $app · package.json $pkg · Cargo.toml $crate"
+          if [ "$tag" != "$app" ] || [ "$tag" != "$pkg" ] || [ "$tag" != "$crate" ]; then
+            echo "::error::the tag must match the version in src-tauri/tauri.conf.json, package.json and src-tauri/Cargo.toml; bump them and tag again"
+            exit 1
+          fi
+
+      - name: Install Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+          key: release-verify
+
+      - run: npm ci
+
+      - name: Gates
+        run: |
+          cargo fmt --manifest-path src-tauri/Cargo.toml --all --check
+          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
+          cargo test --manifest-path src-tauri/Cargo.toml --all-targets
+          npm run check
+          npm test
+
+  installers:
+    name: ${{ matrix.label }}
+    needs: verify
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-latest # Apple Silicon
-            args: "--target aarch64-apple-darwin"
-            rust-target: aarch64-apple-darwin
-          - platform: macos-latest # Intel
-            args: "--target x86_64-apple-darwin"
-            rust-target: x86_64-apple-darwin
-          - platform: ubuntu-22.04 # Linux
-            args: ""
-            rust-target: ""
-          - platform: windows-latest # Windows
-            args: ""
-            rust-target: ""
+          - label: macos-apple-silicon
+            platform: macos-14
+            target: aarch64-apple-darwin
+            bundles: app
+            bundle-dir: src-tauri/target/aarch64-apple-darwin/release/bundle
+          - label: macos-intel
+            platform: macos-14
+            target: x86_64-apple-darwin
+            bundles: app
+            bundle-dir: src-tauri/target/x86_64-apple-darwin/release/bundle
+          - label: windows-x64
+            platform: windows-latest
+            target: ""
+            bundles: msi,nsis
+            bundle-dir: src-tauri/target/release/bundle
+          - label: linux-x64
+            platform: ubuntu-22.04
+            target: ""
+            bundles: deb,rpm,appimage
+            bundle-dir: src-tauri/target/release/bundle
 
     runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
 
       - name: Install Linux system dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -49,45 +131,72 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
-            libgtk-3-dev
+            libgtk-3-dev \
+            libfuse2
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.rust-target }}
-          components: rustfmt, clippy
+          targets: ${{ matrix.target }}
 
-      - name: Cache Rust build
-        uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
-          key: ${{ matrix.platform }}-${{ matrix.rust-target }}
+          key: release-${{ matrix.label }}
 
-      - name: Install frontend dependencies
-        run: npm ci
+      - run: npm ci
 
-      - name: Validate release inputs
-        run: |
-          cargo fmt --manifest-path src-tauri/Cargo.toml --all --check
-          cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --all-features -- -D warnings
-          cargo test --manifest-path src-tauri/Cargo.toml --all-targets
-          npm run check
-          npm test
+      - name: Build the desktop bundles
+        run: npm run tauri build -- --bundles ${{ matrix.bundles }} ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
 
-      - name: Build and publish release
-        uses: tauri-apps/tauri-action@v0
+      # Tauri's own DMG step drives the Finder through AppleScript, which has no
+      # session on a runner. The repository's hdiutil script produces the same
+      # named volume without one.
+      - name: Package the macOS disk image
+        if: startsWith(matrix.label, 'macos')
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PRINCIPIA_BUNDLE_DIR: ${{ matrix.bundle-dir }}
+          PRINCIPIA_DMG_ARCH: ${{ matrix.label == 'macos-intel' && 'x86_64' || 'aarch64' }}
+        run: bash scripts/bundle-dmg.sh
+
+      - name: Keep the installers with the run too
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Principia Desk ${{ github.ref_name }}"
-          releaseBody: "Download the installer for your platform from the assets below."
-          releaseDraft: false
-          prerelease: false
-          args: ${{ matrix.args }}
+          name: principia-desk-${{ matrix.label }}
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            ${{ matrix.bundle-dir }}/dmg/*.dmg
+            ${{ matrix.bundle-dir }}/msi/*.msi
+            ${{ matrix.bundle-dir }}/nsis/*.exe
+            ${{ matrix.bundle-dir }}/deb/*.deb
+            ${{ matrix.bundle-dir }}/rpm/*.rpm
+            ${{ matrix.bundle-dir }}/appimage/*.AppImage
+
+      # One release per tag: created on first contact, then every platform
+      # adds its files. `--clobber` lets a rerun replace an installer.
+      - name: Attach the installers to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Principia Desk $RELEASE_TAG" \
+              --notes "Download the installer for your platform from the assets below. The installers are unsigned; the README says how to open them." \
+              || true
+          fi
+          shopt -s nullglob
+          files=( "${{ matrix.bundle-dir }}"/dmg/*.dmg "${{ matrix.bundle-dir }}"/msi/*.msi "${{ matrix.bundle-dir }}"/nsis/*.exe "${{ matrix.bundle-dir }}"/deb/*.deb "${{ matrix.bundle-dir }}"/rpm/*.rpm "${{ matrix.bundle-dir }}"/appimage/*.AppImage )
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::no installers to attach"
+            exit 1
+          fi
+          printf 'attaching %s\n' "${files[@]}"
+          gh release upload "$RELEASE_TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber

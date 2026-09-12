@@ -13,7 +13,8 @@
     "bundle:mac": "npm run tauri build -- --bundles app && bash scripts/bundle-dmg.sh",
     "tauri": "tauri",
     "catalog:generate": "node scripts/generate-catalog.mjs",
-    "catalog:check": "node scripts/generate-catalog.mjs --check"
+    "catalog:check": "node scripts/generate-catalog.mjs --check",
+    "version:set": "node scripts/set-version.mjs"
   },
   "license": "MIT",
   "dependencies": {

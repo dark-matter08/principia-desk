@@ -176,6 +176,18 @@ Launch it, complete the setup (escape phrase and tutor check), add a class with 
 
 > **Heads-up:** the app is ad-hoc signed. First launch may require right-click → Open, or `xattr -dr com.apple.quarantine "/Applications/Principia Desk.app"`.
 
+### Releases
+
+Every [release](https://github.com/dark-matter08/system-design-roulette/releases) carries installers for each platform, built by `.github/workflows/release.yml` when a version tag is pushed: Apple Silicon and Intel disk images, a Windows MSI and NSIS installer, and a Linux `.deb`, `.rpm` and AppImage. They are unsigned: on macOS see the heads-up above; on Windows, SmartScreen asks for **More info → Run anyway**; on Linux, `chmod +x` the AppImage. To cut one, set the version everywhere it is written, note it in the changelog, tag and push:
+
+```bash
+npm run version:set -- 0.2.0
+git commit -am "chore: release 0.2.0"
+git tag v0.2.0 && git push origin main v0.2.0
+```
+
+The workflow verifies the tree first, refuses a tag that does not match the versions in `package.json`, `tauri.conf.json` and `Cargo.toml`, and attaches the installers to the release for the tag, creating it if the tag has none (creating the release in the GitHub interface pushes the tag and starts the same run). A shelved copy of the branch-binaries workflow sits in `.github/workflows-shelved/` for trying installers from a branch before anything is tagged.
+
 ### Upgrading from System Design Roulette
 
 The product carried its old identifiers for a while so a rename could not strand anyone's history. They have now moved with the name, and the first launch under the new identity brings the old profile across rather than starting you empty:

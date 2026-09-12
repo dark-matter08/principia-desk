@@ -1,23 +1,24 @@
 name: Branch binaries
 
-# TEMPORARY, and deliberately so: this builds installable (unsigned) binaries
-# for every supported platform straight from the working branch, so Windows and
-# Linux can be tested on real machines without merging to main or cutting a tag.
-# Artifacts appear under the run's "Artifacts" section and expire after 14 days.
+# SHELVED. GitHub only runs workflows under .github/workflows/, so this file
+# does nothing where it sits. It is kept for the next time installers have to
+# be tried from a branch or a pull request before anything is tagged: copy it
+# to .github/workflows/binaries.yml, set the branch under `push:` to the one
+# being worked on, and push. Each job uploads its installers as a run artifact
+# (fourteen days), unsigned: Apple Silicon and Intel disk images, a Windows MSI
+# and NSIS installer, a Linux .deb, .rpm and AppImage. Remove it again before
+# merging; tagged releases are the job of release.yml, which builds the same
+# installers the same way and attaches them to the release.
 #
-# Before merging: delete the `push:` and `pull_request:` triggers below and keep
-# `workflow_dispatch`. Tagged releases stay the job of release.yml.
-#
-# Note: `workflow_dispatch` only appears in the Actions tab once this file is on
-# the default branch, so until then the pull-request run (approve it with
-# "Approve and run" on a fork pull request) or a push of this branch is the way
-# to start a build.
+# `workflow_dispatch` only appears in the Actions tab once the file is on the
+# default branch, so from a branch the push or the pull-request run (approved
+# with "Approve and run" for a fork) is the way to start a build.
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - feat/frontend
+      - feat/branch-under-test
   pull_request:
     branches:
       - main
