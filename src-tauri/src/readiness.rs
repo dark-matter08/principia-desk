@@ -201,6 +201,11 @@ pub async fn prepare(app: &AppHandle, occurrence_id: &str, course_id: &str) -> R
             }
         }
     };
+    // The lesson is ready with or without its voice; the audio follows on
+    // its own and never holds the bell.
+    if outcome.is_ok() && matches!(spec.kind, crate::classroom::SubjectKind::Engineering) {
+        crate::audio::spawn_for_session(app, &planned.id.0);
+    }
     let _ = app.emit(
         "preparation:state",
         serde_json::json!({

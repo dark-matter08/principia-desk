@@ -182,7 +182,19 @@ pub fn runs(conn: &Connection, limit: i64, current: Option<&str>) -> Result<Vec<
             let activity = run_id
                 .split_once(':')
                 .map(|(kind, _)| kind)
-                .filter(|kind| matches!(*kind, "draft" | "review" | "sources" | "bank" | "fix"))
+                .filter(|kind| {
+                    matches!(
+                        *kind,
+                        "draft"
+                            | "review"
+                            | "sources"
+                            | "bank"
+                            | "fix"
+                            | "searxng"
+                            | "audio"
+                            | "voices"
+                    )
+                })
                 .unwrap_or("lesson")
                 .to_string();
             let outcome = match job {

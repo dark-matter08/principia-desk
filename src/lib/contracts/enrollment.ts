@@ -15,6 +15,14 @@ export interface EnrollmentConfiguration {
   pace: { session_minutes: number; weekly_minutes: number | null };
   tutor: { provider: AgentId; model: string; custom_agent_bin: string | null };
   focus_policy: 'advisory' | 'focused' | 'strict';
+  audio: AudioPreference;
+}
+/** Listening: whether lessons are also voiced, with which engine and voices. */
+export interface AudioPreference {
+  enabled: boolean;
+  engine: 'system' | 'piper' | 'kokoro' | 'vibevoice' | '';
+  teacher_voice: string;
+  student_voice: string;
 }
 export interface EnrollmentOptions {
   course: CourseReference;

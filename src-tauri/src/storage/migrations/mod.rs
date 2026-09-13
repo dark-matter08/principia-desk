@@ -174,6 +174,15 @@ const MIGRATIONS: &[Migration] = &[
             Ok(())
         },
     },
+    Migration {
+        version: 17,
+        name: "lesson_audio",
+        sources: &[include_str!("017_lesson_audio.sql")],
+        apply: |conn| {
+            conn.execute_batch(include_str!("017_lesson_audio.sql"))?;
+            Ok(())
+        },
+    },
 ];
 
 pub fn enable_foreign_keys(conn: &Connection) -> Result<()> {

@@ -1,4 +1,5 @@
 pub mod agents;
+pub mod audio;
 pub mod challenges;
 pub mod classes;
 pub mod custom;
@@ -211,6 +212,24 @@ pub fn mark_frontend_ready(app: AppHandle, state: State<'_, AppState>) -> CmdRes
     // An active focused class session recovers its enforcement only now.
     crate::enforcement::restore(&app, &state);
     Ok(())
+}
+
+/// What the desk knows about newer versions: the last check, what it found.
+#[tauri::command]
+pub fn get_update_status(app: AppHandle) -> crate::updater::UpdateStatus {
+    tauri::Manager::state::<crate::updater::Updates>(&app).status()
+}
+
+/// Read the release manifest now, at the learner's request.
+#[tauri::command]
+pub async fn check_for_update(app: AppHandle) -> CmdResult<crate::updater::UpdateStatus> {
+    Ok(crate::updater::check(&app).await)
+}
+
+/// Download, verify and install the announced version, then relaunch.
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> CmdResult<()> {
+    crate::updater::install(&app).await
 }
 
 /// A failure in the interface, so it lands in the process log and the
@@ -905,6 +924,7 @@ pub async fn start_classroom_session(
                         crate::subjects::engineering::prepare(&state, &planned.id).await
                     };
                     prepared?;
+                    crate::audio::spawn_for_session(&app, &planned.id.0);
                     crate::enforcement::activate(&app, &state, &planned.id)?;
                     let conn = state.db.0.lock().unwrap();
                     crate::subjects::engineering::view(&conn, &planned.id)?

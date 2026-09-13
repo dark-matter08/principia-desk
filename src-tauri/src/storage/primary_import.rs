@@ -260,7 +260,7 @@ pub fn inspect(conn: &Connection) -> Result<PrimaryImport> {
     // banks for bundled classes; the primary tables
     // have kept the v7 shape since.
     const EARLIEST: u32 = 7;
-    const LATEST: u32 = 16;
+    const LATEST: u32 = 17;
     if !(EARLIEST..=LATEST).contains(&version) {
         return Err(invalid(format!(
             "Primary import requires schema v{EARLIEST} to v{LATEST}, found v{version}."

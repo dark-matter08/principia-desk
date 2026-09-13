@@ -93,6 +93,23 @@ pub fn set_runner_key(runner: String, value: String) -> Result<(), String> {
     agents::models::invalidate(runner);
     Ok(())
 }
+/// Where a saved key goes on this machine, for the interface to say.
+#[derive(Debug, serde::Serialize)]
+pub struct SecretStoreView {
+    pub kind: crate::keychain::StoreKind,
+    pub label: &'static str,
+}
+#[tauri::command]
+pub async fn get_secret_store() -> Result<SecretStoreView, String> {
+    // The probe may talk to a bus; keep it off the main thread.
+    let kind = tauri::async_runtime::spawn_blocking(crate::keychain::store_kind)
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(SecretStoreView {
+        kind,
+        label: kind.label(),
+    })
+}
 #[tauri::command]
 pub async fn get_local_models() -> Result<agents::local::LocalStatus, String> {
     agents::local::status().await.map_err(|e| e.to_string())

@@ -14,6 +14,3 @@ export const PLATFORM_NAME: Record<Platform, string> = { macos: 'macOS', windows
 
 /** What the platform calls switching applications: the key the lock talks about. */
 export const SWITCH_KEY: Record<Platform, string> = { macos: '⌘Tab', windows: 'Alt+Tab', linux: 'Alt+Tab' };
-
-/** Where a saved provider key lives on this platform (`keychain.rs`). */
-export const STORE_NAME: Record<Platform, string> = { macos: 'the macOS Keychain', windows: 'the Windows Credential Manager', linux: "the desktop's secret service" };

@@ -2409,17 +2409,34 @@ CURATED_LESSON:
         Ok((corrected.questions, source))
     }
 
-    /// Two-host dialogue script for audio-lesson mode. Spoken-register
-    /// rewrite of the course; rendered or speech-synthesized by the caller.
+    /// The lesson as a two-host conversation, for listening mode: a
+    /// spoken-register rewrite the caller voices or the interface reads.
+    /// Sized to the study time: roughly half of it as listening.
     pub async fn generate_audio_script(
         &self,
-        course_markdown: &str,
-        focus: &str,
+        title: &str,
+        class_label: &str,
+        minutes: u32,
+        lesson_markdown: &str,
     ) -> Result<Vec<crate::audio::ScriptLine>> {
         let scoped = self.scoped("narration");
+        let listen = (minutes / 2).clamp(8, 40);
+        // About 140 spoken words a minute, a turn every 40 words or so.
+        let words = listen * 140;
+        let turns = (words / 40).clamp(24, 120);
         let prompt = with_pedagogy(
-            &AUDIO_PROMPT.replace("{{COURSE}}", course_markdown),
-            focus,
+            &AUDIO_PROMPT
+                .replace("{{CLASS}}", class_label)
+                .replace("{{TITLE}}", title)
+                .replace("{{MINUTES}}", &minutes.to_string())
+                .replace("{{LISTEN}}", &listen.to_string())
+                .replace(
+                    "{{TURNS}}",
+                    &format!("{} to {}", turns.saturating_sub(10).max(20), turns + 10),
+                )
+                .replace("{{WORDS}}", &words.to_string())
+                .replace("{{LESSON}}", lesson_markdown),
+            class_label,
             PedagogyDomain::Engineering,
         );
         let (script, _) = scoped

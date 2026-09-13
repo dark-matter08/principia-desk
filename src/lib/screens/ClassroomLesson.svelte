@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { api, type EngineeringSessionResult, type LessonStage } from '../ipc';
+  import { api, isTauri, type EngineeringSessionResult, type LessonStage } from '../ipc';
   import { tick, untrack } from 'svelte';
   import { app } from '../stores.svelte';
   import { LessonSession, restoredWork } from '../features/lessons/lesson-session.svelte';
@@ -14,7 +14,8 @@
   import LessonMap, { type MapStage } from '../features/lessons/LessonMap.svelte';
   import DownloadMenu from '../features/lessons/DownloadMenu.svelte';
   import { readingMinutes, type LessonSection } from '../features/lessons/sections';
-  import { ExternalLink, MessageCircle, Sparkles } from 'lucide-svelte';
+  import { ExternalLink, MessageCircle, Sparkles, AudioLines } from 'lucide-svelte';
+  import Listen from '../features/lessons/Listen.svelte';
 
   const lesson = $derived(app.engineeringLesson);
   let session = $state<LessonSession | null>(null);
@@ -22,6 +23,10 @@
   let submitting = $state(false);
   let result = $state<EngineeringSessionResult | null>(null);
   let chatOpen = $state(false);
+  /** The listening dock, for a lesson on the study runtime (the audio is keyed by its session). */
+  let listenOpen = $state(false);
+  /** Audio is keyed by a study-runtime session; the browser preview has a stand-in. */
+  const listenable = $derived(lesson?.runtime === 'study' || !isTauri);
   let scroller = $state<HTMLElement | undefined>(undefined);
   let exerciseSection = $state<HTMLElement | undefined>(undefined);
   let checkSection = $state<HTMLElement | undefined>(undefined);
@@ -188,6 +193,7 @@
     {#snippet actions()}
       <span class="quality mono"><Sparkles size={11} /> {retrieval ? 'delayed retrieval' : 'isolated teacher'}</span>
       <DownloadMenu source={lesson.runtime === 'study' ? 'study' : 'classroom'} ownerId={lesson.session_id} compact />
+      {#if !retrieval && listenable}<button type="button" class:active={listenOpen} onclick={() => (listenOpen = !listenOpen)} aria-pressed={listenOpen} aria-controls="lesson-listen"><AudioLines size={12} /> {listenOpen ? 'close player' : 'listen'}</button>{/if}
       {#if !retrieval}<button
         class="chat-button"
         class:active={chatOpen}
@@ -287,6 +293,7 @@
           onreturn={() => app.finishClass()}
         />
       </aside>
+      {#if listenOpen && listenable}<div id="lesson-listen"><Listen sessionId={lesson.session_id} onclose={() => (listenOpen = false)} /></div>{/if}
     </article>
     </div>
 

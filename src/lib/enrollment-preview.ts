@@ -26,6 +26,7 @@ export function previewEnrollmentOptions(courseId: ClassroomSubjectId): Enrollme
       pace: { session_minutes: 30, weekly_minutes: null },
       tutor: { provider: 'claude', model: 'sonnet', custom_agent_bin: null },
       focus_policy: 'advisory',
+      audio: { enabled: false, engine: '', teacher_voice: '', student_voice: '' },
     },
   };
 }

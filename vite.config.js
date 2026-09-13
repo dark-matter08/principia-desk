@@ -24,8 +24,10 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri`, and the landing site,
+      //    whose build writes dozens of HTML files at once: each one used to
+      //    trigger a full reload of the desk.
+      ignored: ["**/src-tauri/**", "**/landing/**", "**/docs/**"],
     },
   },
 }));

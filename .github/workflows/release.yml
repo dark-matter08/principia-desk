@@ -11,7 +11,13 @@ name: Release
 #   Windows    Principia Desk_<v>_x64_en-US.msi  Principia Desk_<v>_x64-setup.exe
 #   Linux      principia-desk_<v>_amd64.deb  principia-desk-<v>-1.x86_64.rpm  principia-desk_<v>_amd64.AppImage
 #
-# The installers are unsigned; the README says how to open them.
+# The installers are unsigned for the operating systems (no Apple Developer
+# ID, no Windows certificate); the README says how to open them. Separately,
+# every installer gets a `.sig` from the key in the TAURI_SIGNING_PRIVATE_KEY
+# secret: not a publisher signature, a checksum the desk's own updater
+# verifies before it swaps itself for a download. macOS also gets an
+# `.app.tar.gz` the updater swaps in, and a last job writes `latest.json`,
+# the manifest an installed desk reads to offer the update.
 on:
   push:
     tags:
@@ -151,7 +157,24 @@ jobs:
       - run: npm ci
 
       - name: Build the desktop bundles
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npm run tauri build -- --bundles ${{ matrix.bundles }} ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
+
+      # The updater archive is named after the app alone, so both Macs would
+      # upload the same file name; the architecture goes into it here.
+      - name: Name the macOS updater archive per architecture
+        if: startsWith(matrix.label, 'macos')
+        shell: bash
+        run: |
+          set -euo pipefail
+          arch="${{ matrix.label == 'macos-intel' && 'x86_64' || 'aarch64' }}"
+          version="${RELEASE_TAG#v}"
+          dir="${{ matrix.bundle-dir }}/macos"
+          mv "$dir/Principia Desk.app.tar.gz" "$dir/Principia.Desk_${version}_${arch}.app.tar.gz"
+          mv "$dir/Principia Desk.app.tar.gz.sig" "$dir/Principia.Desk_${version}_${arch}.app.tar.gz.sig"
+          ls -la "$dir"
 
       # Tauri's own DMG step drives the Finder through AppleScript, which has no
       # session on a runner. The repository's hdiutil script produces the same
@@ -172,11 +195,18 @@ jobs:
           retention-days: 30
           path: |
             ${{ matrix.bundle-dir }}/dmg/*.dmg
+            ${{ matrix.bundle-dir }}/macos/*.app.tar.gz
+            ${{ matrix.bundle-dir }}/macos/*.app.tar.gz.sig
             ${{ matrix.bundle-dir }}/msi/*.msi
+            ${{ matrix.bundle-dir }}/msi/*.msi.sig
             ${{ matrix.bundle-dir }}/nsis/*.exe
+            ${{ matrix.bundle-dir }}/nsis/*.exe.sig
             ${{ matrix.bundle-dir }}/deb/*.deb
+            ${{ matrix.bundle-dir }}/deb/*.deb.sig
             ${{ matrix.bundle-dir }}/rpm/*.rpm
+            ${{ matrix.bundle-dir }}/rpm/*.rpm.sig
             ${{ matrix.bundle-dir }}/appimage/*.AppImage
+            ${{ matrix.bundle-dir }}/appimage/*.AppImage.sig
 
       # One release per tag: created on first contact, then every platform
       # adds its files. `--clobber` lets a rerun replace an installer.
@@ -187,16 +217,90 @@ jobs:
         run: |
           set -euo pipefail
           if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            notes="$(node scripts/release-notes.mjs "${RELEASE_TAG#v}" 2>/dev/null || true)"
+            printf '%s\n\n%s\n' "${notes:-Principia Desk $RELEASE_TAG}" "Download the installer for your platform from the assets below; an installed desk offers this version itself from Settings. The installers are unsigned for the operating system; the README says how to open them." > release-notes.md
             gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
               --title "Principia Desk $RELEASE_TAG" \
-              --notes "Download the installer for your platform from the assets below. The installers are unsigned; the README says how to open them." \
+              --notes-file release-notes.md \
               || true
           fi
           shopt -s nullglob
-          files=( "${{ matrix.bundle-dir }}"/dmg/*.dmg "${{ matrix.bundle-dir }}"/msi/*.msi "${{ matrix.bundle-dir }}"/nsis/*.exe "${{ matrix.bundle-dir }}"/deb/*.deb "${{ matrix.bundle-dir }}"/rpm/*.rpm "${{ matrix.bundle-dir }}"/appimage/*.AppImage )
+          d="${{ matrix.bundle-dir }}"
+          files=( "$d"/dmg/*.dmg "$d"/macos/*.app.tar.gz "$d"/macos/*.app.tar.gz.sig "$d"/msi/*.msi "$d"/msi/*.msi.sig "$d"/nsis/*.exe "$d"/nsis/*.exe.sig "$d"/deb/*.deb "$d"/deb/*.deb.sig "$d"/rpm/*.rpm "$d"/rpm/*.rpm.sig "$d"/appimage/*.AppImage "$d"/appimage/*.AppImage.sig )
           if [ "${#files[@]}" -eq 0 ]; then
             echo "::error::no installers to attach"
             exit 1
           fi
           printf 'attaching %s\n' "${files[@]}"
           gh release upload "$RELEASE_TAG" "${files[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+
+  # The manifest the desk's updater reads: one entry per platform and
+  # installer kind, each with the download address and the signature the
+  # build wrote beside it. Written last, from what the release actually
+  # carries, so a platform whose build failed is simply absent.
+  manifest:
+    name: Updater manifest
+    needs: installers
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Write latest.json from the release's assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          version="${RELEASE_TAG#v}"
+          mkdir -p sigs
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.sig' --dir sigs
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | [.name, .url] | @tsv' > assets.tsv
+          notes="$(node scripts/release-notes.mjs "$version" 2>/dev/null || echo "Principia Desk $version")"
+          python3 - "$version" "$notes" <<'PY'
+          import json, os, sys, datetime
+          version, notes = sys.argv[1], sys.argv[2]
+          assets = {}
+          for line in open("assets.tsv"):
+              name, url = line.rstrip("\n").split("\t")
+              assets[name] = url
+          def sig(name):
+              path = os.path.join("sigs", name + ".sig")
+              return open(path).read().strip() if os.path.exists(path) else None
+          def find(**want):
+              for name in assets:
+                  if all(fn(name) for fn in want.values()):
+                      return name
+              return None
+          platforms = {}
+          def add(key, name):
+              if not name: return
+              s = sig(name)
+              if not s:
+                  print(f"no signature for {name}; {key} left out")
+                  return
+              platforms[key] = {"signature": s, "url": assets[name]}
+          add("darwin-aarch64", find(a=lambda n: n.endswith(".app.tar.gz") and "aarch64" in n))
+          add("darwin-x86_64", find(a=lambda n: n.endswith(".app.tar.gz") and "x86_64" in n))
+          nsis = find(a=lambda n: n.endswith("-setup.exe"))
+          msi = find(a=lambda n: n.endswith(".msi"))
+          add("windows-x86_64", nsis or msi)
+          add("windows-x86_64-nsis", nsis)
+          add("windows-x86_64-msi", msi)
+          appimage = find(a=lambda n: n.endswith(".AppImage"))
+          add("linux-x86_64", appimage)
+          add("linux-x86_64-appimage", appimage)
+          add("linux-x86_64-deb", find(a=lambda n: n.endswith(".deb")))
+          add("linux-x86_64-rpm", find(a=lambda n: n.endswith(".rpm")))
+          manifest = {
+              "version": version,
+              "notes": notes,
+              "pub_date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "platforms": platforms,
+          }
+          json.dump(manifest, open("latest.json", "w"), indent=2)
+          print(json.dumps({k: v["url"] for k, v in platforms.items()}, indent=2))
+          PY
+          test -s latest.json
+          gh release upload "$RELEASE_TAG" latest.json --repo "$GITHUB_REPOSITORY" --clobber

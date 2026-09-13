@@ -4,6 +4,24 @@
 > **persistent teacher** that knows what you've mastered, plans what you learn
 > next, varies how it teaches, and exists for the lifetime of the install.
 
+## Status (read this first)
+
+This document was written in June for System Design Roulette, the daily
+roulette that Principia Desk grew out of, and it is kept as the record of
+that plan. What became of each part, as of September 2026:
+
+| Part | Where it stands |
+| --- | --- |
+| §2 Knowledge base (M1) | Built. `mastery.rs`, the dossier, `teacher_notes`. The "mastery grid" is the curriculum map with a status per topic. |
+| §1 Teacher voice (M2) | Built. `prompts/teacher.txt`, the dossier in every call, a fallback model chain. |
+| §3 Curriculum (M3) | Built in a different shape. Tiers and prerequisites are in the seed; the weighted wheel is gone, replaced by starting points and accepted paths per class (`domain/classes.rs`). The nightly planning call (`plan_day`, `prompts/plan.txt`) has no caller anymore; the prepare-ahead engine plans the next topic on the path. |
+| §4 Session types (M4) | Partly. Pop-quiz days belonged to the roulette; the runtime has retrieval sessions, unit challenges and bridge lessons instead. Remediation on a miss exists. The design lab (free-text editor, rubric grading) was never built. |
+| §5 Classroom (M5) | Built. It is the product: see the README and `docs/SHARED_SESSION_RUNTIME.md`. |
+| §5a Audio mode (M6) | Half. `audio.rs`, `prompts/audio.txt` and `scripts/provision-vibevoice.sh` exist and the language lessons play their dialogue with the system voice; the engineering listening day (a two-host script per topic, VibeVoice) has no caller and no player yet. Planned next: voices set up in Settings, a voice chosen per class, and audio written with the lesson. |
+
+Everything below is the plan as it was. Where it disagrees with the code,
+the code is right.
+
 ## 1. Role
 
 Today the agent is stateless: each `claude -p` call knows the topic and nothing
@@ -341,7 +359,7 @@ SQLite + the dossier. No daemon-resident agent, no conversation state to lose.
 - Teacher override on the wheel: `scheduler override` MetaBadge with reason.
 - Wheel growth: locked tiers rendered as greyed "provisioning…" slots.
 
-## 8. Build order
+## 8. Build order (as planned in June; see the status table at the top)
 
 1. **M1, Knowledge base**: `mastery` + `profile` tables, transitions computed
    from existing attempts at grading time, dossier builder, dashboard mastery

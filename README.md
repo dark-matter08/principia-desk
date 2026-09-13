@@ -58,6 +58,12 @@ The lesson shell is the same for every course: identity, stage rail (Learn · Pr
 
 ![Feedback with corrections](docs/screenshots/15-lesson-feedback.png)
 
+### Listening: the lesson as a conversation
+
+A class can ask for its lessons as audio. Once a lesson is ready, the tutor writes it a second time as a conversation between a teacher and a sharp student, in a spoken register that follows the lesson's own sections (the check questions stay a check), and the desk voices every line with the engine and the two voices the class chose; the audio never delays the lesson, and a voice that fails leaves the transcript for the desk to read itself. The lesson's **listen** key opens a dock with play, pause, a line at a time, the speed, and the transcript with the spoken line lit; a lesson whose class has listening off can still be voiced from that dock, one at a time.
+
+Settings › Voices sets the engines up and finds the ones already on the machine (a `piper` on the PATH, a Python that imports `kokoro` or `mlx_audio`, an activated virtual environment included): the **system voice** (nothing to install), **Piper** (a neural voice on any processor, the `piper-tts` package in an isolated Python under the profile, voices of about 60 MB downloaded one at a time), **Kokoro** (an 82M model, through mlx-audio on Apple Silicon and the `kokoro` package elsewhere) and **VibeVoice** (Microsoft's two-host model as the realtime 0.5B converted for mlx-audio, Apple Silicon only, named voices in English, German and Italian). Each class picks an engine and a voice per host in its Settings › Listening; the first render of Kokoro or VibeVoice fetches the model. `docs/TEACHER.md` §5a is where the idea came from.
+
 ### Retrieval, bridges and unit challenges
 
 - **Delayed retrieval**: when a topic's mastery review is due, a retrieval session (recall, check, feedback, no new lesson) is prepared without a provider from the topic's bundled reference questions, preferring ones the last lesson did not show; repeated samples are labelled as such.
@@ -145,6 +151,8 @@ Lessons are taught from documentation the app fetches itself. Before each genera
 
 Every concept carries a specific curriculum brief: learner outcome, named mechanisms, production scenario, misconceptions, observable evidence, cumulative artifact and in-policy primary sources, validated offline.
 
+A tutor that cannot browse (Ollama, OpenRouter, any bare API) can be given a search engine in Settings › Web search: **SearXNG** on this machine, no key; the Brave Search API; or Tavily. The desk searches for itself, restricted to the subject's allowed hosts, fetches what it finds and hands the tutor only pages it retrieved. For SearXNG the desk does the running too: it finds an instance already answering (Remote Ledger's, on the same port, is shared rather than duplicated), starts one that is installed but stopped, or installs its own under `~/.principia-desk/searxng` from the setup page, a shallow clone and an isolated Python, with the JSON API turned on, every step reported on the Logs page.
+
 ## Always on: the menu bar desk and the study alarm
 
 The desk stays resident. Closing the window or pressing Cmd+Q (Alt+F4 elsewhere) hides it behind a menu bar icon (the system tray on Windows and Linux); the scheduler starts it at login and at every study time, and Quit lives in the icon's menu. That menu says what is due, what comes next and when, and lists today's appointments with their state. On macOS the panel is a native, non-activating panel that opens over full-screen apps; on Windows and Linux it is a small window at the icon.
@@ -183,7 +191,7 @@ npm run tauri build         # the installers for this machine, under src-tauri/t
 
 `--bundles app` on macOS builds only the `.app` (`cp -R "src-tauri/target/release/bundle/macos/Principia Desk.app" /Applications/`); `--bundles msi,nsis` on Windows and `--bundles deb,rpm,appimage` on Linux pick the packages. Launch it, complete the setup (escape phrase and tutor check), add a class with a starting point and a study time, and it is armed.
 
-> **Heads-up:** the builds are unsigned. On macOS the first launch is right-click → Open, or `xattr -dr com.apple.quarantine "/Applications/Principia Desk.app"`; on Windows, SmartScreen asks for **More info → Run anyway**; on Linux, `chmod +x` the AppImage.
+> **Heads-up:** the builds are unsigned for the operating system. On macOS the first launch is right-click → Open, or `xattr -dr com.apple.quarantine "/Applications/Principia Desk.app"`; on Windows, SmartScreen asks for **More info → Run anyway**; on Linux, `chmod +x` the AppImage. `sudo apt install ./principia-desk_<v>_amd64.deb` from your Downloads folder may end with a notice that the file "couldn't be accessed by user '_apt'": that is apt's sandbox talking about the download step it did not need, and the lines above it (`Setting up principia-desk`) are the install succeeding.
 
 ### Releases
 
@@ -195,7 +203,11 @@ git commit -am "chore: release 0.2.0"
 git tag v0.2.0 && git push origin main v0.2.0
 ```
 
-The workflow verifies the tree first, refuses a tag that does not match the versions in `package.json`, `tauri.conf.json` and `Cargo.toml`, and attaches the installers to the release for the tag, creating it if the tag has none (creating the release in the GitHub interface pushes the tag and starts the same run). A shelved copy of the branch-binaries workflow sits in `.github/workflows-shelved/` for trying installers from a branch before anything is tagged.
+The workflow verifies the tree first, refuses a tag that does not match the versions in `package.json`, `tauri.conf.json` and `Cargo.toml`, and attaches the installers to the release for the tag, creating it if the tag has none (creating the release in the GitHub interface pushes the tag and starts the same run). The release notes are the changelog's section for the version (`scripts/release-notes.mjs`). A shelved copy of the branch-binaries workflow sits in `.github/workflows-shelved/` for trying installers from a branch before anything is tagged.
+
+### Updates from inside the desk
+
+An installed desk (0.2.1 and later) reads the release's `latest.json` after it starts and every six hours, shows a newer version in Settings › Updates with the changelog notes, and installs it only when asked: the app bundle is replaced on macOS, the installer runs on Windows, the AppImage is swapped in place on Linux, and a `.deb` or `.rpm` goes through the package manager with a graphical password prompt. The desk relaunches after; the profile and its history stay where they are. This is not a publisher signature (the installers stay unsigned for the operating system): every installer gets a `.sig` from an Ed25519 key the pipeline holds as the `TAURI_SIGNING_PRIVATE_KEY` secret, `tauri.conf.json` carries the public half, and a download whose `.sig` does not verify is refused before anything runs, so a tampered file cannot ride in on an update. The last job of the release workflow writes the manifest from the assets the release actually carries. `PRINCIPIA_NO_UPDATE_CHECK=1` keeps a desk from checking, for a managed machine.
 
 ### Upgrading from System Design Roulette
 

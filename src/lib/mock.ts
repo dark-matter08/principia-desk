@@ -1,10 +1,10 @@
 import { previewConfiguration, savePreviewConfiguration, previewRunners, previewModels, previewLocal, rememberPreviewModel, desktopRequired } from './features/runners/preview';
-import type { FocusPolicy, CurriculumConceptView, RouteSummary, ExecutionRun, ExecutionLogLine, PracticeBankView, BankQuestion } from './ipc';
+import type { FocusPolicy, CurriculumConceptView, RouteSummary, ExecutionRun, ExecutionLogLine, PracticeBankView, BankQuestion, SecretStoreView, SearxngStatus, SearxngStep, ArchiveSummary, ExportResult, ImportResult, UpdateStatus, AudioStatus, AudioVoiceStatus, LessonAudio } from './ipc';
 import type { RevisePath } from './contracts/classes';
 import type { AgentPolicy, RunnerId } from './contracts/agents';
 import { previewEnrollmentOptions, previewEnrollmentDraft, savePreviewEnrollmentDraft } from './enrollment-preview';
 import { getPreviewPlacement, startPreviewPlacement, savePreviewPlacement, submitPreviewPlacement, continuePreviewPlacement, finishPreviewPlacement, recommendPreviewPath } from './placement-preview';
-import type { SaveEnrollmentDraft } from './contracts/enrollment';
+import type { SaveEnrollmentDraft, AudioPreference } from './contracts/enrollment';
 import type { AcceptedPath, AcceptPath } from './contracts/classes';
 import { acceptPreviewClassPath, previewClassPath, previewPathSummary, revisePreviewClassPath } from './class-preview';
 import { applyPreviewChallenge, getPreviewChallenge, savePreviewChallengeResponse, startPreviewChallenge, submitPreviewChallenge } from './challenge-preview';
@@ -90,10 +90,59 @@ let mockSearchProvider: SearchProvider = 'none';
 let mockSearxngUrl = 'http://127.0.0.1:8899';
 let mockBraveKey = false;
 let mockTavilyKey = false;
+let mockSearxngInstalled = typeof location !== 'undefined' && location.search.includes('searxngInstalled');
+let mockSearxngRunning = typeof location !== 'undefined' && location.search.includes('searxngRunning');
+function mockSearxng(): SearxngStatus {
+  return {
+    installed: mockSearxngInstalled, running: mockSearxngRunning, url: mockSearxngUrl, local: true,
+    home: '~/.principia-desk/searxng', shared_with_ledger: false, pid: mockSearxngRunning ? 48213 : null,
+    json_enabled: mockSearxngInstalled, has_uv: true, has_git: true, python: '/opt/homebrew/bin/python3.12', python_version: '3.12',
+    python_too_new: false, python_install: null, can_install: true, version: mockSearxngInstalled ? '2026.9.10+preview' : null, log_tail: '',
+  };
+}
+let mockUpdateChecked: string | null = null;
+function mockUpdate(): UpdateStatus {
+  const available = typeof location !== 'undefined' && location.search.includes('update');
+  return { current: '0.2.1', available: available ? { version: '0.2.2', current: '0.2.1', notes: 'Saved keys on every platform, SearXNG installed from the desk, an export and import of the profile, and updates from inside the desk.', date: '2026-09-20T09:00:00Z' } : null, checked_at: mockUpdateChecked, error: null, installing: false };
+}
+const mockEngines = new Set<string>(typeof location !== 'undefined' && location.search.includes('piper') ? ['piper'] : []);
+const mockVoices = new Set<string>(typeof location !== 'undefined' && location.search.includes('piper') ? ['en_US-lessac-medium', 'en_US-hfc_male-medium'] : []);
+const mockClassAudio = new Map<string, AudioPreference>();
+const mockLessonAudio = new Map<string, LessonAudio>();
+const PREVIEW_DIALOGUE: { speaker: 'teacher' | 'student'; text: string }[] = [
+  { speaker: 'teacher', text: "Every distributed system answers one question, decided in advance or decided for it at three in the morning: when two parts can't talk, what happens to the requests on each side?" },
+  { speaker: 'student', text: "Wait, isn't that just the CAP theorem? Pick two of three, forever?" },
+  { speaker: 'teacher', text: "That reading produces bad architecture. CAP is a rule about behaviour during a partition. Outside one, you can usually have both consistency and availability." },
+  { speaker: 'student', text: 'So the choice only exists for the minutes the network is broken.' },
+  { speaker: 'teacher', text: "Exactly. Two warehouses, one store, one phone line. When the line is down, the store either stops selling what it can't confirm, or keeps selling and reconciles later." },
+  { speaker: 'student', text: 'And what breaks if it keeps selling?' },
+  { speaker: 'teacher', text: 'Two customers buy the last unit. One of them gets an apology email. That is the cost, and it has a number: how many units, how often the line drops, what an apology costs you.' },
+];
+function mockAudio(): AudioStatus {
+  const piper = mockEngines.has('piper'); const kokoro = mockEngines.has('kokoro'); const vibe = mockEngines.has('vibevoice');
+  const p = (id: string, label: string, language: string, hint: string, size_mb: number): AudioVoiceStatus => ({ id, engine: 'piper', label, language, hint, size_mb, installed: mockVoices.has(id) });
+  const k = (id: string, label: string, language: string, hint: string): AudioVoiceStatus => ({ id, engine: 'kokoro', label, language, hint, size_mb: 0, installed: kokoro });
+  const v = (id: string, label: string, language: string, hint: string): AudioVoiceStatus => ({ id, engine: 'vibevoice', label, language, hint, size_mb: 0, installed: vibe });
+  const voices: AudioVoiceStatus[] = [
+    p('en_US-lessac-medium', 'Lessac', 'English (US)', 'clear, even, a natural teacher', 63), p('en_US-amy-medium', 'Amy', 'English (US)', 'bright, quick', 63), p('en_US-hfc_female-medium', 'HFC female', 'English (US)', 'warm, low', 63), p('en_US-hfc_male-medium', 'HFC male', 'English (US)', 'calm, low', 63), p('en_US-joe-medium', 'Joe', 'English (US)', 'plain, direct', 63), p('en_US-ryan-high', 'Ryan', 'English (US)', 'the fullest of the set, larger download', 121), p('en_GB-alan-medium', 'Alan', 'English (UK)', 'measured, Scottish', 63), p('en_GB-alba-medium', 'Alba', 'English (UK)', 'soft, Scottish', 63), p('en_GB-jenny_dioco-medium', 'Jenny', 'English (UK)', 'light, southern', 63), p('de_DE-thorsten-medium', 'Thorsten', 'German', 'for the German class', 63), p('it_IT-riccardo-x_low', 'Riccardo', 'Italian', 'for the Italian class, small', 28),
+    k('af_heart', 'Heart', 'English (US)', 'warm, the best of the set'), k('af_bella', 'Bella', 'English (US)', 'bright'), k('af_nicole', 'Nicole', 'English (US)', 'quiet, close'), k('am_michael', 'Michael', 'English (US)', 'even, low'), k('am_fenrir', 'Fenrir', 'English (US)', 'deep'), k('bf_emma', 'Emma', 'English (UK)', 'clear'), k('bm_george', 'George', 'English (UK)', 'measured'),
+    v('en-Carter_man', 'Carter', 'English', 'steady, a natural teacher'), v('en-Davis_man', 'Davis', 'English', 'warm'), v('en-Mike_man', 'Mike', 'English', 'quick, a natural student'), v('en-Emma_woman', 'Emma', 'English', 'clear'), v('en-Grace_woman', 'Grace', 'English', 'bright'), v('de-Spk0_man', 'German man', 'German', 'for the German class'), v('it-Spk0_woman', 'Italian woman', 'Italian', 'for the Italian class'),
+  ];
+  const home = '~/Library/Application Support/com.darkmatter.principia-desk';
+  return {
+    engines: [
+      { id: 'system', label: 'System voice', ready: true, source: 'found', via: '', installable: false, why: 'The voices this computer already has, read by the desk itself. Nothing to install.', blurb: 'nothing to install' },
+      { id: 'piper', label: 'Piper', ready: piper, source: piper ? 'found' : '', via: piper ? '~/Documents/Projects/Personal/clipwright/.venv/bin/piper' : '', installable: true, why: piper ? 'Found on this machine: ~/Documents/Projects/Personal/clipwright/.venv/bin/piper.' : 'A neural voice that runs on this processor, on macOS, Windows and Linux: the piper-tts package in an isolated Python under the profile, about 120 MB, then a voice of about 60 MB each.', blurb: 'neural, any processor' },
+      { id: 'kokoro', label: 'Kokoro', ready: kokoro, source: kokoro ? 'desk' : '', via: kokoro ? `${home}/mlx-venv/bin/python` : '', installable: true, why: kokoro ? `Installed by the desk at ${home}/mlx-venv/bin/python.` : 'Warm, natural voices from an 82M model, on the GPU through mlx-audio: about 1 GB in an isolated Python under the profile, the model (about 330 MB) fetched on the first render.', blurb: 'warm, 82M, any platform' },
+      { id: 'vibevoice', label: 'VibeVoice', ready: vibe, source: vibe ? 'desk' : '', via: vibe ? `${home}/mlx-venv/bin/python` : '', installable: true, why: vibe ? `Installed by the desk at ${home}/mlx-venv/bin/python.` : "Microsoft's VibeVoice, the model built for long two-host audio, as the realtime 0.5B converted for mlx-audio: about 1 GB in an isolated Python under the profile, the model (about 700 MB) fetched on the first render. Named voices in English, German and Italian.", blurb: 'the podcast model, Apple Silicon' },
+    ],
+    voices, has_uv: true, python: '/opt/homebrew/bin/python3.12', python_install: null, apple_silicon: true,
+  };
+}
 function mockSearch(): SearchSettingsView {
-  const available = mockSearchProvider === 'searxng' || (mockSearchProvider === 'brave' && mockBraveKey) || (mockSearchProvider === 'tavily' && mockTavilyKey);
+  const available = (mockSearchProvider === 'searxng' && mockSearxngRunning) || (mockSearchProvider === 'brave' && mockBraveKey) || (mockSearchProvider === 'tavily' && mockTavilyKey);
   const why = mockSearchProvider === 'none' ? "Web search is off. Lessons use only the curriculum's own sources."
-    : mockSearchProvider === 'searxng' ? `SearXNG is answering at ${mockSearxngUrl}.`
+    : mockSearchProvider === 'searxng' ? (mockSearxngRunning ? `SearXNG is answering at ${mockSearxngUrl}.` : `SearXNG is not answering at ${mockSearxngUrl}. Start it, or point the desk at a running instance.`)
     : available ? `${mockSearchProvider === 'brave' ? 'Brave Search' : 'Tavily'} key is set.` : `No ${mockSearchProvider === 'brave' ? 'Brave Search' : 'Tavily'} key is set.`;
   return { provider: mockSearchProvider, searxng_url: mockSearxngUrl, default_searxng_url: 'http://127.0.0.1:8899', brave_key_set: mockBraveKey, tavily_key_set: mockTavilyKey, available, why };
 }
@@ -855,6 +904,16 @@ export const mockApi = {
   listAgentRunners: async () => previewRunners(),
   getRunnerModels: async (runner: string, _refresh = false) => previewModels(runner),
   setRunnerKey: desktopRequired,
+  getSecretStore: async (): Promise<SecretStoreView> => ({ kind: 'keychain', label: 'the macOS Keychain' }),
+  getUpdateStatus: async (): Promise<UpdateStatus> => mockUpdate(),
+  checkForUpdate: async (): Promise<UpdateStatus> => { await new Promise((r) => setTimeout(r, 600)); mockUpdateChecked = new Date().toISOString(); return mockUpdate(); },
+  installUpdate: async (): Promise<void> => {
+    const total = 14_500_000;
+    for (let done = 0; done <= total; done += total / 12) { await new Promise((r) => setTimeout(r, 120)); mockEmit('update:progress', { downloaded: Math.min(done, total), total }); }
+    mockEmit('update:downloaded', null);
+    await new Promise((r) => setTimeout(r, 800));
+    throw new Error('The preview cannot relaunch; the desktop app restarts here.');
+  },
   getStudyPulse: async (): Promise<StudyPulse> => mockPulse(),
   recoveryCommand: async (line: string): Promise<RecoveryReply> => {
     const verb = line.trim().toLowerCase().split(/\s+/)[0];
@@ -873,6 +932,43 @@ export const mockApi = {
   getSearchSettings: async (): Promise<SearchSettingsView> => mockSearch(),
   setSearchSettings: async (provider: SearchProvider, searxngUrl: string): Promise<SearchSettingsView> => { mockSearchProvider = provider; mockSearxngUrl = searxngUrl || 'http://127.0.0.1:8899'; return mockSearch(); },
   setSearchKey: async (provider: SearchProvider, value: string): Promise<SearchSettingsView> => { if (provider === 'brave') mockBraveKey = !!value.trim(); if (provider === 'tavily') mockTavilyKey = !!value.trim(); return mockSearch(); },
+  searxngStatus: async (): Promise<SearxngStatus> => mockSearxng(),
+  searxngInstall: async (): Promise<SearxngStep[]> => {
+    const steps: SearxngStep[] = [];
+    for (const step of ['Cloning SearXNG', 'Creating an isolated Python 3.12', 'Installing dependencies', 'Checking it imports', 'Writing settings.yml (JSON API enabled)', 'Installed']) {
+      await new Promise((r) => setTimeout(r, 500));
+      steps.push({ step, ok: true, output: '' });
+    }
+    mockSearxngInstalled = true; mockSearxngRunning = true;
+    return steps;
+  },
+  searxngStart: async (): Promise<SearxngStatus> => { await new Promise((r) => setTimeout(r, 800)); mockSearxngRunning = mockSearxngInstalled; return mockSearxng(); },
+  searxngStop: async (): Promise<SearxngStatus> => { mockSearxngRunning = false; return mockSearxng(); },
+  getAudioStatus: async (): Promise<AudioStatus> => mockAudio(),
+  installAudioEngine: async (engine: string): Promise<SearxngStep[]> => {
+    const steps: SearxngStep[] = [];
+    for (const step of ['Creating an isolated Python 3.12', engine === 'piper' ? 'Installing piper-tts' : 'Installing mlx-audio', 'Checking it imports', 'Installed']) {
+      await new Promise((r) => setTimeout(r, 450));
+      steps.push({ step, ok: true, output: '' });
+    }
+    mockEngines.add(engine);
+    return steps;
+  },
+  removeAudioEngine: async (engine: string): Promise<void> => { mockEngines.delete(engine); },
+  installVoice: async (voice: string): Promise<SearxngStep[]> => { await new Promise((r) => setTimeout(r, 900)); mockVoices.add(voice); return [{ step: `Downloading the voice ${voice}`, ok: true, output: '' }, { step: 'Voice ready', ok: true, output: voice }]; },
+  removeVoice: async (voice: string): Promise<void> => { mockVoices.delete(voice); },
+  previewVoice: async (_engine: string, _voice: string): Promise<string> => { await new Promise((r) => setTimeout(r, 600)); throw new Error('The preview plays in the desktop app.'); },
+  getClassAudio: async (courseId: string): Promise<AudioPreference> => mockClassAudio.get(courseId) ?? { enabled: false, engine: '', teacher_voice: '', student_voice: '' },
+  setClassAudio: async (courseId: string, preference: AudioPreference): Promise<AudioPreference> => { mockClassAudio.set(courseId, preference); return preference; },
+  getLessonAudio: async (sessionId: string): Promise<LessonAudio | null> => mockLessonAudio.get(sessionId) ?? null,
+  writeLessonAudio: async (sessionId: string): Promise<void> => {
+    mockLessonAudio.set(sessionId, { session_id: sessionId, status: 'writing', engine: 'system', teacher_voice: '', student_voice: '', lines: [], error: null, updated_at: new Date().toISOString(), speak: true });
+    mockEmit('audio:state', { session_id: sessionId, status: 'writing' });
+    setTimeout(() => {
+      mockLessonAudio.set(sessionId, { session_id: sessionId, status: 'ready', engine: 'system', teacher_voice: '', student_voice: '', lines: PREVIEW_DIALOGUE.map((l) => ({ ...l, file: null })), error: null, updated_at: new Date().toISOString(), speak: true });
+      mockEmit('audio:state', { session_id: sessionId, status: 'ready' });
+    }, 2500);
+  },
   testSearch: async (query: string): Promise<SearchResult[]> => [
     { title: 'Redirections (Bash Reference Manual)', url: 'https://www.gnu.org/software/bash/manual/html_node/Redirections.html', snippet: `Preview result for “${query}”: before a command is executed, its input and output may be redirected using a special notation interpreted by the shell.`, engine: 'preview' },
     { title: 'bash(1) — Linux manual page', url: 'https://man7.org/linux/man-pages/man1/bash.1.html', snippet: 'REDIRECTION: Before a command is executed, its input and output may be redirected.', engine: 'preview' },
@@ -1456,6 +1552,12 @@ export const mockApi = {
     }
     return { path: `~/Documents/Principia Desk/lessons/${fileName}`, file_name: fileName, title: lesson.title, questions: lesson.questions.length, answer_key: false };
   },
+  exportProfile: async (): Promise<ExportResult> => ({ path: '~/Documents/Principia Desk/principia-desk-20260913-141200.json', summary: { exported_at: new Date().toISOString(), app_version: '0.2.1', database_version: 16, tables: 41, rows: 1284, classes: 3, lessons: 122, schedules: 4 } }),
+  inspectArchive: async (document: string): Promise<ArchiveSummary> => {
+    if (!document.includes('principia-desk.profile')) throw new Error('this file is not a Principia Desk archive');
+    return { exported_at: '2026-09-10T07:12:00Z', app_version: '0.2.0', database_version: 16, tables: 41, rows: 980, classes: 2, lessons: 96, schedules: 3 };
+  },
+  importProfile: async (_document: string): Promise<ImportResult> => ({ rows: 980, backup_path: '~/Library/Application Support/com.darkmatter.principia-desk/backups/principia-before-import-20260913-141530.db', summary: { exported_at: '2026-09-10T07:12:00Z', app_version: '0.2.0', database_version: 16, tables: 41, rows: 980, classes: 2, lessons: 96, schedules: 3 } }),
   revealExport: async (_path: string) => {},
   markFrontendReady: async () => {},
 };

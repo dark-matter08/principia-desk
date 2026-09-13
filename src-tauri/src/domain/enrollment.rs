@@ -63,6 +63,19 @@ pub struct TutorPreference {
     pub custom_agent_bin: Option<String>,
 }
 
+/// Listening: whether a class's lessons are also written as a two-host
+/// dialogue and voiced, with which engine and which voice per host. A
+/// configuration written before this existed reads as off.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields, default)]
+pub struct AudioPreference {
+    pub enabled: bool,
+    /// `system`, `piper` or `mlx` (`audio.rs`).
+    pub engine: String,
+    pub teacher_voice: String,
+    pub student_voice: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EnrollmentConfiguration {
@@ -71,6 +84,8 @@ pub struct EnrollmentConfiguration {
     pub pace: StudyPace,
     pub tutor: TutorPreference,
     pub focus_policy: FocusPolicy,
+    #[serde(default)]
+    pub audio: AudioPreference,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -252,6 +267,7 @@ pub fn options(course_id: &str) -> Result<EnrollmentOptions> {
                 custom_agent_bin: None,
             },
             focus_policy: FocusPolicy::Advisory,
+            audio: AudioPreference::default(),
         },
     })
 }

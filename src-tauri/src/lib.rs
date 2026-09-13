@@ -21,16 +21,19 @@ pub mod mastery;
 pub mod menu_panel;
 pub mod progress;
 pub mod prose;
+pub mod pyenv;
 pub mod readiness;
 pub mod recovery;
 pub mod research;
 pub mod scheduler;
 pub mod search;
+pub mod searxng;
 pub mod selection;
 pub mod state;
 pub mod storage;
 pub mod subjects;
 pub mod tray;
+pub mod updater;
 
 use state::AppState;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -113,10 +116,14 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(move |app| {
+            app.manage(updater::Updates::default());
+            updater::watch(app.handle().clone());
             log::info!("initializing local study storage");
             let data_dir = app.path().app_data_dir().expect("app data dir resolvable");
             std::fs::create_dir_all(&data_dir)?;
+            keychain::init(&data_dir);
             let database = data_dir.join("principia.db");
             match storage::adoption::adopt(&data_dir, &database) {
                 Ok(Some(source)) => log::info!("adopted the profile from {}", source.display()),
@@ -393,6 +400,10 @@ pub fn run() {
             commands::agents::get_runner_configuration,
             commands::agents::save_runner_configuration,
             commands::agents::set_runner_key,
+            commands::agents::get_secret_store,
+            commands::get_update_status,
+            commands::check_for_update,
+            commands::install_update,
             commands::agents::get_local_models,
             commands::agents::get_local_pulls,
             commands::agents::install_local_runner,
@@ -419,6 +430,20 @@ pub fn run() {
             commands::search::set_search_settings,
             commands::search::set_search_key,
             commands::search::test_search,
+            commands::search::searxng_status,
+            commands::search::searxng_install,
+            commands::search::searxng_start,
+            commands::search::searxng_stop,
+            commands::audio::get_audio_status,
+            commands::audio::install_audio_engine,
+            commands::audio::remove_audio_engine,
+            commands::audio::install_voice,
+            commands::audio::remove_voice,
+            commands::audio::preview_voice,
+            commands::audio::get_class_audio,
+            commands::audio::set_class_audio,
+            commands::audio::get_lesson_audio,
+            commands::audio::write_lesson_audio,
             commands::get_curriculum_map,
             commands::configure_classroom_program,
             commands::upsert_classroom_slot,

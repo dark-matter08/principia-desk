@@ -42,7 +42,7 @@ fn rows(conn: &Connection, table: &str, columns: &[String], condition: &str) -> 
 }
 
 /// The schema version every fixture must arrive at.
-const LATEST: u32 = 16;
+const LATEST: u32 = 17;
 
 #[test]
 fn original_main_pr_head_and_intermediate_schemas_preserve_all_original_fields() {

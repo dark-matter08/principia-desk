@@ -530,7 +530,22 @@ fn teacher_preamble_wraps_dossier() {
     assert!(principia_desk_lib::generator::TEACHER_PROMPT.contains("{{MONTH_OUTCOME}}"));
     assert!(principia_desk_lib::generator::COURSE_PROMPT.contains("{{MONTH_OUTCOME}}"));
     assert!(principia_desk_lib::generator::PLAN_PROMPT.contains("{{MONTH_OUTCOME}}"));
-    assert!(principia_desk_lib::generator::AUDIO_PROMPT.contains("{{MONTH_OUTCOME}}"));
+    // The listening script is written per lesson, not per roulette day.
+    for placeholder in [
+        "{{CLASS}}",
+        "{{TITLE}}",
+        "{{MINUTES}}",
+        "{{LISTEN}}",
+        "{{LESSON}}",
+        "{{TURNS}}",
+        "{{WORDS}}",
+    ] {
+        assert!(
+            principia_desk_lib::generator::AUDIO_PROMPT.contains(placeholder),
+            "audio prompt lacks {placeholder}"
+        );
+    }
+    assert!(!principia_desk_lib::generator::AUDIO_PROMPT.contains("{{MONTH_OUTCOME}}"));
 }
 
 #[test]
@@ -573,7 +588,8 @@ fn generation_prompts_preserve_the_learning_quality_contract() {
     assert!(GRADE_PROMPT.contains("connect its decision to the stated constraint or evidence"));
     assert!(TEACHER_PROMPT.contains("Days 28-30"));
     assert!(TEACHER_PROMPT.contains("Teach every unfamiliar idea from first principles"));
-    assert!(AUDIO_PROMPT.contains("verbalized runnable experiment"));
+    assert!(AUDIO_PROMPT.contains("Follow the lesson's own order of sections"));
+    assert!(AUDIO_PROMPT.contains("the check questions are not"));
 }
 
 #[test]

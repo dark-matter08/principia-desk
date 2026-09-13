@@ -16,6 +16,7 @@ const GLYPHS: Record<string, string> = {
   pen: '<path d="m4 20 4-1 10-10-3-3L5 16z"/><path d="m13 6 3 3"/>',
   bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
   terminal: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m7 9 3 3-3 3M12 15h5"/>',
+  audio: '<path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2"/>',
 };
 const glyph = (name?: string) => GLYPHS[name ?? ""] ?? GLYPHS.layers;
 ---

@@ -6,6 +6,7 @@ import {
   type ClassroomSubjectId,
   type EngineeringLessonView,
   type LanguageLessonView,
+  type UpdateInfo,
 } from './ipc';
 import type { ClassTab } from './features/classes/class-navigation';
 import { registerCourses } from './catalog';
@@ -62,6 +63,8 @@ class AppStore {
   }
   genStatus = $state<string>('');
   genLog = $state<string[]>([]);
+  /** A newer version the desk found; the settings page says more. */
+  update = $state<UpdateInfo | null>(null);
   preparingClass = $state<{ subjectId: ClassroomSubjectId; label: string; agent: string; model: string; startedAt: number } | null>(null);
   error = $state<string>('');
   /** A passing confirmation (a file written, a record saved), with one optional action. */
@@ -244,6 +247,8 @@ class AppStore {
       void this.startClass(start.course_id, null, false, start.occurrence_id);
     });
     await onEvent('classroom:state', () => this.refresh());
+    await onEvent<UpdateInfo>('update:available', (info) => { this.update = info; });
+    try { this.update = (await api.getUpdateStatus()).available; } catch { /* the preview has no updater */ }
     await onEvent<string>('gen:status', (msg) => {
       this.genStatus = msg;
     });

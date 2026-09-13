@@ -73,6 +73,31 @@ fn read_path(conn: &Connection, path_id: &str) -> Result<AcceptedPath> {
         accepted_at: row.6,
     })
 }
+/// Change whether and how a class's lessons are voiced. Lessons already
+/// prepared keep what they have; the next preparation reads this.
+pub fn set_audio_preference(
+    conn: &Connection,
+    course_id: &str,
+    audio: enrollment::AudioPreference,
+    today: &str,
+) -> Result<EnrollmentConfiguration> {
+    if current_path(conn, course_id)?.is_none() {
+        ensure_default_path(conn, course_id, today)?;
+    }
+    let mut config = current_configuration(conn, course_id)?
+        .ok_or_else(|| DbError::Invalid("This class has no configuration yet.".into()))?;
+    config.audio = audio;
+    conn.execute(
+        "UPDATE classes SET configuration_json=?2,updated_at=?3 WHERE course_id=?1",
+        params![
+            course_id,
+            serde_json::to_string(&config)?,
+            chrono::Utc::now().to_rfc3339()
+        ],
+    )?;
+    Ok(config)
+}
+
 /// Change how future sessions of a class are enforced. Existing sessions keep
 /// the policy snapshotted when they were planned. A class without a path yet
 /// begins at the foundations so the policy has a class to belong to.

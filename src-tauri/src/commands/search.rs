@@ -1,6 +1,7 @@
 //! Commands for the web search the desk uses to find documentation.
 
 use crate::search::{self, Availability, Provider, SearchResult};
+use crate::searxng;
 use crate::state::AppState;
 use serde::Serialize;
 use tauri::State;
@@ -92,4 +93,85 @@ pub async fn test_search(
         return Err("Choose a search provider first.".into());
     }
     search::search(state.generator.researcher.client(), &config, &query, 8, &[]).await
+}
+
+/// What this machine has of SearXNG: an instance answering, an install
+/// that could be started, or nothing yet, and what installing would need.
+#[tauri::command]
+pub async fn searxng_status(state: State<'_, AppState>) -> CmdResult<searxng::Status> {
+    let config = state.generator.researcher.search_config();
+    Ok(searxng::status(state.generator.researcher.client(), &config.searxng_url).await)
+}
+
+/// Install SearXNG under the desk's own folder, reporting every step to the
+/// Logs page as it happens, then start it.
+#[tauri::command]
+pub async fn searxng_install(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> CmdResult<Vec<searxng::Step>> {
+    use tauri::Emitter;
+    let config = state.generator.researcher.search_config();
+    let Some(port) = searxng::local_port(&config.searxng_url) else {
+        return Err(format!(
+            "The desk is pointed at {}, which is not this machine; set the address to a local one to install here.",
+            config.searxng_url
+        ));
+    };
+    let _run = state.generator.feed.begin("searxng:install", "desk");
+    let steps = searxng::install(&state.generator.feed, port).await?;
+    let _ = app.emit("searxng:steps", &steps);
+    if steps.iter().all(|step| step.ok) {
+        state.generator.feed.say("Starting SearXNG…");
+        match searxng::start(
+            state.generator.researcher.client(),
+            &config.searxng_url,
+            port,
+        )
+        .await
+        {
+            Ok(true) => state.generator.feed.say("SearXNG is answering."),
+            Ok(false) => state
+                .generator
+                .feed
+                .say("SearXNG did not answer within 40 seconds; its log is in the setup page."),
+            Err(error) => state
+                .generator
+                .feed
+                .say(format!("SearXNG did not start: {error}")),
+        }
+    }
+    Ok(steps)
+}
+
+/// Start the installed instance and wait for it to answer.
+#[tauri::command]
+pub async fn searxng_start(state: State<'_, AppState>) -> CmdResult<searxng::Status> {
+    let config = state.generator.researcher.search_config();
+    let port = searxng::local_port(&config.searxng_url).ok_or_else(|| {
+        format!(
+            "The desk is pointed at {}, which is not this machine.",
+            config.searxng_url
+        )
+    })?;
+    let client = state.generator.researcher.client();
+    let answered = searxng::start(client, &config.searxng_url, port).await?;
+    let mut status = searxng::status(client, &config.searxng_url).await;
+    if !answered {
+        status.running = false;
+    }
+    Ok(status)
+}
+
+/// Stop the instance this machine started.
+#[tauri::command]
+pub async fn searxng_stop(state: State<'_, AppState>) -> CmdResult<searxng::Status> {
+    let stopped = tauri::async_runtime::spawn_blocking(searxng::stop)
+        .await
+        .map_err(|e| e.to_string())?;
+    if stopped {
+        tokio::time::sleep(std::time::Duration::from_millis(600)).await;
+    }
+    let config = state.generator.researcher.search_config();
+    Ok(searxng::status(state.generator.researcher.client(), &config.searxng_url).await)
 }

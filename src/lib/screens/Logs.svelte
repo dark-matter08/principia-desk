@@ -19,7 +19,7 @@
     const timer = setInterval(() => (now = Date.now()), 1000);
     return () => clearInterval(timer);
   });
-  const ACTIVITY: Record<string, string> = { lesson: 'preparing a lesson', draft: 'drafting the curriculum', review: 'reading the draft back', sources: 'fetching the sources', bank: 'writing the question bank', fix: 'changing the draft' };
+  const ACTIVITY: Record<string, string> = { lesson: 'preparing a lesson', draft: 'drafting the curriculum', review: 'reading the draft back', sources: 'fetching the sources', bank: 'writing the question bank', fix: 'changing the draft', searxng: 'installing SearXNG' };
   const doing = (run: ExecutionRun) => ACTIVITY[run.activity] ?? run.activity;
   /** A run's length: to now while it runs, to its last line once it ended. */
   function elapsed(run: ExecutionRun) {

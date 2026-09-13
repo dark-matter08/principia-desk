@@ -90,7 +90,8 @@
         { "icon": "compass", "title": "Placement that measures every stage", "body": "Three questions per stage, so no stage is skipped on a lucky answer. Unit challenges let you check out of what you already know, on evidence." },
         { "icon": "clock", "title": "Study times with their own shape", "body": "Each weekday on a rule can have its own start and its own length. Appointments are durable: due at their time, missed once the day passes, made up or skipped by you." },
         { "icon": "pulse", "title": "Retrieval and bridges", "body": "Topics come back when their review is due, without a provider. A failed check on a topic whose prerequisite you set aside proposes a short bridge lesson." },
-        { "icon": "file", "title": "Lessons you can keep", "body": "Any lesson downloads as a PDF or a CSV with its questions, filed by class under Documents. Your profile exports and imports whole." },
+        { "icon": "file", "title": "Lessons you can keep", "body": "Any lesson downloads as a PDF or a CSV with its questions, filed by class under Documents. Your profile exports and imports whole, and the desk updates itself." },
+        { "icon": "audio", "title": "Lessons you can hear", "body": "A class can ask for each lesson as a conversation between a teacher and a student, voiced on your machine: the system voice, Piper, Kokoro or VibeVoice, with the voices you chose." },
         { "icon": "bell", "title": "Always on, never nagging", "body": "A menu bar or tray desk that says what is due and what comes next. The platform's own scheduler, launchd, systemd or Task Scheduler, wakes the desk at every study time, and on wake or next login if it missed one." },
         { "icon": "pen", "title": "Classes of your own", "body": "Tell the desk what you want to be able to do. The tutor drafts the curriculum, reads it back, writes the question bank; you edit until it reads right and enrol like any class." },
         { "icon": "terminal", "title": "Logs you can read", "body": "Every line a runner reports while preparing a lesson is kept for thirty days, run by run, so a failed preparation has a cause you can see." }
@@ -180,7 +181,7 @@
               "variants": [
                 { "label": "macOS", "os": ["macos"], "body": "Open the disk image and drag Principia Desk to Applications. The first launch is right-click › Open, because the app is not notarised; macOS remembers after that.", "code": "xattr -dr com.apple.quarantine \"/Applications/Principia Desk.app\"", "note": "The macOS command is the same permission in one line, for a machine where right-click › Open is not offered." },
                 { "label": "Windows", "os": ["windows"], "body": "Run the MSI. SmartScreen says it protected your PC: click More info, then Run anyway. The setup program does the same thing with a different wrapper." },
-                { "label": "Linux", "os": ["linux"], "code": "sudo apt install ./Principia.Desk_*_amd64.deb   # or: sudo dnf install ./Principia.Desk-*.x86_64.rpm\n# AppImage: chmod +x Principia.Desk_*_amd64.AppImage && ./Principia.Desk_*_amd64.AppImage" }
+                { "label": "Linux", "os": ["linux"], "code": "sudo apt install ./Principia.Desk_*_amd64.deb   # or: sudo dnf install ./Principia.Desk-*.x86_64.rpm\n# AppImage: chmod +x Principia.Desk_*_amd64.AppImage && ./Principia.Desk_*_amd64.AppImage", "note": "apt may end with a notice that the file could not be accessed by user _apt: that is its sandbox talking about a download it did not need. The lines above it, Setting up principia-desk, are the install succeeding." }
               ]
             },
             { "title": "Set up the desk", "body": "Four steps on first launch: the tutor, an optional search engine for tutors that cannot browse, your break-glass phrase with the recovery walkthrough, deploy. Then choose a class and a starting point, add a study time, and the class is armed." }
@@ -189,7 +190,7 @@
             { "code": "Control + Option + Shift + U", "body": "The recovery console, from anywhere, if a lock ever needs releasing. Ctrl + Alt + Shift + U on Windows and Linux." },
             { "code": "~/principia-unlock", "body": "A file or folder by that name in your home, or on the root of any mounted volume, releases a lock within a second." }
           ],
-          "footnote": "Updates are a new release: download the new installer and open it over the old one; the profile and its history stay where they are. The full guide, including the upgrade from System Design Roulette, is in <a href=\"/docs/install\">the install page</a>."
+          "footnote": "From 0.2.1 the desk updates itself: Settings › Updates shows a newer version with its notes and installs it on request, after checking the release's signature; the profile and its history stay where they are. A desk on 0.2.0 takes the new installer over the old one once. The full guide, including the upgrade from System Design Roulette, is in <a href=\"/docs/install\">the install page</a>."
         },
         {
           "key": "source",
@@ -232,7 +233,7 @@
       "title": "Things people ask first.",
       "items": [
         { "q": "Is it free?", "a": "Yes. MIT licence, no account, no telemetry. You pay your tutor's provider, if it charges, or run Ollama for nothing." },
-        { "q": "Where does my data live?", "a": "In a SQLite database in the app's data directory: <code>~/Library/Application Support/com.darkmatter.principia-desk/</code> on macOS, <code>%APPDATA%\\com.darkmatter.principia-desk\\</code> on Windows, <code>~/.local/share/com.darkmatter.principia-desk/</code> on Linux, backed up before every schema upgrade. Keys live in your system's secret store: the Keychain, the Credential Manager or the Secret Service." },
+        { "q": "Where does my data live?", "a": "In a SQLite database in the app's data directory: <code>~/Library/Application Support/com.darkmatter.principia-desk/</code> on macOS, <code>%APPDATA%\\com.darkmatter.principia-desk\\</code> on Windows, <code>~/.local/share/com.darkmatter.principia-desk/</code> on Linux, backed up before every schema upgrade. Settings › Your data exports the whole profile as one file and imports it on another machine. Keys live in your system's secret store (the Keychain, the Credential Manager, the Secret Service), or in a private file in the profile where no store answers." },
         { "q": "What does the tutor see?", "a": "The topic, its curriculum brief, your goal, your progress on that class and the pages the desk fetched. Never your keys, your escape phrase or other classes." },
         { "q": "Can I really always get out of a lock?", "a": "Yes. Five documented routes, none needing a terminal, and the kiosk refuses to engage at all until the interface has reported ready. See the Enforcement section above." },
         { "q": "Does it work on Windows or Linux?", "a": "Yes. Every release carries installers for macOS, Windows and Linux, and the desk is the same on each: the classes, the lessons, the study times on the platform's own scheduler, the alarm, the tray, the recovery hot key and the release token. One difference: macOS lets an application block Cmd+Tab and Force Quit, so strict enforcement does that there; on Windows and Linux strict holds the desk the way focused does." },

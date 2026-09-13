@@ -1,7 +1,7 @@
 import type { AcceptedPath, AcceptPath, BridgeProposal, PathSummary, RevisePath } from './contracts/classes';
 import type { RunnerConfiguration } from './contracts/agents';
 import type { AgentCall, AgentPolicy, HealthCheck, RunnerInfo, ModelCatalog, LocalStatus, LocalPull } from './contracts/agents';
-import type { EnrollmentOptions, EnrollmentDraft, EnrollmentDraftId, SaveEnrollmentDraft } from './contracts/enrollment';
+import type { EnrollmentOptions, EnrollmentDraft, EnrollmentDraftId, SaveEnrollmentDraft, AudioPreference } from './contracts/enrollment';
 import type { AssessmentResponse } from './contracts/assessments';
 import type { DiagnosticView, PathRecommendation } from './contracts/placement';
 import type { UnitChallengeView } from './contracts/challenges';
@@ -842,6 +842,100 @@ export interface RecoveryKey {
 
 /** The recovery combination as this platform names it, whether the system
  *  took it, the valve, and the four-command ladder. */
+/** Where a saved key goes on this machine (`keychain.rs`). */
+export interface SecretStoreView {
+  kind: 'keychain' | 'credential-manager' | 'secret-service' | 'profile-file';
+  label: string;
+}
+
+/** A profile archive, as the desk describes one before writing or reading it. */
+export interface ArchiveSummary {
+  exported_at: string;
+  app_version: string;
+  database_version: number;
+  tables: number;
+  rows: number;
+  classes: number;
+  lessons: number;
+  schedules: number;
+}
+export interface ExportResult {
+  path: string;
+  summary: ArchiveSummary;
+}
+export interface ImportResult {
+  rows: number;
+  backup_path: string;
+  summary: ArchiveSummary;
+}
+
+/** A newer version the release manifest announces (`updater.rs`). */
+export interface UpdateInfo {
+  version: string;
+  current: string;
+  notes: string | null;
+  date: string | null;
+}
+export interface UpdateStatus {
+  current: string;
+  available: UpdateInfo | null;
+  checked_at: string | null;
+  error: string | null;
+  installing: boolean;
+}
+export interface UpdateProgress {
+  downloaded: number;
+  total: number | null;
+}
+
+/** Listening mode (`audio.rs`): the engines and voices on this machine. */
+export interface AudioEngineStatus {
+  id: 'system' | 'piper' | 'kokoro' | 'vibevoice';
+  label: string;
+  ready: boolean;
+  /** `desk` (the desk's own environment), `found` (already on this machine), or empty. */
+  source: 'desk' | 'found' | '';
+  /** The binary or interpreter that answers for it. */
+  via: string;
+  installable: boolean;
+  why: string;
+  blurb: string;
+}
+export interface AudioVoiceStatus {
+  id: string;
+  engine: 'piper' | 'kokoro' | 'vibevoice';
+  label: string;
+  language: string;
+  hint: string;
+  size_mb: number;
+  installed: boolean;
+}
+export interface AudioStatus {
+  engines: AudioEngineStatus[];
+  voices: AudioVoiceStatus[];
+  has_uv: boolean;
+  python: string | null;
+  python_install: string | null;
+  apple_silicon: boolean;
+}
+export interface AudioLine {
+  speaker: 'teacher' | 'student';
+  text: string;
+  file: string | null;
+}
+export interface LessonAudio {
+  session_id: string;
+  status: 'writing' | 'rendering' | 'ready' | 'failed';
+  engine: 'system' | 'piper' | 'kokoro' | 'vibevoice';
+  teacher_voice: string;
+  student_voice: string;
+  lines: AudioLine[];
+  error: string | null;
+  updated_at: string;
+  /** The interface reads the lines itself: system voice, or a render that failed. */
+  speak: boolean;
+}
+
 export interface RecoveryStatus {
   combination: { platform: string; label: string; keys: RecoveryKey[]; note: string };
   registered: boolean;
@@ -861,6 +955,33 @@ export interface SearchSettingsView {
   tavily_key_set: boolean;
   available: boolean;
   why: string;
+}
+
+/** What this machine has of SearXNG (`searxng.rs`). */
+export interface SearxngStatus {
+  installed: boolean;
+  running: boolean;
+  url: string;
+  local: boolean;
+  home: string;
+  shared_with_ledger: boolean;
+  pid: number | null;
+  json_enabled: boolean;
+  has_uv: boolean;
+  has_git: boolean;
+  python: string | null;
+  python_version: string | null;
+  python_too_new: boolean;
+  python_install: string | null;
+  can_install: boolean;
+  version: string | null;
+  log_tail: string;
+}
+
+export interface SearxngStep {
+  step: string;
+  ok: boolean;
+  output: string;
 }
 
 export interface SearchResult {
@@ -1013,6 +1134,10 @@ const realApi = {
   saveRunnerConfiguration: (configuration: RunnerConfiguration) => invoke<RunnerConfiguration>('save_runner_configuration', { configuration }),
   getRunnerModels: (runner: string, refresh = false) => invoke<ModelCatalog>('get_runner_models', { runner, refresh }),
   setRunnerKey: (runner: string, value: string) => invoke<void>('set_runner_key', { runner, value }),
+  getSecretStore: () => invoke<SecretStoreView>('get_secret_store'),
+  getUpdateStatus: () => invoke<UpdateStatus>('get_update_status'),
+  checkForUpdate: () => invoke<UpdateStatus>('check_for_update'),
+  installUpdate: () => invoke<void>('install_update'),
   /** One line typed at the recovery console. */
   recoveryCommand: (line: string) => invoke<RecoveryReply>('recovery_command', { line }),
   recoveryStatus: () => invoke<RecoveryStatus>('recovery_status'),
@@ -1022,6 +1147,20 @@ const realApi = {
   setSearchSettings: (provider: SearchProvider, searxngUrl: string) => invoke<SearchSettingsView>('set_search_settings', { provider, searxngUrl }),
   setSearchKey: (provider: SearchProvider, value: string) => invoke<SearchSettingsView>('set_search_key', { provider, value }),
   testSearch: (query: string) => invoke<SearchResult[]>('test_search', { query }),
+  searxngStatus: () => invoke<SearxngStatus>('searxng_status'),
+  searxngInstall: () => invoke<SearxngStep[]>('searxng_install'),
+  searxngStart: () => invoke<SearxngStatus>('searxng_start'),
+  searxngStop: () => invoke<SearxngStatus>('searxng_stop'),
+  getAudioStatus: () => invoke<AudioStatus>('get_audio_status'),
+  installAudioEngine: (engine: string) => invoke<SearxngStep[]>('install_audio_engine', { engine }),
+  removeAudioEngine: (engine: string) => invoke<void>('remove_audio_engine', { engine }),
+  installVoice: (voice: string) => invoke<SearxngStep[]>('install_voice', { voice }),
+  removeVoice: (voice: string) => invoke<void>('remove_voice', { voice }),
+  previewVoice: (engine: string, voice: string) => invoke<string>('preview_voice', { engine, voice }),
+  getClassAudio: (courseId: string) => invoke<AudioPreference>('get_class_audio', { courseId }),
+  setClassAudio: (courseId: string, preference: AudioPreference) => invoke<AudioPreference>('set_class_audio', { courseId, preference }),
+  getLessonAudio: (sessionId: string) => invoke<LessonAudio | null>('get_lesson_audio', { sessionId }),
+  writeLessonAudio: (sessionId: string) => invoke<void>('write_lesson_audio', { sessionId }),
   getLocalModels: () => invoke<LocalStatus>('get_local_models'),
   getLocalPulls: () => invoke<LocalPull[]>('get_local_pulls'),
   installLocalRunner: () => invoke<string>('install_local_runner'),
@@ -1196,6 +1335,9 @@ const realApi = {
   saveLessonPdf: (source: ProgressEntry['source'], ownerId: string, bytes: Uint8Array) =>
     invoke<LessonFileResult>('save_lesson_pdf', bytes, { headers: { 'x-lesson-source': source, 'x-lesson-owner': ownerId } }),
   /** Show an exported file in the system file browser. */
+  exportProfile: () => invoke<ExportResult>('export_profile'),
+  inspectArchive: (document: string) => invoke<ArchiveSummary>('inspect_archive', { document }),
+  importProfile: (document: string) => invoke<ImportResult>('import_profile', { document }),
   revealExport: (path: string) => invoke<void>('reveal_export', { path }),
 };
 

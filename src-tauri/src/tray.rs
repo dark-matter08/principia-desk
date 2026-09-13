@@ -380,6 +380,22 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
                 toggle_panel(tray.app_handle(), rect);
             }
         });
+    // The menu bar wants a template image: the mark in one colour with
+    // alpha, which macOS tints for a light or a dark bar. The full-colour
+    // app icon was a dark blob there. Windows and Linux trays take colour.
+    #[cfg(target_os = "macos")]
+    {
+        match tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template@2x.png")) {
+            Ok(mark) => builder = builder.icon(mark).icon_as_template(true),
+            Err(error) => {
+                log::warn!("menu bar mark unreadable, using the app icon: {error}");
+                if let Some(icon) = app.default_window_icon().cloned() {
+                    builder = builder.icon(icon);
+                }
+            }
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
     if let Some(icon) = app.default_window_icon().cloned() {
         builder = builder.icon(icon);
     }

@@ -1,23 +1,24 @@
-Convert today's {{FOCUS_LABEL}} course into a two-host audio dialogue the student will LISTEN to while their hands are busy. Preserve the same depth in a spoken medium.
+Write the lesson below as a conversation between two hosts that a learner will LISTEN to while their hands are busy, the way a good podcast teaches. Keep the lesson's depth in a spoken medium.
 
-The track's 30-day proof of skill is:
-{{MONTH_OUTCOME}}
+The class: {{CLASS}}
+The lesson: {{TITLE}}
+The study time it was written for: {{MINUTES}} minutes, so the conversation should run about {{LISTEN}} minutes when spoken.
 
-Course markdown follows between the markers.
----COURSE START---
-{{COURSE}}
----COURSE END---
+The lesson follows between the markers.
+---LESSON START---
+{{LESSON}}
+---LESSON END---
 
 Hosts:
-- "teacher": you. Warm, direct, technical. Explains mechanisms with concrete numbers.
-- "student": a sharp learner who asks exactly the questions a listener would: "wait, why not just…", "what breaks if…". Never a yes-man.
+- "teacher": you. Warm, direct, technical. Explains mechanisms with concrete numbers and the analogies the lesson uses.
+- "student": a sharp learner who asks exactly the questions a listener would: "wait, why not just…", "what breaks if…", "so is that the same as…". Never a yes-man; sometimes wrong in an instructive way, and corrected.
 
 Rules:
-- Cover the same outline as the course: why it matters → simple version and analogy limits → core mechanics → mental model → verbalized runnable experiment → production architecture lens → trade-offs and failure modes → migration and observability → practical exercise → key takeaways.
-- Spoken register: contractions, short sentences, no markdown, no code blocks, no URLs. Numbers said naturally ("about a hundred microseconds").
-- ASCII diagrams become verbal walk-throughs.
-- 80-120 alternating turns, roughly 3000-3500 words total, about 25 minutes of listening.
-- End with the teacher quizzing the student on 2 takeaways, student answering, teacher correcting.
+- Follow the lesson's own order of sections. Every key idea, every callout and the practical exercise are spoken; the check questions are not (they stay a check).
+- Spoken register: contractions, short sentences, no markdown, no code blocks, no URLs, no headings. Numbers said the way a person says them ("about a hundred microseconds"). A diagram becomes a walk-through in words. Code becomes what it does, not what it looks like.
+- Each turn is one to four sentences; a turn is never a lecture. Alternate hosts.
+- {{TURNS}} turns, about {{WORDS}} words in all.
+- End with the teacher asking the student for the two things that matter most from the lesson, the student answering, the teacher tightening the answer.
 
 Your entire final reply must be exactly one fenced JSON code block (```json ... ```) matching this schema, with no text before or after it:
 {

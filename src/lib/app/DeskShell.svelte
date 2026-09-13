@@ -27,6 +27,7 @@
         <button class:selected={selected === destination.id} aria-current={selected === destination.id ? 'page' : undefined} onclick={() => app.navigate(destination.id)}>
           <span class="route-glyph" aria-hidden="true"><Glyph size={13} /></span>
           <span class="route-text"><span class="route-index">{String(index + 1).padStart(2, '0')}</span>{destination.label}</span>
+          {#if destination.id === 'settings' && app.update}<span class="route-dot" title={`Principia Desk ${app.update.version} is available`} aria-label="update available"></span>{/if}
         </button>
       {/each}
     </nav>
@@ -54,6 +55,8 @@
   nav button.selected { color: var(--fg); border-color: color-mix(in srgb, var(--accent) 45%, var(--node-border)); background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 55%, transparent), 0 8px 20px -12px color-mix(in srgb, var(--accent) 80%, transparent); }
   nav button.selected .route-glyph { background: var(--accent); color: var(--accent-fg); box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent); }
   nav button.selected .route-index { color: var(--accent); }
+  /* A newer version waits in Settings: one lit dot on the tile, nothing that nags. */
+  .route-dot { position: absolute; top: 4px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 8px var(--accent); }
   main { min-height: 0; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; flex: 1; }
   .skip-link { position: fixed; top: -60px; left: 12px; padding: 8px 12px; background: var(--surface); color: var(--fg); z-index: 90; }
   .skip-link:focus { top: 8px; }

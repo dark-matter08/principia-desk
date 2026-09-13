@@ -5,6 +5,7 @@
   import RunnerSetup from '../runners/RunnerSetup.svelte';
   import Dropdown from '../../components/Dropdown.svelte';
   import EnforcementPicker from '../../components/EnforcementPicker.svelte';
+  import ListeningSettings from './ListeningSettings.svelte';
   import { ArrowRight } from 'lucide-svelte';
   let { program }: { program: ClassroomProgramView } = $props();
   /** The picker speaks kiosk levels; classes store focus policies. */
@@ -84,6 +85,7 @@
   <div class="focus-actions"><span role="status">{focusSaving ? 'Saving…' : focusDirty ? 'Unsaved enforcement change' : focusSaved ? 'Enforcement saved' : `Current: ${program.focus_policy}`}</span><button type="button" class="cta mono-cta" disabled={focusSaving || !focusDirty} onclick={saveFocus}>Save enforcement</button></div>
   {#if focusError}<p class="error" role="alert">{focusError}</p>{/if}
 </section>
+{#if program.kind === 'engineering'}<ListeningSettings courseId={program.subject_id} label={program.label} />{/if}
 <style>
   form { max-width: 1000px; margin: 0 auto; } .section-intro { margin-bottom: 20px; } h3 { margin: 0 0 6px; font: 23px var(--font-display); } p { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 0; }
   fieldset { min-width: 0; padding: 0; border: 0; margin: 0; } .pace { border: 1px solid var(--node-border); border-radius: var(--radius-panel); padding: 18px; margin-top: 18px; } h4 { margin: 0 0 15px; font-size: 14px; font-weight: 500; }
