@@ -4,7 +4,10 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [0.2.5] · 2026-09-13
+
 ### Fixed
+- **SearXNG install after an interrupted clone.** A clone cut short (the desk closed mid-way) left `.git` and no files, and the next attempt's `git pull` was happy with that, then failed on a missing `requirements.txt`. The desk now restores the tree, or clones again from nothing, and says which folder to delete if even that fails.
 - A release is a draft until every installer and the updater manifest are attached, then published. Until now `releases/latest` named the new release from its first file on, so a desk that checked for updates during the twenty minutes of a build asked for a manifest that did not exist yet and reported a failed check.
 
 ## [0.2.4] · 2026-09-13

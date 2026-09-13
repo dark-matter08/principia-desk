@@ -375,6 +375,34 @@ pub async fn install(feed: &Feed, port: u16) -> Result<Vec<Step>, String> {
                         Some(&src),
                     )
                     .await;
+                // A clone cut short (the desk closed mid-way) leaves `.git`
+                // and no files; a pull is happy with that. Put the tree back,
+                // and if that fails, clone again from nothing.
+                if !src.join("requirements.txt").exists() {
+                    let restored = installer
+                        .run(
+                            &git,
+                            &["checkout", "--", "."],
+                            "Restoring the checkout",
+                            Some(&src),
+                        )
+                        .await;
+                    if !restored || !src.join("requirements.txt").exists() {
+                        let _ = std::fs::remove_dir_all(&src);
+                        let target = src.to_string_lossy().into_owned();
+                        if !installer
+                            .run(
+                                &git,
+                                &["clone", "--depth", "1", REPO, &target],
+                                "Cloning SearXNG again",
+                                None,
+                            )
+                            .await
+                        {
+                            return Ok(installer.steps);
+                        }
+                    }
+                }
             }
         }
         // No git (a fresh Windows): the same tree as an archive, unpacked
@@ -396,7 +424,10 @@ pub async fn install(feed: &Feed, port: u16) -> Result<Vec<Step>, String> {
         installer.push(
             "requirements.txt",
             false,
-            "not found in the checkout".into(),
+            format!(
+                "not found in {}; the source there is incomplete. Delete that folder and install again.",
+                src.display()
+            ),
         );
         return Ok(installer.steps);
     }
