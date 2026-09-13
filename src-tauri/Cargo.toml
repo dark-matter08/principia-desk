@@ -35,6 +35,16 @@ tauri-plugin-global-shortcut = "2"
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
+# Provider keys: each platform's own secret store (keychain.rs). macOS shells
+# out to `security`; the other two go through the keyring crate.
+[target.'cfg(target_os = "windows")'.dependencies]
+keyring = { version = "3.6", default-features = false, features = ["windows-native"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# zbus is already in the Linux tree through the notification plugin; the
+# session encryption is pure Rust so the build needs no libdbus headers.
+keyring = { version = "3.6", default-features = false, features = ["async-secret-service", "async-io", "crypto-rust"] }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = { version = "0.6", features = ["exception"] }
 objc2-foundation = "0.3"

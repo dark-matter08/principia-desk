@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { PLATFORM, STORE_NAME } from '$lib/platform';
   import { Globe, Search, Server, KeyRound, Sparkles, CircleOff, ExternalLink } from 'lucide-svelte';
   import { api, type SearchProvider, type SearchResult, type SearchSettingsView } from '$lib/ipc';
   import NodeCard from '$lib/components/NodeCard.svelte';
@@ -97,7 +98,7 @@
           </label>
           <button type="button" class="ghost mono-ghost" disabled={!!busy || (!key && !keySet)} onclick={saveKey}>{busy === 'key' ? 'saving…' : key ? 'save key' : 'clear key'}</button>
         </div>
-        <p class="note mono">Kept in the system keychain, never in the profile database or its exports. {#if provider === 'brave'}<a href="https://brave.com/search/api/" target="_blank" rel="noreferrer">Get a key <ExternalLink size={9} /></a>{:else}<a href="https://tavily.com" target="_blank" rel="noreferrer">Get a key <ExternalLink size={9} /></a>{/if}</p>
+        <p class="note mono">Kept in {STORE_NAME[PLATFORM]}, never in the profile database or its exports. {#if provider === 'brave'}<a href="https://brave.com/search/api/" target="_blank" rel="noreferrer">Get a key <ExternalLink size={9} /></a>{:else}<a href="https://tavily.com" target="_blank" rel="noreferrer">Get a key <ExternalLink size={9} /></a>{/if}</p>
       {/if}
 
       <div class="row try">

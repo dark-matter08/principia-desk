@@ -4,6 +4,13 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Added
+- **Saved keys on every platform**: provider and search keys go into the platform's own secret store, the Credential Manager on Windows and the Secret Service (GNOME Keyring, KWallet) on Linux, next to the Keychain on macOS. Environment keys still win.
+
+### Changed
+- The desk describes itself as what it is, a desktop app for macOS, Windows and Linux, in the interface, the README, the contributing and security notes and the site. The enforcement picker says what each policy does on the platform it runs on: strict holds the desk the way focused does where the system does not let an application block switching, Force Quit, logout or shutdown.
+- The README's recovery section covers the scheduler on each platform (launchd, systemd user timers, Task Scheduler), the release token roots and the data directory per platform.
+
 ## [0.2.0] · 2026-09-12 · Principia Desk
 
 The product that System Design Roulette became. Same database, same visual character, a different shape: classes you schedule instead of one daily roulette.

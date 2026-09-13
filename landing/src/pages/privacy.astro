@@ -14,7 +14,7 @@ const description = "What Principia Desk does with your data: everything stays o
       <h2>The desk</h2>
       <ul>
         <li><strong>Your data</strong> is a SQLite database under <code>~/Library/Application Support/com.darkmatter.principia-desk/</code>, with a backup before every schema upgrade. Exports go to <code>Documents/Principia Desk/</code>. There is no account and no server of ours.</li>
-        <li><strong>Your keys</strong> live in the macOS Keychain under the <code>principia-desk</code> service, or in environment variables you set. They are sent only to the provider they belong to.</li>
+        <li><strong>Your keys</strong> live in your system's secret store under the <code>principia-desk</code> service (the Keychain on macOS, the Credential Manager on Windows, the Secret Service on Linux), or in environment variables you set. They are sent only to the provider they belong to.</li>
         <li><strong>Your tutor</strong> receives the topic, its curriculum brief, your learning goal, your progress on that class and the pages the desk fetched. It does not receive your keys, your escape phrase or other classes. What the provider does with a prompt is governed by the provider's own terms; Ollama on your machine sends nothing anywhere.</li>
         <li><strong>The desk fetches</strong> pages from the documentation hosts a course allows, and, only if you configure one, asks a search engine (SearXNG, Brave or Tavily) for candidate pages on those hosts.</li>
         <li><strong>No telemetry.</strong> The desk does not report usage, crashes or anything else to us.</li>

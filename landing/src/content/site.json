@@ -2,7 +2,7 @@
   "slug": "principia-desk",
   "name": "Principia Desk",
   "tagline": "A study desk that keeps its appointments",
-  "description": "Principia Desk is a free, open-source macOS study desk: classes with a personal starting point, lessons your own AI tutor writes from primary documentation, study times that ring, and enforcement you choose per class and can always escape.",
+  "description": "Principia Desk is a free, open-source study desk for macOS, Windows and Linux: classes with a personal starting point, lessons your own AI tutor writes from primary documentation, study times that ring, and enforcement you choose per class and can always escape.",
   "url": "https://principia.ndelucien.com",
   "repo": "https://github.com/dark-matter08/principia-desk",
   "releases": "https://github.com/dark-matter08/principia-desk/releases/latest",
@@ -21,14 +21,14 @@
     {
       "kind": "hero",
       "key": "hero",
-      "kicker": "Free · open source · macOS",
+      "kicker": "Free · open source · macOS, Windows, Linux",
       "title": "A study desk that keeps its appointments.",
       "deck": "Pick a class, set a starting point and a study time. At that time the desk rings, a lesson your own AI tutor wrote from primary documentation is already waiting, and the screen is yours again when the check is done. Understand deeply, practice daily.",
       "links": [
         { "label": "Download", "href": "/#install", "primary": true },
         { "label": "Read the source", "href": "https://github.com/dark-matter08/principia-desk" }
       ],
-      "facts": ["MIT licence", "your keys stay in the Keychain", "nine classes, and your own", "every lock has five ways out"],
+      "facts": ["MIT licence", "your keys stay on your machine", "nine classes, and your own", "every lock has five ways out"],
       "figure": { "src": "/shots/today.png", "alt": "The Today page of Principia Desk: a countdown ring to the next class, the study pulse with a streak and a half-year contribution map, and the class agenda", "caption": "today · the countdown, the pulse and the week's appointments" }
     },
     {
@@ -39,7 +39,7 @@
       "lede": "Nothing here waits for you to feel like it. A study time is an appointment; the desk prepares for it ahead and holds the door open.",
       "items": [
         { "title": "The desk prepares", "body": "Twenty minutes before a study time, the tutor plans the next topic on your route, fetches the sources the curriculum names and writes the lesson, sized to the minutes you gave that day." },
-        { "title": "It rings", "body": "A notification and an alarm that snoozes but never dismisses. The menu bar says what is due. Nothing rings until the lesson is actually ready." },
+        { "title": "It rings", "body": "A notification and an alarm that snoozes but never dismisses. The menu bar icon, or the tray, says what is due. Nothing rings until the lesson is actually ready." },
         { "title": "You read", "body": "Point form with reading hints, labelled callouts, diagrams, and a section rail that stays in view. Fourteen minutes of a thirty-minute session." },
         { "title": "You practise", "body": "A stepper of concrete steps and a done-when, with a workspace that saves every keystroke and a tutor you can ask about this lesson." },
         { "title": "You are checked", "body": "Questions grounded in what you just read. What stuck is marked; what did not comes back as retrieval on a later day. Then the desk lets go." }
@@ -91,7 +91,7 @@
         { "icon": "clock", "title": "Study times with their own shape", "body": "Each weekday on a rule can have its own start and its own length. Appointments are durable: due at their time, missed once the day passes, made up or skipped by you." },
         { "icon": "pulse", "title": "Retrieval and bridges", "body": "Topics come back when their review is due, without a provider. A failed check on a topic whose prerequisite you set aside proposes a short bridge lesson." },
         { "icon": "file", "title": "Lessons you can keep", "body": "Any lesson downloads as a PDF or a CSV with its questions, filed by class under Documents. Your profile exports and imports whole." },
-        { "icon": "bell", "title": "Always on, never nagging", "body": "A menu bar desk that says what is due and what comes next. A launch agent wakes the desk at every study time, and on wake or next login if it missed one." },
+        { "icon": "bell", "title": "Always on, never nagging", "body": "A menu bar or tray desk that says what is due and what comes next. The platform's own scheduler, launchd, systemd or Task Scheduler, wakes the desk at every study time, and on wake or next login if it missed one." },
         { "icon": "pen", "title": "Classes of your own", "body": "Tell the desk what you want to be able to do. The tutor drafts the curriculum, reads it back, writes the question bank; you edit until it reads right and enrol like any class." },
         { "icon": "terminal", "title": "Logs you can read", "body": "Every line a runner reports while preparing a lesson is kept for thirty days, run by run, so a failed preparation has a cause you can see." }
       ]
@@ -115,11 +115,11 @@
       "key": "trust",
       "kicker": "Enforcement you choose",
       "title": "A lock you set for yourself, and can always undo.",
-      "lede": "Each class carries a focus policy. The strict one blocks Cmd+Tab, Force Quit and logout while a lesson holds the desk, so it must never be the only thing between you and your own machine. There are five ways out, and none of them needs a terminal.",
+      "lede": "Each class carries a focus policy. The strict one blocks application switching, Force Quit and logout while a lesson holds the desk, as far as the platform lets an application do that, so it must never be the only thing between you and your own machine. There are five ways out, on every platform, and none of them needs a terminal.",
       "levels": [
         { "name": "Advisory", "body": "The window comes to the front at the study time. Nothing is blocked." },
-        { "name": "Focused", "body": "Full screen above the menu bar, focus snaps back, other displays are sealed, media is paused. Force Quit still works." },
-        { "name": "Strict", "body": "Also blocks Cmd+Tab, Force Quit, logout and shutdown while the lesson holds the desk." }
+        { "name": "Focused", "body": "Full screen, always on top, focus snaps back every 300 ms, other displays are sealed, media is paused. Switching away is useless; nothing at the system level is disabled." },
+        { "name": "Strict", "body": "Also blocks application switching, Force Quit, logout and shutdown while the lesson holds the desk. macOS hands an application that much; Windows and Linux do not, so there strict holds the desk the way focused does." }
       ],
       "ways": [
         { "title": "Finish the check", "body": "The ordinary way. The lesson ends and the desk lets go." },
@@ -156,7 +156,9 @@
           "tagline": "One file per platform, built by the release pipeline from the tagged commit. Unsigned for now: each platform asks once before the first launch, and the step says what to click.",
           "needs": [
             { "name": "A tutor", "detail": "a CLI you are signed in to (Claude Code, Codex, Cursor Agent, Gemini CLI), a provider key, or Ollama with a chat model" },
-            { "name": "macOS 13 or later", "detail": "for the lock, the launch agent and the menu bar desk; Windows and Linux run the desk without enforcement" },
+            { "name": "macOS 13 or later", "detail": "Apple Silicon or Intel", "os": ["macos"] },
+            { "name": "Windows 10 or later", "detail": "the installer brings WebView2 along if the machine has none", "os": ["windows"] },
+            { "name": "A Linux desktop with WebKitGTK 4.1", "detail": "Ubuntu 22.04, Debian 12, Fedora 36 and later; a secret service (GNOME Keyring, KWallet) for saved keys", "os": ["linux"] },
             { "name": "About 100 MB", "detail": "the app and its own copy of the curricula and reference lessons" }
           ],
           "steps": [
@@ -230,10 +232,10 @@
       "title": "Things people ask first.",
       "items": [
         { "q": "Is it free?", "a": "Yes. MIT licence, no account, no telemetry. You pay your tutor's provider, if it charges, or run Ollama for nothing." },
-        { "q": "Where does my data live?", "a": "In a SQLite database under <code>~/Library/Application Support/com.darkmatter.principia-desk/</code>, backed up before every schema upgrade. Keys live in the macOS Keychain." },
+        { "q": "Where does my data live?", "a": "In a SQLite database in the app's data directory: <code>~/Library/Application Support/com.darkmatter.principia-desk/</code> on macOS, <code>%APPDATA%\\com.darkmatter.principia-desk\\</code> on Windows, <code>~/.local/share/com.darkmatter.principia-desk/</code> on Linux, backed up before every schema upgrade. Keys live in your system's secret store: the Keychain, the Credential Manager or the Secret Service." },
         { "q": "What does the tutor see?", "a": "The topic, its curriculum brief, your goal, your progress on that class and the pages the desk fetched. Never your keys, your escape phrase or other classes." },
         { "q": "Can I really always get out of a lock?", "a": "Yes. Five documented routes, none needing a terminal, and the kiosk refuses to engage at all until the interface has reported ready. See the Enforcement section above." },
-        { "q": "Does it work on Windows or Linux?", "a": "Yes. Every release carries a Windows installer and Linux packages, and the desk runs on both. The lock, the launch agent and the menu bar desk are macOS today; help on the others is welcome." },
+        { "q": "Does it work on Windows or Linux?", "a": "Yes. Every release carries installers for macOS, Windows and Linux, and the desk is the same on each: the classes, the lessons, the study times on the platform's own scheduler, the alarm, the tray, the recovery hot key and the release token. One difference: macOS lets an application block Cmd+Tab and Force Quit, so strict enforcement does that there; on Windows and Linux strict holds the desk the way focused does." },
         { "q": "Can I make a class for something you do not ship?", "a": "Yes. Classes › New class. Your tutor drafts the curriculum, you edit it, the desk validates and publishes it. Export it as a file to share." },
         { "q": "What became of System Design Roulette?", "a": "This. Same database, same visual character, a different shape: classes you schedule instead of one daily roulette. The <a href=\"/changelog\">changelog</a> tells it." },
         { "q": "How do I report a lockout bug?", "a": "Privately, as <a href=\"/docs/security\">the security page</a> asks. Ordinary bugs go in the issue tracker." }

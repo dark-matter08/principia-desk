@@ -62,7 +62,7 @@ const ASSET_WORDS: Record<AssetKind, string> = {
               <div class="needs">
                 <span class="needs-h mono">BEFORE YOU START</span>
                 {t.needs.map((n) => (
-                  <span class="need">
+                  <span class="need" data-os={n.os?.join(" ")}>
                     {n.href ? <a href={n.href} rel="noopener">{n.name}</a> : <strong>{n.name}</strong>}
                     <em>{n.detail}</em>
                   </span>
@@ -231,9 +231,9 @@ const ASSET_WORDS: Record<AssetKind, string> = {
   .os-tab { display: inline-flex; align-items: center; min-height: 32px; padding: 6px 12px; border: 1px solid var(--node-border); border-radius: 999px; color: var(--muted); font: 11px/1 var(--font-mono); letter-spacing: 0.6px; cursor: pointer; }
   .os-tab:hover { color: var(--fg); }
   /* One platform chosen shows only its variants; with none chosen (no scripting) every variant shows. */
-  .os-scope:has(.os-radio[value="macos"]:checked) .variant:not([data-os~="macos"]),
-  .os-scope:has(.os-radio[value="windows"]:checked) .variant:not([data-os~="windows"]),
-  .os-scope:has(.os-radio[value="linux"]:checked) .variant:not([data-os~="linux"]) { display: none; }
+  .os-scope:has(.os-radio[value="macos"]:checked) :is(.variant, .need[data-os]):not([data-os~="macos"]),
+  .os-scope:has(.os-radio[value="windows"]:checked) :is(.variant, .need[data-os]):not([data-os~="windows"]),
+  .os-scope:has(.os-radio[value="linux"]:checked) :is(.variant, .need[data-os]):not([data-os~="linux"]) { display: none; }
   .os-scope:has(.os-radio[value="macos"]:checked) .os-tab[data-os="macos"],
   .os-scope:has(.os-radio[value="windows"]:checked) .os-tab[data-os="windows"],
   .os-scope:has(.os-radio[value="linux"]:checked) .os-tab[data-os="linux"] { color: var(--fg); border-color: var(--accent); background: var(--surface); }

@@ -6,6 +6,7 @@
  * renders before the desk answers.
  */
 import type { RecoveryStatus } from '../../ipc';
+import { PLATFORM } from '$lib/platform';
 
 export const VALVE_PRESSES = 5;
 export const VALVE_SECONDS = 10;
@@ -17,8 +18,8 @@ export const LADDER: { command: string; what: string }[] = [
   { command: 'release', what: 'Pauses the session with its work intact, breaks the streak, and frees the machine.' },
 ];
 
-const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform ?? navigator.userAgent);
-const WINDOWS = typeof navigator !== 'undefined' && /Win/.test(navigator.platform ?? navigator.userAgent);
+const MAC = PLATFORM === 'macos';
+const WINDOWS = PLATFORM === 'windows';
 
 /** The combination as the browser believes this platform names it. */
 export function guessCombination(): RecoveryStatus['combination'] {

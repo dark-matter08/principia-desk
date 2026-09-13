@@ -27,6 +27,6 @@ Email **contact@ndelucien.com** with the version, the steps, and what you observ
 ## What the desk does with your data
 
 - Lessons are written by the tutor you configure. Prompts contain the topic, the curriculum brief, your learning goal, your progress on that class and the pages the desk fetched. They do not contain your keys, your escape phrase or other classes.
-- Keys live in the macOS Keychain under the `principia-desk` service. Environment variables take priority when set.
-- Everything else is a SQLite database under `~/Library/Application Support/com.darkmatter.principia-desk/`, with a backup before every schema upgrade.
+- Keys live in the platform's secret store under the `principia-desk` service: the Keychain on macOS, the Credential Manager on Windows, the Secret Service on Linux. Environment variables take priority when set.
+- Everything else is a SQLite database in the app's data directory (`~/Library/Application Support/com.darkmatter.principia-desk/` on macOS, `%APPDATA%\com.darkmatter.principia-desk\` on Windows, `~/.local/share/com.darkmatter.principia-desk/` on Linux), with a backup before every schema upgrade.
 - The desk talks to your tutor's provider, to the documentation hosts a course allows, and to a search engine only if you configure one. Nothing else.

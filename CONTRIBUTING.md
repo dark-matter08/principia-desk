@@ -1,6 +1,6 @@
 # Contributing to Principia Desk
 
-Principia Desk is a macOS study desk: classes with personal starting points, lessons written by your own AI tutor from primary sources, durable appointments, and enforcement you choose per class. Contributions are welcome, from a typo in a topic brief to a new course. This page says how the project works so a change lands the first time.
+Principia Desk is a desktop study desk for macOS, Windows and Linux: classes with personal starting points, lessons written by your own AI tutor from primary sources, durable appointments, and enforcement you choose per class. Contributions are welcome, from a typo in a topic brief to a new course. This page says how the project works so a change lands the first time.
 
 ## Before you start
 
@@ -18,7 +18,7 @@ npm run tauri dev          # the desk against a dev server
 npm run dev                # the interface alone, in a browser, with mock data
 ```
 
-Prerequisites: macOS 13+, Rust 1.80+, Node 20+. Lessons need a tutor: a Claude Code, Codex, Cursor or Gemini CLI you are signed in to, a provider key, or Ollama with a chat model. `npm run dev` needs none of that.
+Prerequisites: Rust 1.80+, Node 20+, and on Linux the WebKitGTK toolchain (`libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libgtk-3-dev`). Lessons need a tutor: a Claude Code, Codex, Cursor or Gemini CLI you are signed in to, a provider key, or Ollama with a chat model. `npm run dev` needs none of that.
 
 ## The gates
 
@@ -39,7 +39,7 @@ A change to `src-tauri/seed/catalog.json` or `seed/concepts.json` also needs `np
 - **Courses and topics.** The bundled curricula live in `src-tauri/seed/concepts.json`; each topic carries a brief (outcome, mechanisms, a production scenario, misconceptions, evidence, an artefact, two or more primary sources on the course's hosts) that `CurriculumBrief::validate` holds it to. Reference lessons live in `src-tauri/seed/fallback_courses/`, the placement banks in `src-tauri/seed/diagnostics.json`. A correction to a wrong key or a dead source is the most useful small contribution there is.
 - **Your own class as a proposal.** Build it in the desk (Classes › New class), export the class file, and attach it to an issue. If it is good, it becomes a bundled course.
 - **Runners.** A new provider is an adapter in `src-tauri/src/agents/`; see `adapters.rs` and `api.rs` for the two shapes.
-- **Other platforms.** The lock, the launch agent and the menu bar are macOS today. Windows and Linux builds compile and run without enforcement; work there is welcome and should keep the ways out intact.
+- **Platforms.** The desk builds and ships for macOS, Windows and Linux, and everything that touches the system has a branch per platform: the lock (`kiosk.rs`: the window on all three, the presentation options that hide the Dock and block switching on macOS), the scheduler (`scheduler.rs`: launchd, systemd user timers, Task Scheduler), the secret store (`keychain.rs`), media pause, the recovery hot key (`recovery.rs`) and the release token roots. A change to one of them keeps the ways out intact on all three, and CI runs the gates on each.
 - **Bugs.** With the steps, what you expected, what happened, and the Logs page's run for a failed lesson.
 
 ## How a change is made
@@ -58,7 +58,7 @@ A change to `src-tauri/seed/catalog.json` or `seed/concepts.json` also needs `np
 
 ## Releases
 
-Versions are tags (`v0.1.0`). The release workflow builds the macOS bundle and attaches it to a GitHub release; the changelog is [CHANGELOG.md](CHANGELOG.md).
+Versions are tags (`v0.1.0`). The release workflow builds the installers for every platform and attaches them to a GitHub release; the changelog is [CHANGELOG.md](CHANGELOG.md).
 
 ## Questions
 

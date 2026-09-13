@@ -2,11 +2,20 @@
   /** Kiosk strictness selector with honest, plain-language explanations and
    *  a hard-mode warning. Used in setup and on the idle screen. */
   import { TriangleAlert } from 'lucide-svelte';
+  import { PLATFORM, PLATFORM_NAME, SWITCH_KEY } from '$lib/platform';
 
   let {
     value = $bindable('hard'),
   }: { value?: string } = $props();
 
+  // What each policy does depends on what the platform lets an application
+  // do to it. macOS lets the desk hide the Dock and, in HARD, disable
+  // application switching, Force Quit, logout and shutdown; Windows and Linux
+  // do not hand that to an application, so there HARD holds the desk the way
+  // FIRM does and the ways out are the same.
+  const mac = PLATFORM === 'macos';
+  const switchKey = SWITCH_KEY[PLATFORM];
+  const quitKey = mac ? 'Force Quit' : PLATFORM === 'windows' ? 'the Task Manager' : 'the system keys';
   const LEVELS = [
     {
       id: 'advisory',
@@ -21,16 +30,20 @@
       name: 'FIRM',
       tag: 'level 1000 · escapable',
       tone: 'amber',
-      desc: 'Full-screen above the menu bar, focus snaps back every 300ms, other displays sealed by the chaos lab, media paused and muted. Switching away is useless, but Force Quit and ⌘⌥⎋ still work if something goes wrong.',
-      blocks: 'blocks: Dock, menu bar · keeps: Force Quit',
+      desc: mac
+        ? 'Full-screen above the menu bar, focus snaps back every 300ms, other displays sealed, media paused and muted. Switching away is useless, but Force Quit and ⌘⌥⎋ still work if something goes wrong.'
+        : `Full screen, always on top, focus snaps back every 300ms, other displays sealed${PLATFORM === 'linux' ? ', media paused and muted where playerctl and pactl exist' : ''}. Switching away is useless, but ${switchKey} and ${quitKey} still work if something goes wrong.`,
+      blocks: mac ? 'blocks: Dock, menu bar · keeps: Force Quit' : `holds: the screen, the focus · keeps: ${switchKey}, ${quitKey}`,
     },
     {
       id: 'hard',
       name: 'HARD',
-      tag: 'no mercy',
+      tag: mac ? 'no mercy' : 'as FIRM on this platform',
       tone: 'red',
-      desc: 'Everything in FIRM, plus ⌘Tab, Force Quit, ⌘⌥⎋, logout and shutdown are disabled while locked. The only exits are: finish the session, pass a perfect adaptive exit-check round, or type the break-glass phrase (streak resets).',
-      blocks: 'blocks: ⌘Tab, Force Quit, logout, shutdown',
+      desc: mac
+        ? 'Everything in FIRM, plus ⌘Tab, Force Quit, ⌘⌥⎋, logout and shutdown are disabled while locked. The only exits are: finish the session, pass a perfect adaptive exit-check round, or type the break-glass phrase (streak resets).'
+        : `${PLATFORM_NAME[PLATFORM]} does not let an application disable ${switchKey}, ${quitKey}, logout or shutdown, so HARD holds the desk the way FIRM does. The lesson still ends only by finishing it, the break-glass phrase, the recovery console or a release token.`,
+      blocks: mac ? 'blocks: ⌘Tab, Force Quit, logout, shutdown' : `holds: the screen, the focus · keeps: ${switchKey}, ${quitKey}`,
     },
   ];
 </script>
@@ -54,11 +67,11 @@
   <p class="lvl-desc">{l.desc}</p>
   <p class="lvl-blocks mono">{l.blocks}</p>
 {/each}
-{#if value === 'hard'}
+{#if value === 'hard' && mac}
   <div class="hard-warn mono">
     <TriangleAlert size={11} /> HARD means it: while locked, this machine does nothing else. If the app ever misbehaves
-    mid-lock, recovery needs another machine or Safe Mode (see README → Recovery). The
-    white-screen guard and the ~/principia-unlock release token remain as last resorts.
+    mid-lock, the recovery console (Control + Option + Shift + U, or five presses in ten seconds), the
+    ~/principia-unlock release token and the three-hour dead man's switch are what remain. Keep a USB stick by the desk.
   </div>
 {/if}
 

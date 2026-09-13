@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
+  import { PLATFORM, STORE_NAME } from '$lib/platform';
   import { Terminal, KeyRound, HardDrive, Check, Save } from 'lucide-svelte';
   import { api } from '$lib/ipc';
   import type { RunnerInfo, RunnerConfiguration } from '$lib/contracts/agents';
@@ -67,7 +68,7 @@
           {#if picked && !picked.available && docs[selected]}<a href={docs[selected]} target="_blank" rel="noreferrer" onclick={e => openRunnerLink(e).catch(e => error = String(e))}>Installation instructions →</a>{/if}
           {#if selected === 'custom' && draft}<label class="command">Custom command<input aria-label="Saved custom runner command" bind:value={draft.custom_command} placeholder={"'/path/to/agent' --print {prompt}"} /></label><p>Use {'{model}'} for the selected model and {'{prompt}'} for the prompt. Without {'{prompt}'}, the prompt is appended as the final argument.</p>{/if}
         {:else}
-          {#if allowKeyEditing}<div class="key-row">{#if keyOpen}<input type="password" aria-label={`${picked?.label} API key`} autocomplete="off" placeholder="Paste provider key" bind:value={keyInput} /><button type="button" class="ghost mono-ghost small" disabled={!!busy || !keyInput.trim()} onclick={() => saveKey()}>Save key</button>{:else}<button type="button" class="ghost mono-ghost small" onclick={() => keyOpen = true}>{picked?.available ? 'Replace key' : 'Add API key'}</button>{/if}{#if picked?.available}<button type="button" class="text-action" disabled={!!busy} onclick={() => saveKey(true)}>Clear saved key</button>{/if}</div><p>macOS keys use Keychain. Environment keys take priority.</p>{:else}<p>Manage shared API keys in Settings.</p>{/if}
+          {#if allowKeyEditing}<div class="key-row">{#if keyOpen}<input type="password" aria-label={`${picked?.label} API key`} autocomplete="off" placeholder="Paste provider key" bind:value={keyInput} /><button type="button" class="ghost mono-ghost small" disabled={!!busy || !keyInput.trim()} onclick={() => saveKey()}>Save key</button>{:else}<button type="button" class="ghost mono-ghost small" onclick={() => keyOpen = true}>{picked?.available ? 'Replace key' : 'Add API key'}</button>{/if}{#if picked?.available}<button type="button" class="text-action" disabled={!!busy} onclick={() => saveKey(true)}>Clear saved key</button>{/if}</div><p>Kept in {STORE_NAME[PLATFORM]}, never in the profile. Environment keys take priority.</p>{:else}<p>Manage shared API keys in Settings.</p>{/if}
           {#if selected === 'openrouter'}<button type="button" class="free-toggle" aria-pressed={freeOnly} onclick={toggleFree}><span>{#if freeOnly}<Check size={11} />{/if}</span>Free models only</button>{/if}
         {/if}
         {#if loading}<p role="status">Loading runner setup…</p>{:else if draft}<ModelLibrary runner={selected} bind:models={draft.models} freeOnly={selected === 'openrouter' && freeOnly} revision={catalogueRevision} />{/if}

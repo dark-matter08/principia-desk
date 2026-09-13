@@ -86,7 +86,17 @@ export const sectionSchema = z.discriminatedUnion("kind", [
         key: z.string(),
         label: z.string(),
         tagline: z.string().optional(),
-        needs: z.array(z.object({ name: z.string(), detail: z.string(), href: z.string().optional() })).default([]),
+        needs: z
+          .array(
+            z.object({
+              name: z.string(),
+              detail: z.string(),
+              href: z.string().optional(),
+              /** Only for these platforms; without it, the line shows on every tab. */
+              os: z.array(z.enum(["macos", "windows", "linux"])).optional(),
+            }),
+          )
+          .default([]),
         steps: z.array(
           z.object({
             title: z.string(),

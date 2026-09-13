@@ -6,7 +6,7 @@
 
 [![Site](https://img.shields.io/badge/site-principia.ndelucien.com-ef9f27)](https://principia.ndelucien.com) [![Release](https://img.shields.io/github/v/release/dark-matter08/principia-desk?color=534ab7)](https://github.com/dark-matter08/principia-desk/releases/latest) [![CI](https://github.com/dark-matter08/principia-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/dark-matter08/principia-desk/actions/workflows/ci.yml) [![Licence](https://img.shields.io/badge/licence-MIT-9fe1cb)](LICENSE)
 
-**Understand deeply. Practice daily.** A macOS desk for learning subjects from their foundations: nine classes with personal starting points, lessons taught by your own AI tutor from verified primary sources, durable appointments, and enforcement you choose per class. The site is [principia.ndelucien.com](https://principia.ndelucien.com); the story of how it came to be is on [ndelucien.com](https://ndelucien.com).
+**Understand deeply. Practice daily.** A desktop study desk, for macOS, Windows and Linux, for learning subjects from their foundations: nine classes with personal starting points, lessons taught by your own AI tutor from verified primary sources, durable appointments, and enforcement you choose per class. The site is [principia.ndelucien.com](https://principia.ndelucien.com); the story of how it came to be is on [ndelucien.com](https://ndelucien.com).
 
 Principia Desk keeps the visual character of its predecessor and its database, and replaces the once-a-day routine with classes you schedule, a shared study runtime that saves every step, and honest progress denominators.
 
@@ -72,13 +72,13 @@ Each language ships 40 scenario units across A1–B2 with seven passes per scena
 
 ## Enforcement you choose per class
 
-Each class carries a focus policy: **advisory** (the window comes to front, nothing is blocked), **focused** (full-screen above the menu bar, focus snaps back, other displays sealed, media paused; Force Quit still works) or **strict** (also blocks Cmd+Tab, Force Quit, logout and shutdown while locked). A native focus coordinator admits one focused or strict session at a time, engages the kiosk when it activates, releases it on completion, skip or the escape hatch, and re-engages after a restart. Starting another class while a focused session holds the desk is refused; the focused session cannot be paused from the lesson.
+Each class carries a focus policy: **advisory** (the window comes to front, nothing is blocked), **focused** (full screen, always on top, focus snaps back every 300 ms, other displays sealed, media paused; switching away is useless but nothing at the system level is disabled) or **strict** (also blocks application switching, Force Quit, logout and shutdown while locked). The system-level part of strict is what the platform lets an application do: macOS lets the desk hide the Dock and disable Cmd+Tab, Force Quit, logout and shutdown; Windows and Linux do not hand that to an application, so there strict holds the desk the way focused does and the ways out below are the same. A native focus coordinator admits one focused or strict session at a time, engages the kiosk when it activates, releases it on completion, skip or the escape hatch, and re-engages after a restart. Starting another class while a focused session holds the desk is refused; the focused session cannot be paused from the lesson.
 
 ![Class settings with enforcement](docs/screenshots/17-class-settings-enforcement.png)
 
 ### Ways out of a locked session
 
-Strict mode blocks Cmd+Tab, Force Quit and logout, so it must never be the only thing standing between you and your own machine. Five ways out, in the order you would reach for them:
+Strict mode blocks application switching, Force Quit and logout where the platform allows it, so it must never be the only thing standing between you and your own machine. Five ways out, on every platform, in the order you would reach for them:
 
 1. **Finish the check.**
 2. **Break glass.** A dim link reveals a long phrase rendered as non-copyable SVG (paste disabled). Typing it pauses the focused class lesson with its work kept and releases the lock; three wrong attempts lock the input for 60 seconds.
@@ -96,8 +96,8 @@ Strict mode blocks Cmd+Tab, Force Quit and logout, so it must never be the only 
    The combination is one registration, named per platform by the desk itself: macOS calls it Control + Option + Shift + U (a system hot key, no permission needed, works over full-screen apps and on every Space); Windows and Linux call it Ctrl + Alt + Shift + U. On Windows another program already holding the combination makes registration fail; on Linux it needs X11, since Wayland desktops do not hand global shortcuts to applications. Settings › Recovery shows whether the system took it; when it did not, the release token and the escape hatch still stand.
 4. **A release token.** Create a file or folder named `principia-unlock` in any of these places and the lock releases within a second:
    - your home directory (`touch ~/principia-unlock`),
-   - the temporary directory (`/tmp` on macOS and Linux),
-   - **the root of any mounted volume**: a USB stick, an external disk, a mounted share.
+   - the temporary directory (`/tmp` on macOS and Linux, `%TEMP%` on Windows),
+   - **the root of any mounted volume**: a USB stick, an external disk, a mounted share (`/Volumes` on macOS; `/media`, `/run/media` and `/mnt` on Linux; every drive letter from D: on Windows).
 
    The volume rule is the one that needs no terminal and no second machine: prepare a stick once, keep it near the desk, and plug it in. While a token exists the kiosk also refuses to engage at all, so a machine that boots with the stick in stays free. Delete the token to re-arm.
 5. **The dead man's switch.** A lock releases itself after three hours regardless of what the app believes. No lesson runs that long; a lock still standing is a stuck process, and it lets go.
@@ -109,14 +109,23 @@ A force shutdown alone does not end a session: an active focused session reopens
 The kiosk refuses to engage until the webview reports ready (white-screen guard), so a dead frontend cannot hold a lock. If you are ever stuck anyway:
 
 1. **Open the recovery console** with Control + Option + Shift + U and walk the four steps above; or press the combination five times in ten seconds if no console appears.
-2. **Plug in the release stick** described above, or create the file from another machine over SSH or Screen Sharing:
+2. **Plug in the release stick** described above, or create the token and stop the desk's own scheduler from another machine or another session:
    ```bash
+   # macOS: the launch agent
    touch ~/principia-unlock
    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.darkmatter.principia-desk.plist
    rm -f ~/Library/LaunchAgents/com.darkmatter.principia-desk.plist
+   # Linux: the systemd user timer
+   touch ~/principia-unlock
+   systemctl --user disable --now principia-desk.timer
    ```
-3. **Safe Mode** (Apple Silicon: hold power → pick disk → hold Shift): third-party LaunchAgents do not load. Run the same commands in Terminal, reboot.
-4. **Recovery Mode Terminal**: `rm "/Volumes/Macintosh HD/Users/<you>/Library/LaunchAgents/com.darkmatter.principia-desk.plist"` and `touch "/Volumes/Macintosh HD/Users/<you>/principia-unlock"`, then reboot.
+   ```powershell
+   # Windows: the Task Scheduler entry
+   New-Item -ItemType File "$HOME\principia-unlock"
+   schtasks /Delete /TN "Principia Desk" /F
+   ```
+3. **A session that starts nothing.** macOS Safe Mode (Apple Silicon: hold power → pick disk → hold Shift) loads no third-party launch agents; Windows Safe Mode runs no scheduled tasks; a Linux console session (Ctrl+Alt+F3) has no desktop for the window to hold. Run the commands above there, reboot.
+4. **From outside the system.** macOS Recovery Mode Terminal: `rm "/Volumes/Macintosh HD/Users/<you>/Library/LaunchAgents/com.darkmatter.principia-desk.plist"` and `touch "/Volumes/Macintosh HD/Users/<you>/principia-unlock"`; a live USB on Linux or Windows: the same token file in the home folder of the mounted disk. Then reboot.
 
 Nothing here depends on the main window being healthy: the console is its own window on a system-wide shortcut, the token is checked by the same loop that holds focus, and the dead man's switch fires without any input at all.
 
@@ -125,7 +134,7 @@ Nothing here depends on the main window being healthy: the console is its own wi
 Settings separates **Runners & models** from the **Active tutor**. Three runner routes are supported:
 
 - **An agent I already have:** Claude Code, Codex, Cursor Agent, Gemini CLI or a custom command. Each CLI keeps its existing authentication.
-- **My own API key:** Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, Mistral or DeepSeek. Keys are shared by the desk and its classes; on macOS, save them in Keychain from Settings. Environment keys take priority.
+- **My own API key:** Anthropic, OpenAI, Google Gemini, OpenRouter, Groq, Mistral or DeepSeek. Keys are shared by the desk and its classes and saved from Settings into the platform's own secret store: the Keychain on macOS, the Credential Manager on Windows, the desktop's secret service (GNOME Keyring, KWallet) on Linux. Environment keys take priority.
 - **On this machine:** Ollama installation, detection and start, installed models, a model shelf with approximate download and RAM sizes, background downloads, testing and removal. Local models answer locally; the teaching backend still fetches source documentation from the web.
 
 Each class keeps its own tutor choice and prompt contract. Every request carries the desk's writing rules and every answer is read for the tells of machine writing (the signs Wikipedia's editors document: stock vocabulary, empty constructions, chat openers, em dashes) and sent back when it fails them; see [docs/WRITING_RULES.md](docs/WRITING_RULES.md). Lesson generation uses exactly the configured provider and model and must pass the full course, five-check, exercise, source and first-principles quality gate; a missed gate gets one same-provider correction pass and a same-provider senior-editor review, otherwise the real error is shown. Bundled reference lessons exist for every engineering course in five roles (beginner, advanced, remediation, retrieval, capstone); they feed retrieval sessions and offline checks and are never substituted for a generated lesson. See [the runner implementation record](docs/AGENT_BACKEND_PORT.md).
@@ -138,7 +147,7 @@ Every concept carries a specific curriculum brief: learner outcome, named mechan
 
 ## Always on: the menu bar desk and the study alarm
 
-The desk stays resident. Closing the window or pressing Cmd+Q hides it behind a menu bar icon; the launch agent starts it at login and at every study time, and Quit lives in the icon's menu. That menu says what is due, what comes next and when, and lists today's appointments with their state.
+The desk stays resident. Closing the window or pressing Cmd+Q (Alt+F4 elsewhere) hides it behind a menu bar icon (the system tray on Windows and Linux); the scheduler starts it at login and at every study time, and Quit lives in the icon's menu. That menu says what is due, what comes next and when, and lists today's appointments with their state. On macOS the panel is a native, non-activating panel that opens over full-screen apps; on Windows and Linux it is a small window at the icon.
 
 When an appointment comes due the desk sends a system notification and starts an alarm that repeats until the lesson starts. The menu bar shows the class as due, Today shows the same banner, and both offer exactly two things: **Start**, and a **snooze** of 5, 10 or 15 minutes that rings again when it passes. There is no dismiss. The break-glass phrase lives inside the started lesson, so the way out of a session still exists, but only after it has begun. Quit is withheld while an alarm rings or a focused session holds the desk.
 
@@ -146,7 +155,7 @@ Two things outrank the alarm, because nothing here may hold a machine hostage: p
 
 ## Scheduling
 
-A launchd LaunchAgent (`~/Library/LaunchAgents/com.darkmatter.principia-desk.plist`) fires the app at every enabled study time with one `StartCalendarInterval` array:
+The desk registers itself with the platform's own scheduler and fires at every enabled study time: a launchd LaunchAgent on macOS (`~/Library/LaunchAgents/com.darkmatter.principia-desk.plist`, one `StartCalendarInterval` array), a systemd user timer on Linux (`~/.config/systemd/user/principia-desk.{service,timer}`), a Task Scheduler entry on Windows (`schtasks`, task name `Principia Desk`). The entry is checked on every launch and reinstalled when it is missing or names another executable.
 
 - A time missed while **asleep** fires on wake; missed while **powered off** fires at next login, and the app materializes the day's appointments on every launch and every 60 s.
 - Already running: an in-app watcher marks appointments due at the scheduled minute; focused and strict classes engage the kiosk when their session activates.
@@ -156,11 +165,11 @@ A launchd LaunchAgent (`~/Library/LaunchAgents/com.darkmatter.principia-desk.pli
 
 ### Prerequisites
 
-- macOS 13+
+- macOS 13+, Windows 10+ (the installer brings WebView2 if it is missing), or a Linux desktop with WebKitGTK 4.1 (Ubuntu 22.04+, Fedora 36+, Debian 12+ and their relatives).
 - A supported CLI, a provider API key, or Ollama with a downloaded chat model.
-- To build: Rust 1.80+, Node 20+.
+- To build: Rust 1.80+, Node 20+; on Linux also `libwebkit2gtk-4.1-dev`, `libappindicator3-dev`, `librsvg2-dev`, `patchelf` and `libgtk-3-dev`.
 
-For an installed app, choose **My own API key** in Settings and save a key for the provider you want. Keys use the `principia-desk` Keychain service with separate `<provider>_api_key` accounts; a key saved under the previous service name is still read, so an upgrade never looks like a lost key. On other platforms, supply `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY` (or `GEMINI_API_KEY`), `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY` or `DEEPSEEK_API_KEY` to the process.
+For an installed app, choose **My own API key** in Settings and save a key for the provider you want. Keys live in the platform's secret store under the `principia-desk` service with separate `<provider>_api_key` accounts (the Keychain on macOS, the Credential Manager on Windows, the Secret Service on Linux); a key saved under the previous service name is still read, so an upgrade never looks like a lost key. A machine with no secret store answering, or a headless one, takes `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY` (or `GEMINI_API_KEY`), `OPENROUTER_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY` or `DEEPSEEK_API_KEY` from the environment instead, and those win over a stored key everywhere.
 
 ### Build from source
 
@@ -168,17 +177,17 @@ For an installed app, choose **My own API key** in Settings and save a key for t
 git clone https://github.com/dark-matter08/principia-desk.git
 cd principia-desk
 npm install
-npm run tauri build -- --bundles app
-cp -R "src-tauri/target/release/bundle/macos/Principia Desk.app" /Applications/
+npm run tauri dev           # against a dev server, hot reload
+npm run tauri build         # the installers for this machine, under src-tauri/target/release/bundle/
 ```
 
-Launch it, complete the setup (escape phrase and tutor check), add a class with a starting point and a study time, and it is armed.
+`--bundles app` on macOS builds only the `.app` (`cp -R "src-tauri/target/release/bundle/macos/Principia Desk.app" /Applications/`); `--bundles msi,nsis` on Windows and `--bundles deb,rpm,appimage` on Linux pick the packages. Launch it, complete the setup (escape phrase and tutor check), add a class with a starting point and a study time, and it is armed.
 
-> **Heads-up:** the app is ad-hoc signed. First launch may require right-click → Open, or `xattr -dr com.apple.quarantine "/Applications/Principia Desk.app"`.
+> **Heads-up:** the builds are unsigned. On macOS the first launch is right-click → Open, or `xattr -dr com.apple.quarantine "/Applications/Principia Desk.app"`; on Windows, SmartScreen asks for **More info → Run anyway**; on Linux, `chmod +x` the AppImage.
 
 ### Releases
 
-Every [release](https://github.com/dark-matter08/principia-desk/releases) carries installers for each platform, built by `.github/workflows/release.yml` when a version tag is pushed: Apple Silicon and Intel disk images, a Windows MSI and NSIS installer, and a Linux `.deb`, `.rpm` and AppImage. They are unsigned: on macOS see the heads-up above; on Windows, SmartScreen asks for **More info → Run anyway**; on Linux, `chmod +x` the AppImage. To cut one, set the version everywhere it is written, note it in the changelog, tag and push:
+Every [release](https://github.com/dark-matter08/principia-desk/releases) carries installers for each platform, built by `.github/workflows/release.yml` when a version tag is pushed: Apple Silicon and Intel disk images, a Windows MSI and NSIS installer, and a Linux `.deb`, `.rpm` and AppImage. They are unsigned (see the heads-up above). To cut one, set the version everywhere it is written, note it in the changelog, tag and push:
 
 ```bash
 npm run version:set -- 0.2.0
@@ -193,8 +202,8 @@ The workflow verifies the tree first, refuses a tag that does not match the vers
 The product carried its old identifiers for a while so a rename could not strand anyone's history. They have now moved with the name, and the first launch under the new identity brings the old profile across rather than starting you empty:
 
 - The bundle identifier is `com.darkmatter.principia-desk` and the database is `principia.db`. If this build finds no profile of its own, it takes a consolidated copy of the one written under the old identifier, including anything still in its write-ahead log, and leaves the original untouched.
-- The Keychain service is `principia-desk`. Reads fall back to the old service, so saved provider keys keep working.
-- The launch agent is `com.darkmatter.principia-desk`. The agent installed under the old identity is unloaded and deleted on first launch, so a machine never carries two.
+- The secret store service is `principia-desk`. Reads fall back to the old service, so saved provider keys keep working.
+- The scheduler entry is `com.darkmatter.principia-desk` (the launch agent), `principia-desk` (the systemd timer) or `Principia Desk` (the scheduled task). The one installed under the old identity is unloaded and deleted on first launch, so a machine never carries two.
 - The release token is `principia-unlock`, and a stick prepared with the old `sdr-unlock` name still frees a locked desk.
 
 Numbered migrations still run after a pre-upgrade backup, and finished daily-routine sessions still import into the shared runtime once. See [docs/STORAGE.md](docs/STORAGE.md).
@@ -217,13 +226,13 @@ Numbered migrations still run after a pre-upgrade backup, and finished daily-rou
 │  domain/challenges.rs   unit challenges                                    │
 │  domain/schedule.rs     durable appointments                               │
 │  subjects/              engineering and language adapters                  │
-│  enforcement.rs         focus coordinator; kiosk.rs the macOS lock         │
+│  enforcement.rs         focus coordinator; kiosk.rs the lock, per platform │
 │  storage/               numbered migrations, backups, legacy import        │
 │  generator.rs           strict lesson generation and bundled references    │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Design principle: **Rust owns all authority.** Lifecycles, locks, grading and selection live in the backend; the webview renders and requests transitions, which Rust validates. Data lives in `~/Library/Application Support/com.darkmatter.principia-desk/` as a SQLite database with WAL journaling and pre-upgrade backups. Contracts are described in [docs/SHARED_SESSION_RUNTIME.md](docs/SHARED_SESSION_RUNTIME.md) and [docs/STORAGE.md](docs/STORAGE.md); the design system in [DESIGN.md](DESIGN.md).
+Design principle: **Rust owns all authority.** Lifecycles, locks, grading and selection live in the backend; the webview renders and requests transitions, which Rust validates. Data lives in the app's data directory (`~/Library/Application Support/com.darkmatter.principia-desk/` on macOS, `%APPDATA%\com.darkmatter.principia-desk\` on Windows, `~/.local/share/com.darkmatter.principia-desk/` on Linux) as a SQLite database with WAL journaling and pre-upgrade backups. Contracts are described in [docs/SHARED_SESSION_RUNTIME.md](docs/SHARED_SESSION_RUNTIME.md) and [docs/STORAGE.md](docs/STORAGE.md); the design system in [DESIGN.md](DESIGN.md).
 
 ## Documentation
 
@@ -258,7 +267,7 @@ Useful flags and env vars:
 | Flag / env | Effect |
 |---|---|
 | `--debug-day` | No OS lock (the focus coordinator only records the lock), schedule ignored |
-| `--triggered` | What launchd passes; goes straight to the appointment check |
+| `--triggered` | What the scheduler passes; goes straight to the appointment check |
 | `PRINCIPIA_DATE=2026-06-12` | Override "today" for multi-day flows |
 | `PRINCIPIA_CLAUDE_BIN=/path` | Override the Claude binary (`/usr/bin/false` makes preparation fail deliberately) |
 | `PRINCIPIA_CODEX_BIN=none` | Disable the Codex runner |
