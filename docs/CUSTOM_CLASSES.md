@@ -108,15 +108,11 @@ The view carries `checks`: whether the review exists and is current, how many fi
 
 A third card on the Verify step asks the tutor for the bank: three cited four-choice questions per stage on core topics of that stage, in the placement check's own shape (`placement::Question` with a `source`, and `voided`/`void_reason` for disputes). `class_builder::bank_from_written` holds the tutor's answer to that shape and sends the reasons back once. The bank is stored on the class (migration v14) and registered with the course; `placement::bank` and `has_bank` answer for a custom course from the registry, leaving voided questions out, and a bank counts only while every stage still has three usable questions. Enrollment options and the curriculum map say whether the check and unit challenges are available. A learner disputes a key from the placement result (**This key is wrong**); the question is set aside and listed as disputed in the builder until the bank is written again.
 
-### 2.7a Banks for bundled classes
-
-The same writer serves a bundled class: `class_builder::draft_of_bundled` reads the course definition and its concepts as a draft (slugs bare, so the questions' competencies are the concept slugs), and `write_course_bank` keeps the result in `course_banks` (migration v16), registered in front of the authored bank for `placement::has_bank` and `placement::bank`. **Restore the bundled bank** deletes the row. Every engineering class's Curriculum tab carries a question-bank strip that says which bank stands (bundled, written, none), with the keys to write one or go back.
-
-### 2.7a Practice questions
+### 2.8 Practice questions
 
 Every engineering class's Curriculum tab has a **Practice questions** strip: extra cited questions the tutor writes eight at a time for a chosen stage (`Generator::write_practice_questions`, held to the shared question shape by `class_builder::practice_from_written`, electives allowed, prompts already held not repeated), kept in `course_banks` (migration v16) and shown in a practice sheet where a learner picks an answer, sees the key, the explanation and the source, and can dispute a key. They are never sampled by the placement check or the unit challenges, which draw on a separate bank the learner does not see beforehand (the authored one for a bundled class, the one written in the builder for a learner's own class; the strip says which and how many). A bundled class reads as a draft for the writer through `class_builder::draft_of_bundled` (concept slugs bare, so competencies match the course's concepts).
 
-### 2.8 Trying the tutor calls for real
+### 2.9 Trying the tutor calls for real
 
 `cargo test --test custom_tutor_live -- --ignored --nocapture` runs the drafting, review and bank calls, and a first read followed by a confirmation read, against a real runner (Ollama and `qwen2.5:7b` by default; `PRINCIPIA_LIVE_AGENT` and `PRINCIPIA_LIVE_MODEL` choose another) and prints what came back. On 2026-09-12 with the 7B model: a draft of 6 to 9 topics in 80 to 135 s that parsed, normalized and passed all but one or two validator checks after the correction round; a review of six findings with proposed fixes; and a bank that the shape check refused with a named reason (a stage two questions short). Larger models are expected to meet the 12-to-36 topic ask and the three-per-stage rule; the checks stand either way.
 

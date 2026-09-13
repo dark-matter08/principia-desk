@@ -1,0 +1,87 @@
+---
+import Base from "../../layouts/Base.astro";
+import { getSite } from "../../lib/content";
+import { DOCS, loadDoc } from "../../lib/docs";
+
+export function getStaticPaths() {
+  return DOCS.map((doc) => ({ params: { slug: doc.slug } }));
+}
+const site = getSite();
+const source = DOCS.find((d) => d.slug === Astro.params.slug)!;
+const doc = loadDoc(source);
+const index = DOCS.findIndex((d) => d.slug === doc.slug);
+const previous = DOCS[index - 1];
+const next = DOCS[index + 1];
+const toc = doc.headings.filter((h) => h.depth <= 3);
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    headline: doc.title,
+    description: doc.summary,
+    url: new URL(`/docs/${doc.slug}`, site.url).toString(),
+    isPartOf: { "@type": "WebSite", name: site.name, url: site.url },
+    author: { "@type": "Person", name: "Nde Che Lucien" },
+    license: "https://opensource.org/licenses/MIT",
+  },
+];
+---
+<Base title={`${doc.title} · ${site.name}`} description={doc.summary} path={`/docs/${doc.slug}`} {jsonLd}>
+  <section class="section doc-page">
+    <div class="frame layout">
+      <aside class="rail">
+        <a class="back mono" href="/docs">← Documentation</a>
+        <nav aria-label="Documentation pages">
+          {(["using", "building", "project"] as const).map((g) => (
+            <div class="rail-group">
+              <span class="mono rail-head">{g === "using" ? "USING THE DESK" : g === "building" ? "HOW IT IS BUILT" : "THE PROJECT"}</span>
+              <ul>{DOCS.filter((d) => d.group === g).map((d) => <li><a href={`/docs/${d.slug}`} aria-current={d.slug === doc.slug ? "page" : undefined}>{d.title}</a></li>)}</ul>
+            </div>
+          ))}
+        </nav>
+      </aside>
+      <article class="body">
+        <div class="section-head"><span class="eyebrow">{doc.group === "using" ? "Using the desk" : doc.group === "building" ? "How it is built" : "The project"}</span><h1>{doc.title}</h1><p>{doc.summary}</p><p class="from mono">from <a href={doc.source} rel="noopener">{doc.file}</a> at build time</p></div>
+        {toc.length > 2 && (
+          <nav class="toc node" aria-label="On this page">
+            <span class="mono toc-head">ON THIS PAGE</span>
+            <ol>{toc.map((h) => <li class={`d${h.depth}`}><a href={`#${h.id}`}>{h.text}</a></li>)}</ol>
+          </nav>
+        )}
+        <div class="prose doc" set:html={doc.html} />
+        <footer class="turn">
+          {previous ? <a class="key ghost" href={`/docs/${previous.slug}`}>← {previous.title}</a> : <span />}
+          {next && <a class="key ghost" href={`/docs/${next.slug}`}>{next.title} →</a>}
+        </footer>
+      </article>
+    </div>
+  </section>
+</Base>
+<style>
+  .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 40px; align-items: start; }
+  .rail { position: sticky; top: 24px; display: flex; flex-direction: column; gap: 18px; }
+  .back { font-size: 11px; color: var(--muted); text-decoration: none; } .back:hover { color: var(--fg); }
+  .rail-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .rail-head { font-size: 9.5px; letter-spacing: 1.4px; color: var(--faint); }
+  .rail ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+  .rail li a { display: block; padding: 5px 10px; border-left: 2px solid transparent; border-radius: 0 6px 6px 0; color: var(--muted); font-size: 13px; text-decoration: none; }
+  .rail li a:hover { color: var(--fg); background: var(--surface); }
+  .rail li a[aria-current="page"] { color: var(--fg); border-left-color: var(--accent); background: var(--surface); }
+  h1 { font-size: clamp(30px, 4vw, 44px); }
+  .from { font-size: 11px !important; color: var(--faint) !important; } .from a { color: var(--muted); }
+  .toc { padding: 12px 16px 14px; margin: 0 0 28px; max-width: 72ch; }
+  .toc-head { display: block; margin-bottom: 8px; font-size: 9.5px; letter-spacing: 1.4px; color: var(--faint); }
+  .toc ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+  .toc li.d3 { padding-left: 14px; } .toc a { color: var(--muted); text-decoration: none; } .toc a:hover { color: var(--fg); }
+  .doc :global(h2) { font-size: 24px; scroll-margin-top: 20px; } .doc :global(h3) { font-size: 18px; scroll-margin-top: 20px; } .doc :global(h4) { font-size: 15px; margin: 22px 0 8px; color: var(--fg); scroll-margin-top: 20px; }
+  .doc :global(.anchor) { color: inherit; text-decoration: none; } .doc :global(.anchor:hover::after) { content: " #"; color: var(--accent); }
+  .doc :global(pre) { margin: 0 0 16px; padding: 12px 14px; overflow-x: auto; border: 1px solid var(--node-border); border-radius: var(--radius-s); background: var(--surface); font-size: 12.5px; line-height: 1.6; }
+  .doc :global(code) { font-size: 0.92em; }
+  .doc :global(pre code) { font-size: inherit; }
+  .doc :global(blockquote) { margin: 0 0 14px; padding: 8px 14px; border-left: 2px solid var(--accent); background: var(--surface); }
+  .doc :global(figure) { margin: 18px 0; } .doc :global(figure img) { width: 100%; height: auto; border: 1px solid var(--node-border); border-radius: var(--radius); } .doc :global(figcaption) { margin-top: 6px; font-size: 12px; color: var(--faint); }
+  .doc :global(hr) { border: 0; border-top: 1px solid var(--node-divider); margin: 28px 0; }
+  .doc :global(a) { color: var(--accent); }
+  .turn { display: flex; justify-content: space-between; gap: 12px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--node-divider); max-width: 72ch; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; gap: 20px; } .rail { position: static; } .rail nav { display: none; } }
+</style>

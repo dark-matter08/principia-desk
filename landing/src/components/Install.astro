@@ -1,41 +1,267 @@
 ---
 import type { Section } from "../lib/schema";
+import { getSite } from "../lib/content";
+import { latestRelease, apiLatest, megabytes, type AssetKind } from "../lib/release";
 type Install = Extract<Section, { kind: "install" }>;
 const { s } = Astro.props as { s: Install };
+const site = getSite();
+const release = await latestRelease();
+const OS_LABEL = { macos: "macOS", windows: "Windows", linux: "Linux" } as const;
+type Os = keyof typeof OS_LABEL;
+/** The platforms a route has words for, in a fixed order, so the row reads the same on every route. */
+const platformsFor = (tab: Install["tabs"][number]): Os[] => {
+  const seen = new Set(tab.steps.flatMap((st) => st.variants.flatMap((v) => v.os)));
+  return (["macos", "windows", "linux"] as const).filter((o) => seen.has(o));
+};
+const asset = (kind: AssetKind) => release?.assets.find((a) => a.kind === kind) ?? null;
+const ASSET_WORDS: Record<AssetKind, string> = {
+  "macos-aarch64": "Apple Silicon disk image",
+  "macos-x86_64": "Intel disk image",
+  "windows-msi": "MSI installer",
+  "windows-exe": "Setup program",
+  "linux-deb": ".deb for Debian and Ubuntu",
+  "linux-rpm": ".rpm for Fedora and openSUSE",
+  "linux-appimage": "AppImage for any distribution",
+};
 ---
 <section class="section" id={s.key} aria-labelledby={`${s.key}-title`}>
   <div class="frame">
     <div class="section-head"><span class="eyebrow">{s.kicker}</span><h2 id={`${s.key}-title`}>{s.title}</h2>{s.lede && <p>{s.lede}</p>}</div>
-    <div class="install">
-      <div class="node req">
-        <div class="node-head"><span class="name"><i class="led accent"></i>requirements</span></div>
-        <ul>{s.requirements.map((r) => <li set:html={r} />)}</ul>
-        {s.links.length > 0 && <div class="links">{s.links.map((l) => <a href={l.href} class:list={["key", l.primary ? "cta" : "ghost"]} rel="noopener">{l.label}</a>)}</div>}
+
+    <p class="release mono">
+      <span class="release-k">Latest release</span>
+      <a href={release?.url ?? site.releases} data-release-tag rel="noopener">{release?.tag ?? "see the releases page"}</a>
+      {release?.publishedAt && <span class="release-when" data-release-when>· {new Date(release.publishedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>}
+      <span class="release-count" data-release-count>{release ? `· ${release.assets.length} installers` : ""}</span>
+    </p>
+
+    <div class="routes">
+      <div class="route-tabs" role="tablist">
+        {s.tabs.map((t) => <label class="route-tab" for={`${s.key}-${t.key}`}>{t.label}</label>)}
       </div>
-      <ol class="steps">
-        {s.steps.map((st, i) => (
-          <li class="node step">
-            <div class="step-head"><span class="mono no">{String(i + 1).padStart(2, "0")}</span><strong>{st.title}</strong></div>
-            <p set:html={st.body} />
-            {st.code && <pre><code>{st.code}</code></pre>}
-          </li>
-        ))}
-      </ol>
+
+      {s.tabs.map((t, i) => (
+        <>
+        {/* Radios, not buttons: choosing a route needs no scripting, and with scripting off both routes show in full. */}
+        <input type="radio" name={`${s.key}-route`} id={`${s.key}-${t.key}`} class="route-radio" checked={i === 0} />
+        <div class="route-panel node">
+          {t.tagline && <p class="route-tagline">{t.tagline}</p>}
+          <div class="os-scope">
+            {platformsFor(t).length > 0 && (
+              <div class="os-tabs">
+                {platformsFor(t).map((o) => (
+                  <>
+                    <input type="radio" name={`${s.key}-${t.key}-os`} id={`${s.key}-${t.key}-os-${o}`} class="os-radio" value={o} />
+                    <label class="os-tab" data-os={o} for={`${s.key}-${t.key}-os-${o}`}>{OS_LABEL[o]}</label>
+                  </>
+                ))}
+              </div>
+            )}
+
+            {t.needs.length > 0 && (
+              <div class="needs">
+                <span class="needs-h mono">BEFORE YOU START</span>
+                {t.needs.map((n) => (
+                  <span class="need">
+                    {n.href ? <a href={n.href} rel="noopener">{n.name}</a> : <strong>{n.name}</strong>}
+                    <em>{n.detail}</em>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <ol class="isteps">
+              {t.steps.map((st, n) => (
+                <li>
+                  <div class="istep-n mono">{String(n + 1).padStart(2, "0")}</div>
+                  <div class="istep-body">
+                    <h3>{st.title}</h3>
+                    {st.body && <p set:html={st.body} />}
+                    {st.code && (
+                      <div class="cmd" data-cmd={st.code}>
+                        <code>{st.code}</code>
+                        <button type="button" class="cmd-copy mono" aria-label="Copy command">copy</button>
+                      </div>
+                    )}
+                    {st.variants.map((v) => {
+                      const a = v.asset ? asset(v.asset) : null;
+                      return (
+                        <div class="variant" data-os={v.os.join(" ")}>
+                          <span class="variant-os mono">{v.label}</span>
+                          {v.body && <p class="variant-body">{v.href ? <a href={v.href} rel="noopener">{v.body}</a> : v.body}</p>}
+                          {v.code && (
+                            <div class="cmd" data-cmd={v.code}>
+                              <code>{v.code}</code>
+                              <button type="button" class="cmd-copy mono" aria-label={`Copy the ${v.label} command`}>copy</button>
+                            </div>
+                          )}
+                          {v.asset && (
+                            <a class="asset" href={a?.url ?? site.releases} data-asset={v.asset} rel="noopener">
+                              <span class="asset-icon" aria-hidden="true">↓</span>
+                              <span class="asset-text">
+                                <strong data-asset-name>{a?.name ?? `${ASSET_WORDS[v.asset]} on the releases page`}</strong>
+                                <small class="mono" data-asset-meta>{a ? `${ASSET_WORDS[v.asset]} · ${megabytes(a.bytes)}` : ASSET_WORDS[v.asset]}</small>
+                              </span>
+                            </a>
+                          )}
+                          {v.note && <p class="expect">{v.note}</p>}
+                        </div>
+                      );
+                    })}
+                    {st.expect && <p class="expect">{st.expect}</p>}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {t.after.length > 0 && (
+            <div class="after">
+              <span class="needs-h mono">AFTERWARDS</span>
+              <dl>{t.after.map((a) => <><dt><code>{a.code}</code></dt><dd>{a.body}</dd></>)}</dl>
+            </div>
+          )}
+          {t.footnote && <p class="footnote" set:html={t.footnote} />}
+        </div>
+        </>
+      ))}
     </div>
+
+    {s.links.length > 0 && <div class="links">{s.links.map((l) => <a href={l.href} class:list={["key", l.primary ? "cta" : "ghost"]} rel="noopener">{l.label}</a>)}</div>}
   </div>
+
+  <style is:inline set:html={s.tabs.map((t) => `.routes:has(#${s.key}-${t.key}:checked) .route-tab[for="${s.key}-${t.key}"]{color:var(--fg);border-color:var(--accent);background:var(--surface)}`).join("")} />
+
+  {/* Inline and synchronous, so the reader's platform is chosen before the section paints. With no scripting every platform shows. */}
+  <script is:inline>
+    (function () {
+      var d = navigator.userAgentData;
+      var hint = ((d && d.platform) || navigator.platform || "") + " " + navigator.userAgent;
+      var os = /mac|iphone|ipad|ipod/i.test(hint) ? "macos" : /win/i.test(hint) ? "windows" : "linux";
+      document.querySelectorAll(".os-tabs").forEach(function (row) {
+        var pick = row.querySelector('.os-radio[value="' + os + '"]') || row.querySelector(".os-radio");
+        if (pick) pick.checked = true;
+      });
+    })();
+  </script>
+
+  {/* The build knew the release of the day it ran; ask GitHub again here and correct the tag and every download. */}
+  <script is:inline define:vars={{ api: apiLatest() }}>
+    fetch(api, { headers: { accept: "application/vnd.github+json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.tag_name) return;
+        var tag = document.querySelector("[data-release-tag]");
+        if (tag) { tag.textContent = d.tag_name; if (d.html_url) tag.setAttribute("href", d.html_url); }
+        var when = document.querySelector("[data-release-when]");
+        if (when && d.published_at) when.textContent = "· " + new Date(d.published_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+        var kindOf = function (name) {
+          var n = name.toLowerCase();
+          if (n.slice(-4) === ".dmg") return n.indexOf("aarch64") >= 0 || n.indexOf("arm64") >= 0 ? "macos-aarch64" : "macos-x86_64";
+          if (n.slice(-4) === ".msi") return "windows-msi";
+          if (n.slice(-4) === ".exe") return "windows-exe";
+          if (n.slice(-4) === ".deb") return "linux-deb";
+          if (n.slice(-4) === ".rpm") return "linux-rpm";
+          if (n.slice(-9) === ".appimage") return "linux-appimage";
+          return null;
+        };
+        var assets = d.assets || [];
+        var count = document.querySelector("[data-release-count]");
+        if (count) count.textContent = "· " + assets.length + " installers";
+        assets.forEach(function (a) {
+          var kind = kindOf(a.name);
+          if (!kind) return;
+          document.querySelectorAll('[data-asset="' + kind + '"]').forEach(function (el) {
+            el.setAttribute("href", a.browser_download_url);
+            var name = el.querySelector("[data-asset-name]");
+            if (name) name.textContent = a.name;
+            var meta = el.querySelector("[data-asset-meta]");
+            if (meta) meta.textContent = meta.textContent.replace(/ · .*$|$/, " · " + (a.size / 1048576).toFixed(a.size > 52428800 ? 0 : 1) + " MB");
+          });
+        });
+      })
+      .catch(function () {});
+  </script>
 </section>
+
+<script>
+  // Copy is an enhancement: without it the command is selectable text. A refused
+  // clipboard selects the text instead so Cmd-C still works.
+  document.querySelectorAll<HTMLButtonElement>(".cmd-copy").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const wrap = btn.closest<HTMLElement>(".cmd");
+      const cmd = wrap?.dataset.cmd ?? "";
+      const flash = (text: string, cls: string) => {
+        const was = btn.textContent;
+        btn.textContent = text;
+        btn.classList.add(cls);
+        setTimeout(() => { btn.textContent = was; btn.classList.remove(cls); }, 1600);
+      };
+      try {
+        await navigator.clipboard.writeText(cmd);
+        flash("copied", "done");
+      } catch {
+        const code = wrap?.querySelector("code");
+        if (code) {
+          const range = document.createRange();
+          range.selectNodeContents(code);
+          const sel = window.getSelection();
+          sel?.removeAllRanges();
+          sel?.addRange(range);
+        }
+        flash("select + copy", "warn");
+      }
+    });
+  });
+</script>
+
 <style>
-  .install { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 14px; align-items: start; }
-  .req ul { margin: 0; padding: 12px 16px 16px 32px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; color: var(--muted); }
-  .req :global(code) { font-size: 12px; }
-  .links { display: flex; flex-direction: column; gap: 8px; padding: 0 16px 16px; }
-  .links .key { justify-content: center; }
-  .steps { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
-  .step { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; }
-  .step-head { display: flex; align-items: center; gap: 10px; }
-  .no { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; background: var(--surface-2); color: var(--accent); font-size: 10px; }
-  .step strong { font-size: 15px; font-weight: 500; }
-  .step p { font-size: 14px; line-height: 1.55; color: var(--muted); }
-  .step :global(code) { font-size: 12.5px; }
-  @media (max-width: 860px) { .install { grid-template-columns: 1fr; } }
+  .release { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: -16px 0 18px; font-size: 11px; letter-spacing: 0.6px; color: var(--faint); }
+  .release-k { text-transform: uppercase; } .release a { color: var(--accent); font-weight: 600; text-decoration: none; } .release a:hover { text-decoration: underline; }
+  .routes { display: flex; flex-direction: column; gap: 12px; }
+  .route-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .route-tab { display: inline-flex; align-items: center; min-height: 40px; padding: 8px 16px; border: 1px solid var(--node-border); border-radius: var(--radius-s); background: transparent; color: var(--muted); font: 600 12px/1 var(--font-mono); letter-spacing: 0.8px; text-transform: uppercase; cursor: pointer; }
+  .route-tab:hover { color: var(--fg); }
+  .route-radio { position: absolute; opacity: 0; pointer-events: none; }
+  .route-panel { display: none; padding: 18px 20px 20px; }
+  .route-radio:checked + .route-panel { display: block; }
+  .route-tagline { margin: 0 0 16px; font-size: 15px; color: var(--muted); line-height: 1.55; max-width: 70ch; }
+  .os-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .os-radio { position: absolute; opacity: 0; pointer-events: none; }
+  .os-tab { display: inline-flex; align-items: center; min-height: 32px; padding: 6px 12px; border: 1px solid var(--node-border); border-radius: 999px; color: var(--muted); font: 11px/1 var(--font-mono); letter-spacing: 0.6px; cursor: pointer; }
+  .os-tab:hover { color: var(--fg); }
+  /* One platform chosen shows only its variants; with none chosen (no scripting) every variant shows. */
+  .os-scope:has(.os-radio[value="macos"]:checked) .variant:not([data-os~="macos"]),
+  .os-scope:has(.os-radio[value="windows"]:checked) .variant:not([data-os~="windows"]),
+  .os-scope:has(.os-radio[value="linux"]:checked) .variant:not([data-os~="linux"]) { display: none; }
+  .os-scope:has(.os-radio[value="macos"]:checked) .os-tab[data-os="macos"],
+  .os-scope:has(.os-radio[value="windows"]:checked) .os-tab[data-os="windows"],
+  .os-scope:has(.os-radio[value="linux"]:checked) .os-tab[data-os="linux"] { color: var(--fg); border-color: var(--accent); background: var(--surface); }
+  .needs { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; padding: 12px 14px; border: 1px dashed var(--node-border); border-radius: var(--radius-s); }
+  .needs-h { font-size: 9.5px; letter-spacing: 1.4px; color: var(--faint); }
+  .need { display: flex; flex-wrap: wrap; gap: 6px 10px; font-size: 14px; } .need strong { color: var(--fg); font-weight: 500; } .need a { color: var(--accent); } .need em { color: var(--muted); font-style: normal; }
+  .isteps { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+  .isteps li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; }
+  .istep-n { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--surface-2); color: var(--accent); font-size: 10px; }
+  .istep-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .istep-body h3 { font-size: 16px; font-weight: 500; margin: 4px 0 0; }
+  .istep-body p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--muted); max-width: 72ch; }
+  .cmd { display: flex; align-items: stretch; gap: 0; border: 1px solid var(--node-border); border-radius: var(--radius-s); background: var(--surface); overflow: hidden; }
+  .cmd code { flex: 1; min-width: 0; padding: 10px 12px; font-size: 12.5px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--fg); }
+  .cmd-copy { flex: none; padding: 0 12px; border: 0; border-left: 1px solid var(--node-border); background: transparent; color: var(--muted); font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase; cursor: pointer; }
+  .cmd-copy:hover { color: var(--fg); background: var(--surface-2); } .cmd-copy.done { color: var(--ok); } .cmd-copy.warn { color: var(--accent); }
+  .variant { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+  .variant .cmd { align-self: stretch; }
+  .variant-os { font-size: 9.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--faint); }
+  .variant-body { font-size: 13px !important; }
+  .asset { display: inline-flex; align-items: center; gap: 12px; min-width: min(100%, 420px); max-width: 100%; padding: 10px 14px 10px 12px; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--node-border)); border-radius: var(--radius-s); background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), var(--surface)); color: var(--fg); text-decoration: none; }
+  .asset:hover { border-color: var(--accent); text-decoration: none; }
+  .asset-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: var(--accent-fg); font-weight: 700; }
+  .asset-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .asset-text strong { font-weight: 500; font-size: 13px; overflow-wrap: anywhere; } .asset-text small { font-size: 10px; letter-spacing: 0.4px; color: var(--muted); }
+  .expect { font-size: 13px !important; color: var(--faint) !important; border-left: 2px solid var(--node-border); padding-left: 10px; }
+  .after { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--node-divider); }
+  .after dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 8px 0 0; font-size: 13px; } .after dt code { font-size: 12px; } .after dd { margin: 0; color: var(--muted); }
+  .footnote { margin: 14px 0 0; font-size: 13px; color: var(--faint); line-height: 1.55; }
+  .links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  @media (max-width: 720px) { .after dl { grid-template-columns: 1fr; gap: 2px 0; } .after dd { margin-bottom: 8px; } }
 </style>

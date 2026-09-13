@@ -278,7 +278,7 @@ pub(super) async fn send(
         post = post
             .header(
                 "HTTP-Referer",
-                "https://github.com/dark-matter08/system-design-roulette",
+                "https://github.com/dark-matter08/principia-desk",
             )
             .header("X-Title", "Principia Desk");
     }

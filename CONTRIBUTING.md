@@ -11,8 +11,8 @@ Principia Desk is a macOS study desk: classes with personal starting points, les
 ## Setting up
 
 ```bash
-git clone https://github.com/dark-matter08/system-design-roulette.git
-cd system-design-roulette
+git clone https://github.com/dark-matter08/principia-desk.git
+cd principia-desk
 npm install
 npm run tauri dev          # the desk against a dev server
 npm run dev                # the interface alone, in a browser, with mock data

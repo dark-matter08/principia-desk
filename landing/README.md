@@ -12,7 +12,7 @@ npm run check      # astro check
 
 ## Where the content lives
 
-All of it is in **`src/content/site.json`**, validated by the Zod schema in `src/lib/schema.ts`. No copy is written into a `.astro` file; the page is a walk over the schema, so editing the site is editing that JSON. The changelog page reads `../CHANGELOG.md` and the licence page `../LICENSE` at build time, so a release and its notes are one commit.
+All of it is in **`src/content/site.json`**, validated by the Zod schema in `src/lib/schema.ts`. No copy is written into a `.astro` file; the page is a walk over the schema, so editing the site is editing that JSON. The changelog page reads `../CHANGELOG.md` and the licence page `../LICENSE` at build time, so a release and its notes are one commit. The pages under `/docs` are the repository's own Markdown (`src/lib/docs.ts` lists which files and README sections, and rewrites their links to stay on the site), and the install section names the latest release's installers by asking the GitHub API at build time (`src/lib/release.ts`; a build with no network keeps the links to the releases page, and the page refreshes them in the browser).
 
 Screenshots in `public/shots/` are taken from the desk's browser preview (`npm run dev` at the repository root) at 1440×900. The share card `public/og.png` is rendered from `scripts/og.html` with headless Chrome:
 

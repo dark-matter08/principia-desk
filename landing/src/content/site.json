@@ -4,17 +4,18 @@
   "tagline": "A study desk that keeps its appointments",
   "description": "Principia Desk is a free, open-source macOS study desk: classes with a personal starting point, lessons your own AI tutor writes from primary documentation, study times that ring, and enforcement you choose per class and can always escape.",
   "url": "https://principia.ndelucien.com",
-  "repo": "https://github.com/dark-matter08/system-design-roulette",
-  "releases": "https://github.com/dark-matter08/system-design-roulette/releases/latest",
-  "version": "0.1.0",
+  "repo": "https://github.com/dark-matter08/principia-desk",
+  "releases": "https://github.com/dark-matter08/principia-desk/releases/latest",
+  "version": "0.2.0",
   "nav": [
     { "label": "How it works", "href": "/#day" },
+    { "label": "Docs", "href": "/docs" },
     { "label": "Classes", "href": "/#classes" },
     { "label": "Enforcement", "href": "/#trust" },
     { "label": "Install", "href": "/#install" },
     { "label": "Changelog", "href": "/changelog" },
-    { "label": "GitHub", "href": "https://github.com/dark-matter08/system-design-roulette" },
-    { "label": "Download", "href": "https://github.com/dark-matter08/system-design-roulette/releases/latest", "primary": true }
+    { "label": "GitHub", "href": "https://github.com/dark-matter08/principia-desk" },
+    { "label": "Download", "href": "https://github.com/dark-matter08/principia-desk/releases/latest", "primary": true }
   ],
   "sections": [
     {
@@ -24,8 +25,8 @@
       "title": "A study desk that keeps its appointments.",
       "deck": "Pick a class, set a starting point and a study time. At that time the desk rings, a lesson your own AI tutor wrote from primary documentation is already waiting, and the screen is yours again when the check is done. Understand deeply, practice daily.",
       "links": [
-        { "label": "Download for macOS", "href": "https://github.com/dark-matter08/system-design-roulette/releases/latest", "primary": true },
-        { "label": "Read the source", "href": "https://github.com/dark-matter08/system-design-roulette" }
+        { "label": "Download", "href": "/#install", "primary": true },
+        { "label": "Read the source", "href": "https://github.com/dark-matter08/principia-desk" }
       ],
       "facts": ["MIT licence", "your keys stay in the Keychain", "nine classes, and your own", "every lock has five ways out"],
       "figure": { "src": "/shots/today.png", "alt": "The Today page of Principia Desk: a countdown ring to the next class, the study pulse with a streak and a half-year contribution map, and the class agenda", "caption": "today · the countdown, the pulse and the week's appointments" }
@@ -105,9 +106,9 @@
         "Edit every topic on a card. Ask the tutor to read the draft back. Fetch every source. Have it write a placement bank. Publish, and the class is any class: study times, lessons prepared ahead, retrieval, PDFs, enforcement.",
         "Export a class as one file and hand it to someone else's desk."
       ],
-      "figure": { "src": "/shots/builder.png", "alt": "The class builder in Principia Desk: the Review step with a curriculum editor, topic cards grouped by stage and the validator's objections on a rail", "caption": "classes · new class · review" },
+      "figure": { "src": "/shots/builder.png", "alt": "The class builder in Principia Desk: the Review step with the course header folded, the four stage tiles, a topic card and the checks on a rail", "caption": "classes · new class · review" },
       "flip": true,
-      "links": [{ "label": "How a class is built", "href": "https://github.com/dark-matter08/system-design-roulette/blob/main/docs/CUSTOM_CLASSES.md" }]
+      "links": [{ "label": "How a class is built", "href": "/docs/classes" }]
     },
     {
       "kind": "trust",
@@ -140,28 +141,86 @@
       ],
       "figure": { "src": "/shots/recovery.png", "alt": "The Recovery section of Principia Desk settings: the key combination as keycaps, the four-command ladder, a replayable walkthrough console and the exits that need no console", "caption": "settings · 03 recovery" },
       "flip": false,
-      "links": [{ "label": "Ways out, in the README", "href": "https://github.com/dark-matter08/system-design-roulette#ways-out-of-a-locked-session" }]
+      "links": [{ "label": "Every way out, in full", "href": "/docs/ways-out" }]
     },
     {
       "kind": "install",
       "key": "install",
       "kicker": "Install",
       "title": "Ten minutes to the first appointment.",
-      "lede": "The desk is a signed-nothing open-source app: download the bundle from the release, or build it from source. It talks to your tutor, to the documentation hosts a course allows, and to nothing else.",
-      "requirements": [
-        "macOS 13 or later (Windows and Linux build and run without enforcement)",
-        "A tutor: a CLI you are signed in to, a provider key, or Ollama with a chat model",
-        "To build: Rust 1.80+ and Node 20+"
-      ],
-      "steps": [
-        { "title": "Download and open", "body": "Get the latest release. The bundle is not notarised yet, so the first launch is right-click › Open.", "code": "" },
-        { "title": "Set up", "body": "Four steps: the tutor, an optional search engine for tutors that cannot browse, your break-glass phrase with the recovery walkthrough, deploy.", "code": "" },
-        { "title": "Choose a class and a starting point", "body": "From scratch, a stage you declare, or the placement check. Add a study time. The class activates.", "code": "" },
-        { "title": "Or build from source", "body": "Everything the release does, on your machine.", "code": "git clone https://github.com/dark-matter08/system-design-roulette.git\ncd system-design-roulette\nnpm install\nnpm run tauri dev" }
+      "lede": "Two ways in: the installer for your platform from the latest release, or a checkout if you would rather read it first. The desk talks to your tutor, to the documentation hosts a course allows, and to nothing else.",
+      "tabs": [
+        {
+          "key": "installer",
+          "label": "The installer",
+          "tagline": "One file per platform, built by the release pipeline from the tagged commit. Unsigned for now: each platform asks once before the first launch, and the step says what to click.",
+          "needs": [
+            { "name": "A tutor", "detail": "a CLI you are signed in to (Claude Code, Codex, Cursor Agent, Gemini CLI), a provider key, or Ollama with a chat model" },
+            { "name": "macOS 13 or later", "detail": "for the lock, the launch agent and the menu bar desk; Windows and Linux run the desk without enforcement" },
+            { "name": "About 100 MB", "detail": "the app and its own copy of the curricula and reference lessons" }
+          ],
+          "steps": [
+            {
+              "title": "Download the installer for your machine",
+              "body": "Each link goes straight to the file on the latest release.",
+              "variants": [
+                { "label": "macOS · Apple Silicon (M1 and later)", "os": ["macos"], "asset": "macos-aarch64" },
+                { "label": "macOS · Intel", "os": ["macos"], "asset": "macos-x86_64", "note": "Not sure which Mac you have? Apple menu › About This Mac: a chip that says Apple is Apple Silicon; a processor that says Intel is Intel." },
+                { "label": "Windows · installer", "os": ["windows"], "asset": "windows-msi" },
+                { "label": "Windows · setup program, if the MSI is refused", "os": ["windows"], "asset": "windows-exe" },
+                { "label": "Linux · Debian, Ubuntu", "os": ["linux"], "asset": "linux-deb" },
+                { "label": "Linux · Fedora, openSUSE", "os": ["linux"], "asset": "linux-rpm" },
+                { "label": "Linux · any distribution", "os": ["linux"], "asset": "linux-appimage" }
+              ]
+            },
+            {
+              "title": "Open it",
+              "variants": [
+                { "label": "macOS", "os": ["macos"], "body": "Open the disk image and drag Principia Desk to Applications. The first launch is right-click › Open, because the app is not notarised; macOS remembers after that.", "code": "xattr -dr com.apple.quarantine \"/Applications/Principia Desk.app\"", "note": "The macOS command is the same permission in one line, for a machine where right-click › Open is not offered." },
+                { "label": "Windows", "os": ["windows"], "body": "Run the MSI. SmartScreen says it protected your PC: click More info, then Run anyway. The setup program does the same thing with a different wrapper." },
+                { "label": "Linux", "os": ["linux"], "code": "sudo apt install ./Principia.Desk_*_amd64.deb   # or: sudo dnf install ./Principia.Desk-*.x86_64.rpm\n# AppImage: chmod +x Principia.Desk_*_amd64.AppImage && ./Principia.Desk_*_amd64.AppImage" }
+              ]
+            },
+            { "title": "Set up the desk", "body": "Four steps on first launch: the tutor, an optional search engine for tutors that cannot browse, your break-glass phrase with the recovery walkthrough, deploy. Then choose a class and a starting point, add a study time, and the class is armed." }
+          ],
+          "after": [
+            { "code": "Control + Option + Shift + U", "body": "The recovery console, from anywhere, if a lock ever needs releasing. Ctrl + Alt + Shift + U on Windows and Linux." },
+            { "code": "~/principia-unlock", "body": "A file or folder by that name in your home, or on the root of any mounted volume, releases a lock within a second." }
+          ],
+          "footnote": "Updates are a new release: download the new installer and open it over the old one; the profile and its history stay where they are. The full guide, including the upgrade from System Design Roulette, is in <a href=\"/docs/install\">the install page</a>."
+        },
+        {
+          "key": "source",
+          "label": "From source",
+          "tagline": "Everything the release does, on your machine, in about ten minutes the first time.",
+          "needs": [
+            { "name": "Rust 1.80 or later", "detail": "with cargo", "href": "https://rustup.rs" },
+            { "name": "Node 20 or later", "detail": "with npm", "href": "https://nodejs.org" },
+            { "name": "On Linux, the WebKitGTK toolchain", "detail": "libwebkit2gtk-4.1-dev, libappindicator3-dev, librsvg2-dev, patchelf, libgtk-3-dev" }
+          ],
+          "steps": [
+            { "title": "Get the source", "code": "git clone https://github.com/dark-matter08/principia-desk.git\ncd principia-desk\nnpm install" },
+            { "title": "Run it against a dev server", "body": "Hot reloads the interface; the Rust side rebuilds when it changes.", "code": "npm run tauri dev" },
+            {
+              "title": "Or build the app",
+              "variants": [
+                { "label": "macOS", "os": ["macos"], "code": "npm run tauri build -- --bundles app\ncp -R \"src-tauri/target/release/bundle/macos/Principia Desk.app\" /Applications/" },
+                { "label": "Windows", "os": ["windows"], "code": "npm run tauri build -- --bundles msi,nsis" },
+                { "label": "Linux", "os": ["linux"], "code": "npm run tauri build -- --bundles deb,rpm,appimage" }
+              ],
+              "expect": "The bundles land under src-tauri/target/release/bundle/. The release workflow runs exactly these commands, plus an hdiutil script for the disk images."
+            }
+          ],
+          "after": [
+            { "code": "npm run check && npm test", "body": "The frontend gates: the catalogue check, svelte-check and the unit tests." },
+            { "code": "cd src-tauri && cargo test", "body": "The Rust suite, three hundred tests, most of them against a fresh SQLite database." }
+          ],
+          "footnote": "How the code is laid out, what the gates are and how a change is proposed: <a href=\"/docs/contributing\">contributing</a>."
+        }
       ],
       "links": [
-        { "label": "Latest release", "href": "https://github.com/dark-matter08/system-design-roulette/releases/latest", "primary": true },
-        { "label": "Build instructions", "href": "https://github.com/dark-matter08/system-design-roulette#install" }
+        { "label": "All releases", "href": "https://github.com/dark-matter08/principia-desk/releases", "primary": true },
+        { "label": "The full install guide", "href": "/docs/install" }
       ]
     },
     {
@@ -174,10 +233,10 @@
         { "q": "Where does my data live?", "a": "In a SQLite database under <code>~/Library/Application Support/com.darkmatter.principia-desk/</code>, backed up before every schema upgrade. Keys live in the macOS Keychain." },
         { "q": "What does the tutor see?", "a": "The topic, its curriculum brief, your goal, your progress on that class and the pages the desk fetched. Never your keys, your escape phrase or other classes." },
         { "q": "Can I really always get out of a lock?", "a": "Yes. Five documented routes, none needing a terminal, and the kiosk refuses to engage at all until the interface has reported ready. See the Enforcement section above." },
-        { "q": "Does it work on Windows or Linux?", "a": "It builds and runs. The lock, the launch agent and the menu bar are macOS today; help on the others is welcome." },
+        { "q": "Does it work on Windows or Linux?", "a": "Yes. Every release carries a Windows installer and Linux packages, and the desk runs on both. The lock, the launch agent and the menu bar desk are macOS today; help on the others is welcome." },
         { "q": "Can I make a class for something you do not ship?", "a": "Yes. Classes › New class. Your tutor drafts the curriculum, you edit it, the desk validates and publishes it. Export it as a file to share." },
         { "q": "What became of System Design Roulette?", "a": "This. Same database, same visual character, a different shape: classes you schedule instead of one daily roulette. The <a href=\"/changelog\">changelog</a> tells it." },
-        { "q": "How do I report a lockout bug?", "a": "Privately, as <a href=\"https://github.com/dark-matter08/system-design-roulette/blob/main/SECURITY.md\" rel=\"noopener\">SECURITY.md</a> asks. Ordinary bugs go in the issue tracker." }
+        { "q": "How do I report a lockout bug?", "a": "Privately, as <a href=\"/docs/security\">the security page</a> asks. Ordinary bugs go in the issue tracker." }
       ]
     },
     {
@@ -186,18 +245,19 @@
       "title": "Make room for learning.",
       "body": "One class, one study time, and the desk does the rest. It is open source; read it before you trust it.",
       "links": [
-        { "label": "Download for macOS", "href": "https://github.com/dark-matter08/system-design-roulette/releases/latest", "primary": true },
-        { "label": "Star on GitHub", "href": "https://github.com/dark-matter08/system-design-roulette" }
+        { "label": "Download", "href": "/#install", "primary": true },
+        { "label": "Star on GitHub", "href": "https://github.com/dark-matter08/principia-desk" }
       ]
     }
   ],
   "footer": {
     "note": "Principia Desk · MIT · made by Nde Che Lucien",
     "links": [
-      { "label": "GitHub", "href": "https://github.com/dark-matter08/system-design-roulette" },
+      { "label": "GitHub", "href": "https://github.com/dark-matter08/principia-desk" },
+      { "label": "Docs", "href": "/docs" },
       { "label": "Changelog", "href": "/changelog" },
-      { "label": "Contributing", "href": "https://github.com/dark-matter08/system-design-roulette/blob/main/CONTRIBUTING.md" },
-      { "label": "Security", "href": "https://github.com/dark-matter08/system-design-roulette/blob/main/SECURITY.md" },
+      { "label": "Contributing", "href": "/docs/contributing" },
+      { "label": "Security", "href": "/docs/security" },
       { "label": "Privacy", "href": "/privacy" },
       { "label": "Licence", "href": "/licence" },
       { "label": "ndelucien.com", "href": "https://ndelucien.com" }

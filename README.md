@@ -4,7 +4,7 @@
 
 # Principia Desk
 
-[![Site](https://img.shields.io/badge/site-principia.ndelucien.com-ef9f27)](https://principia.ndelucien.com) [![Release](https://img.shields.io/github/v/release/dark-matter08/system-design-roulette?color=534ab7)](https://github.com/dark-matter08/system-design-roulette/releases/latest) [![CI](https://github.com/dark-matter08/system-design-roulette/actions/workflows/ci.yml/badge.svg)](https://github.com/dark-matter08/system-design-roulette/actions/workflows/ci.yml) [![Licence](https://img.shields.io/badge/licence-MIT-9fe1cb)](LICENSE)
+[![Site](https://img.shields.io/badge/site-principia.ndelucien.com-ef9f27)](https://principia.ndelucien.com) [![Release](https://img.shields.io/github/v/release/dark-matter08/principia-desk?color=534ab7)](https://github.com/dark-matter08/principia-desk/releases/latest) [![CI](https://github.com/dark-matter08/principia-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/dark-matter08/principia-desk/actions/workflows/ci.yml) [![Licence](https://img.shields.io/badge/licence-MIT-9fe1cb)](LICENSE)
 
 **Understand deeply. Practice daily.** A macOS desk for learning subjects from their foundations: nine classes with personal starting points, lessons taught by your own AI tutor from verified primary sources, durable appointments, and enforcement you choose per class. The site is [principia.ndelucien.com](https://principia.ndelucien.com); the story of how it came to be is on [ndelucien.com](https://ndelucien.com).
 
@@ -41,10 +41,10 @@ The nine courses are not the limit. **New class** on the Classes page opens the 
 1. **Brief.** A title, what you want to be able to do at the end, what you already know, documentation hosts you trust, and the tutor that will draft and teach it.
 2. **Draft.** Ask the tutor, and it designs the whole course: four stages in the course's own words and 12 to 36 topics, each carrying what the bundled curricula carry (outcome, mechanisms, a production scenario, misconceptions, evidence, an artefact, two or more primary sources on the course's hosts). Or write it yourself from an empty course. Or import a `.principia-class.json` exported from any desk.
 3. **Review.** An editor with the course header, the stages and a card per topic. The desk validates as you type and lists what it would refuse to publish: fewer than six topics, a stage without a core topic, a prerequisite in a later stage or in a circle, a source off the course's hosts, an outcome too vague to teach to.
-4. **Verify.** The tutor reads the draft back and returns findings with proposed fixes; the desk fetches every primary source and reports which ones answered. Both optional, both repeatable.
+4. **Verify.** Three checks in order, each unlocking the next: the tutor reads the draft back and returns findings with proposed fixes, fixed one at a time or all at once; the desk fetches every primary source and finds another for any that did not answer; you confirm your own read-through of the version as it stands.
 5. **Publish.** Publishing registers the course, writes its topics into the curriculum under the class's id and opens the class. From then on it is any class: a starting point and study times set from its own tabs, lessons prepared ahead, blocks, retrieval on earlier topics, PDFs, enforcement, the custom badge the only difference.
 
-The tutor can also **write the question bank**: three cited four-choice questions per stage on the course's core topics, held to the same shape as the bundled banks (the key among four distinct choices, a source on the course's hosts, every stage sampled three times). With it, the placement check and unit challenges work for the class; without it, the class offers the two starting points that need none. A learner who believes a written key is wrong disputes it from the check's result: the question stops counting, is left out of every sample, and is listed as disputed in the builder until the bank is written again.
+The tutor can also **write the question bank**: three cited four-choice questions per stage on the course's core topics, held to the same shape as the bundled banks (the key among four distinct choices, a source on the course's hosts, every stage sampled three times). With it, the placement check and unit challenges work for the class; without it, the class offers the two starting points that need none. A learner who believes a written key is wrong disputes it from the check's result: the question stops counting, is left out of every sample, and is listed as disputed in the builder until the bank is written again. The bank itself is never shown before a check; for practice, every engineering class's Curriculum tab has a **Practice questions** strip where the tutor writes eight cited questions at a time for a chosen stage, answered at will with the key, the explanation and the source shown after each.
 
 Before a class is published it passes three checks in order: the tutor reads the draft back and every finding is settled (fixed by the tutor, fixed by hand, or dismissed with a reason), every source is fetched and the unreachable ones replaced or kept knowingly, and you confirm your own read-through. A published class can be edited into a new version (lessons already taught keep their topics) and exported as one file, under `Documents/Principia Desk/classes/`, that carries the course and nothing personal. The design is in `docs/CUSTOM_CLASSES.md`.
 
@@ -165,8 +165,8 @@ For an installed app, choose **My own API key** in Settings and save a key for t
 ### Build from source
 
 ```bash
-git clone https://github.com/dark-matter08/system-design-roulette.git
-cd system-design-roulette
+git clone https://github.com/dark-matter08/principia-desk.git
+cd principia-desk
 npm install
 npm run tauri build -- --bundles app
 cp -R "src-tauri/target/release/bundle/macos/Principia Desk.app" /Applications/
@@ -178,7 +178,7 @@ Launch it, complete the setup (escape phrase and tutor check), add a class with 
 
 ### Releases
 
-Every [release](https://github.com/dark-matter08/system-design-roulette/releases) carries installers for each platform, built by `.github/workflows/release.yml` when a version tag is pushed: Apple Silicon and Intel disk images, a Windows MSI and NSIS installer, and a Linux `.deb`, `.rpm` and AppImage. They are unsigned: on macOS see the heads-up above; on Windows, SmartScreen asks for **More info → Run anyway**; on Linux, `chmod +x` the AppImage. To cut one, set the version everywhere it is written, note it in the changelog, tag and push:
+Every [release](https://github.com/dark-matter08/principia-desk/releases) carries installers for each platform, built by `.github/workflows/release.yml` when a version tag is pushed: Apple Silicon and Intel disk images, a Windows MSI and NSIS installer, and a Linux `.deb`, `.rpm` and AppImage. They are unsigned: on macOS see the heads-up above; on Windows, SmartScreen asks for **More info → Run anyway**; on Linux, `chmod +x` the AppImage. To cut one, set the version everywhere it is written, note it in the changelog, tag and push:
 
 ```bash
 npm run version:set -- 0.2.0
@@ -223,7 +223,7 @@ Numbered migrations still run after a pre-upgrade backup, and finished daily-rou
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Design principle: **Rust owns all authority.** Lifecycles, locks, grading and selection live in the backend; the webview renders and requests transitions, which Rust validates. Data lives in `~/Library/Application Support/com.darkmatter.system-design-roulette/` as a SQLite database with WAL journaling and pre-upgrade backups. Contracts are described in [docs/SHARED_SESSION_RUNTIME.md](docs/SHARED_SESSION_RUNTIME.md) and [docs/STORAGE.md](docs/STORAGE.md); the design system in [DESIGN.md](DESIGN.md).
+Design principle: **Rust owns all authority.** Lifecycles, locks, grading and selection live in the backend; the webview renders and requests transitions, which Rust validates. Data lives in `~/Library/Application Support/com.darkmatter.principia-desk/` as a SQLite database with WAL journaling and pre-upgrade backups. Contracts are described in [docs/SHARED_SESSION_RUNTIME.md](docs/SHARED_SESSION_RUNTIME.md) and [docs/STORAGE.md](docs/STORAGE.md); the design system in [DESIGN.md](DESIGN.md).
 
 ## Documentation
 

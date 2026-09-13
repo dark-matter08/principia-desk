@@ -78,8 +78,41 @@ export const sectionSchema = z.discriminatedUnion("kind", [
     kicker: z.string(),
     title: z.string(),
     lede: z.string().optional(),
-    requirements: z.array(z.string()),
-    steps: z.array(z.object({ title: z.string(), body: z.string(), code: z.string().optional() })),
+    // Two routes in, each a numbered list of steps; a step may carry one
+    // command, or a variant per platform (a command, a sentence, or a release
+    // asset the page resolves to the newest download).
+    tabs: z.array(
+      z.object({
+        key: z.string(),
+        label: z.string(),
+        tagline: z.string().optional(),
+        needs: z.array(z.object({ name: z.string(), detail: z.string(), href: z.string().optional() })).default([]),
+        steps: z.array(
+          z.object({
+            title: z.string(),
+            body: z.string().optional(),
+            code: z.string().optional(),
+            variants: z
+              .array(
+                z.object({
+                  label: z.string(),
+                  os: z.array(z.enum(["macos", "windows", "linux"])),
+                  code: z.string().optional(),
+                  body: z.string().optional(),
+                  href: z.string().optional(),
+                  asset: z.enum(["macos-aarch64", "macos-x86_64", "windows-msi", "windows-exe", "linux-deb", "linux-rpm", "linux-appimage"]).optional(),
+                  /** A quiet line under this variant alone; `expect` on the step is for every platform. */
+                  note: z.string().optional(),
+                }),
+              )
+              .default([]),
+            expect: z.string().optional(),
+          }),
+        ),
+        after: z.array(z.object({ code: z.string(), body: z.string() })).default([]),
+        footnote: z.string().optional(),
+      }),
+    ),
     links: z.array(linkSchema).default([]),
   }),
   z.object({
