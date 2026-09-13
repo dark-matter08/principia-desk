@@ -84,5 +84,7 @@ jobs:
           file: landing/docker/Dockerfile.web.prod
           push: true
           tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            BUILD_STAMP=${{ github.run_id }}
           cache-from: type=gha,scope=landing
           cache-to: type=gha,mode=max,scope=landing
