@@ -2,14 +2,16 @@
 #
 # Two stages so the shipped image has no Node in it: the runtime is nginx plus
 # a few hundred kilobytes of HTML, fonts and screenshots. The build context is
-# the REPOSITORY ROOT (the changelog and licence pages read ../CHANGELOG.md and
-# ../LICENSE), so paths below are prefixed with landing/.
+# the REPOSITORY ROOT (the changelog, licence and documentation pages read the
+# repository's own Markdown; src/lib/docs.ts lists which files), so paths
+# below are prefixed with landing/.
 
 FROM node:22-alpine AS build
 WORKDIR /repo/landing
 COPY landing/package.json landing/package-lock.json ./
 RUN npm ci --no-audit --no-fund
-COPY CHANGELOG.md LICENSE /repo/
+COPY README.md CHANGELOG.md LICENSE DESIGN.md CONTRIBUTING.md SECURITY.md CODE_OF_CONDUCT.md /repo/
+COPY docs/*.md /repo/docs/
 COPY landing/ ./
 RUN npm run build
 
