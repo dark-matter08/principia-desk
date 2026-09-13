@@ -4,6 +4,9 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+### Fixed
+- A release is a draft until every installer and the updater manifest are attached, then published. Until now `releases/latest` named the new release from its first file on, so a desk that checked for updates during the twenty minutes of a build asked for a manifest that did not exist yet and reported a failed check.
+
 ## [0.2.4] · 2026-09-13
 
 ### Fixed

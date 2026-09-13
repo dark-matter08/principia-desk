@@ -5,7 +5,8 @@ name: Release
 # from the Actions tab with a tag that already exists. Nothing builds on ordinary
 # pushes. One job verifies the tree; then one job per platform builds the
 # installers the way the branch-binaries run proved out, and attaches them to
-# the release for that tag (created if the tag has none):
+# a draft release for that tag; the last job writes the updater manifest and
+# publishes the release, so `latest` only ever names a complete one:
 #
 #   macOS      Principia Desk_<v>_aarch64.dmg   Principia Desk_<v>_x86_64.dmg
 #   Windows    Principia Desk_<v>_x64_en-US.msi  Principia Desk_<v>_x64-setup.exe
@@ -91,6 +92,25 @@ jobs:
           cargo test --manifest-path src-tauri/Cargo.toml --all-targets
           npm run check
           npm test
+
+      # The release is made here, once, as a draft: the installer jobs attach
+      # their files to it and the manifest job publishes it. Made from one
+      # place so two platforms finishing together cannot make two drafts.
+      - name: Open the release as a draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release $RELEASE_TAG exists; its files will be replaced"
+            exit 0
+          fi
+          notes="$(node scripts/release-notes.mjs "${RELEASE_TAG#v}" 2>/dev/null || true)"
+          printf '%s\n\n%s\n' "${notes:-Principia Desk $RELEASE_TAG}" "Download the installer for your platform from the assets below; an installed desk offers this version itself from Settings. The installers are unsigned for the operating system; the README says how to open them." > release-notes.md
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
+            --title "Principia Desk $RELEASE_TAG" \
+            --notes-file release-notes.md \
+            --draft
 
   installers:
     name: ${{ matrix.label }}
@@ -208,22 +228,18 @@ jobs:
             ${{ matrix.bundle-dir }}/appimage/*.AppImage
             ${{ matrix.bundle-dir }}/appimage/*.AppImage.sig
 
-      # One release per tag: created on first contact, then every platform
-      # adds its files. `--clobber` lets a rerun replace an installer.
+      # The draft the verify job opened takes every platform's files;
+      # `releases/latest` keeps naming the previous version until the manifest
+      # job publishes it, so a desk checking for updates mid-run sees the last
+      # complete release, never a half-built one. `--clobber` lets a rerun
+      # replace a file.
       - name: Attach the installers to the release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            notes="$(node scripts/release-notes.mjs "${RELEASE_TAG#v}" 2>/dev/null || true)"
-            printf '%s\n\n%s\n' "${notes:-Principia Desk $RELEASE_TAG}" "Download the installer for your platform from the assets below; an installed desk offers this version itself from Settings. The installers are unsigned for the operating system; the README says how to open them." > release-notes.md
-            gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" \
-              --title "Principia Desk $RELEASE_TAG" \
-              --notes-file release-notes.md \
-              || true
-          fi
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null
           shopt -s nullglob
           d="${{ matrix.bundle-dir }}"
           files=( "$d"/dmg/*.dmg "$d"/macos/*.app.tar.gz "$d"/macos/*.app.tar.gz.sig "$d"/msi/*.msi "$d"/msi/*.msi.sig "$d"/nsis/*.exe "$d"/nsis/*.exe.sig "$d"/deb/*.deb "$d"/deb/*.deb.sig "$d"/rpm/*.rpm "$d"/rpm/*.rpm.sig "$d"/appimage/*.AppImage "$d"/appimage/*.AppImage.sig )
@@ -256,7 +272,10 @@ jobs:
           version="${RELEASE_TAG#v}"
           mkdir -p sigs
           gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern '*.sig' --dir sigs
-          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | [.name, .url] | @tsv' > assets.tsv
+          # A draft's asset addresses are temporary; the manifest names the
+          # addresses the files have once the release is published.
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[] | .name' \
+            | awk -v base="https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/" '{ print $0 "\t" base $0 }' > assets.tsv
           notes="$(node scripts/release-notes.mjs "$version" 2>/dev/null || echo "Principia Desk $version")"
           python3 - "$version" "$notes" <<'PY'
           import json, os, sys, datetime
@@ -304,3 +323,5 @@ jobs:
           PY
           test -s latest.json
           gh release upload "$RELEASE_TAG" latest.json --repo "$GITHUB_REPOSITORY" --clobber
+          # Everything is attached: the release goes public and becomes `latest`.
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest

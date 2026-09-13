@@ -203,7 +203,7 @@ git commit -am "chore: release 0.2.0"
 git tag v0.2.0 && git push origin main v0.2.0
 ```
 
-The workflow verifies the tree first, refuses a tag that does not match the versions in `package.json`, `tauri.conf.json` and `Cargo.toml`, and attaches the installers to the release for the tag, creating it if the tag has none (creating the release in the GitHub interface pushes the tag and starts the same run). The release notes are the changelog's section for the version (`scripts/release-notes.mjs`). A shelved copy of the branch-binaries workflow sits in `.github/workflows-shelved/` for trying installers from a branch before anything is tagged.
+The workflow verifies the tree first, refuses a tag that does not match the versions in `package.json`, `tauri.conf.json` and `Cargo.toml`, opens the release as a draft, attaches every platform's installers to it, and publishes it only once the updater manifest is written, so `releases/latest` never names a half-built release (creating the release in the GitHub interface pushes the tag and starts the same run). The release notes are the changelog's section for the version (`scripts/release-notes.mjs`). A shelved copy of the branch-binaries workflow sits in `.github/workflows-shelved/` for trying installers from a branch before anything is tagged.
 
 ### Updates from inside the desk
 
