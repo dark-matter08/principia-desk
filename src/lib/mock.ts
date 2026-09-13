@@ -944,6 +944,7 @@ export const mockApi = {
   },
   searxngStart: async (): Promise<SearxngStatus> => { await new Promise((r) => setTimeout(r, 800)); mockSearxngRunning = mockSearxngInstalled; return mockSearxng(); },
   searxngStop: async (): Promise<SearxngStatus> => { mockSearxngRunning = false; return mockSearxng(); },
+  installUv: async (): Promise<SearxngStep[]> => { await new Promise((r) => setTimeout(r, 900)); return [{ step: 'Installing uv', ok: true, output: '' }, { step: 'uv ready', ok: true, output: '~/.local/bin/uv' }]; },
   getAudioStatus: async (): Promise<AudioStatus> => mockAudio(),
   installAudioEngine: async (engine: string): Promise<SearxngStep[]> => {
     const steps: SearxngStep[] = [];

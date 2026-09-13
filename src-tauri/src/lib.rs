@@ -434,6 +434,7 @@ pub fn run() {
             commands::search::searxng_install,
             commands::search::searxng_start,
             commands::search::searxng_stop,
+            commands::search::install_uv,
             commands::audio::get_audio_status,
             commands::audio::install_audio_engine,
             commands::audio::remove_audio_engine,

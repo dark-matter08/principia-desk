@@ -1,6 +1,6 @@
 [package]
 name = "principia-desk"
-version = "0.2.3"
+version = "0.2.4"
 description = "A study desk for learning subjects from their foundations"
 authors = ["darkmatter"]
 edition = "2021"

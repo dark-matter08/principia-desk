@@ -4,6 +4,13 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [0.2.4] · 2026-09-13
+
+### Fixed
+- **Windows finds what you install.** A desk keeps the PATH it started with, so uv or Python installed while it ran stayed invisible; the desk now also reads the PATH Windows holds in the registry, winget's shims and python.org's install folders, and looks in `%USERPROFILE%\.local\bin` (it looked for `$HOME`, which Windows does not set).
+- **Install uv for me.** Where no Python the desk can use is found, the setup pages install uv with its official installer instead of only printing the command.
+- **SearXNG without git.** A machine without git gets the source as an archive, unpacked with the tar every platform ships.
+
 ## [0.2.3] · 2026-09-13
 
 ### Added

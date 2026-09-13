@@ -27,6 +27,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 const REPO: &str = "https://github.com/searxng/searxng.git";
+const ARCHIVE: &str = "https://github.com/searxng/searxng/archive/refs/heads/master.zip";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Status {
@@ -231,7 +232,7 @@ pub async fn status(client: &reqwest::Client, url: &str) -> Status {
         python_version: python.as_ref().map(|p| format!("3.{}", p.minor)),
         python_too_new: python.as_ref().is_some_and(|p| p.too_new),
         python_install,
-        can_install: has_git && (has_uv || python.is_some()),
+        can_install: has_uv || python.is_some(),
         version: installed.then(|| read_version(&home)).flatten(),
         log_tail: log_tail(&home, 20),
     }
@@ -277,40 +278,112 @@ ui:
     )
 }
 
+/// SearXNG's source as an archive, for a machine without git: fetched into
+/// the home folder and unpacked beside it; an existing `src` is replaced.
+async fn fetch_archive(installer: &mut Installer<'_>, home: &Path, src: &Path) -> bool {
+    let archive = home.join("searxng-src.zip");
+    installer.feed.say(format!("fetching {ARCHIVE}"));
+    let client = reqwest::Client::new();
+    let bytes = match client
+        .get(ARCHIVE)
+        .timeout(Duration::from_secs(1200))
+        .send()
+        .await
+    {
+        Ok(r) if r.status().is_success() => match r.bytes().await {
+            Ok(b) => b,
+            Err(e) => {
+                installer.push("Fetching SearXNG", false, e.to_string());
+                return false;
+            }
+        },
+        Ok(r) => {
+            installer.push(
+                "Fetching SearXNG",
+                false,
+                format!("{ARCHIVE} answered {}", r.status()),
+            );
+            return false;
+        }
+        Err(e) => {
+            installer.push("Fetching SearXNG", false, e.to_string());
+            return false;
+        }
+    };
+    if let Err(e) = std::fs::write(&archive, &bytes) {
+        installer.push("Fetching SearXNG", false, e.to_string());
+        return false;
+    }
+    installer.push(
+        "Fetching SearXNG",
+        true,
+        format!("{} MB", bytes.len() / 1_000_000),
+    );
+    let unpacked = home.join("searxng-master");
+    let _ = std::fs::remove_dir_all(&unpacked);
+    let home_text = home.to_string_lossy().into_owned();
+    let archive_text = archive.to_string_lossy().into_owned();
+    if !installer
+        .run(
+            Path::new("tar"),
+            &["-xf", &archive_text, "-C", &home_text],
+            "Unpacking SearXNG",
+            None,
+        )
+        .await
+    {
+        return false;
+    }
+    let _ = std::fs::remove_file(&archive);
+    let _ = std::fs::remove_dir_all(src);
+    if let Err(e) = std::fs::rename(&unpacked, src) {
+        installer.push("Unpacking SearXNG", false, e.to_string());
+        return false;
+    }
+    true
+}
+
 /// Clone, build an isolated environment, write settings. uv when present
 /// (it fetches the pinned interpreter itself), plain venv and pip otherwise.
 pub async fn install(feed: &Feed, port: u16) -> Result<Vec<Step>, String> {
     let home = own_home();
     std::fs::create_dir_all(&home).map_err(|e| e.to_string())?;
     let mut installer = Installer::new(feed);
-    let Some(git) = process::resolve("git") else {
-        installer.push("git", false, "git is not installed.".into());
-        return Ok(installer.steps);
-    };
-    let git = PathBuf::from(git);
     let src = src_dir(&home);
-    if !src.join(".git").exists() {
-        let target = src.to_string_lossy().into_owned();
-        if !installer
-            .run(
-                &git,
-                &["clone", "--depth", "1", REPO, &target],
-                "Cloning SearXNG",
-                None,
-            )
-            .await
-        {
-            return Ok(installer.steps);
+    match process::resolve("git") {
+        Some(git) => {
+            let git = PathBuf::from(git);
+            if !src.join(".git").exists() {
+                let target = src.to_string_lossy().into_owned();
+                if !installer
+                    .run(
+                        &git,
+                        &["clone", "--depth", "1", REPO, &target],
+                        "Cloning SearXNG",
+                        None,
+                    )
+                    .await
+                {
+                    return Ok(installer.steps);
+                }
+            } else {
+                installer
+                    .run(
+                        &git,
+                        &["pull", "--ff-only"],
+                        "Updating the checkout",
+                        Some(&src),
+                    )
+                    .await;
+            }
         }
-    } else {
-        installer
-            .run(
-                &git,
-                &["pull", "--ff-only"],
-                "Updating the checkout",
-                Some(&src),
-            )
-            .await;
+        // No git (a fresh Windows): the same tree as an archive, unpacked
+        // with the tar every platform ships.
+        None => {
+            if !fetch_archive(&mut installer, &home, &src).await {
+                return Ok(installer.steps);
+            }
+        }
     }
 
     // Not `pip install -e .`: SearXNG's setup.py imports the package to read

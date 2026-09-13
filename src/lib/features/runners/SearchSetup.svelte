@@ -41,6 +41,12 @@
     if (settings?.provider !== 'searxng') return;
     try { engine = await api.searxngStatus(); } catch { engine = null; }
   }
+  async function installUv() {
+    busy = 'uv'; error = ''; steps = [];
+    try { steps = await api.installUv(); await probe(); }
+    catch (e) { error = String(e); }
+    finally { busy = ''; }
+  }
   async function install() {
     installing = true; error = ''; steps = [];
     try {
@@ -140,8 +146,14 @@
             {#if engine.log_tail}<details class="log"><summary class="mono">why it is not running</summary><pre class="mono">{engine.log_tail}</pre></details>{/if}
           {:else}
             <p class="engine-line mono"><span class="led warn" aria-hidden="true"></span> not installed on this machine.</p>
-            <p class="engine-note">Installs to <code>{engine.home}</code>: a shallow clone and an isolated Python, nothing else on the machine touched. {#if engine.has_uv}uv is here, so it fetches its own Python 3.12 and takes about a minute.{:else if engine.python}Python {engine.python_version} at {engine.python}{#if engine.python_too_new} is newer than SearXNG pins for; it is tried anyway, and uv would be surer{:else}; installing uv would make it faster{/if}.{:else}No Python 3.10 or later was found. Install uv and it fetches its own Python 3.12:{/if}{#if !engine.has_git} git is needed and was not found.{/if}</p>
-            {#if engine.python_install}<pre class="mono cmd">{engine.python_install}</pre>{/if}
+            <p class="engine-note">Installs to <code>{engine.home}</code>: a shallow clone and an isolated Python, nothing else on the machine touched. {#if engine.has_uv}uv is here, so it fetches its own Python 3.12 and takes about a minute.{:else if engine.python}Python {engine.python_version} at {engine.python}{#if engine.python_too_new} is newer than SearXNG pins for; it is tried anyway, and uv would be surer{:else}; installing uv would make it faster{/if}.{:else}No Python 3.10 or later was found. Install uv and it fetches its own Python 3.12:{/if}{#if !engine.has_git} Without git the source comes as an archive.{/if}</p>
+            {#if engine.python_install}
+              <div class="uv-row">
+                <button type="button" class="cta mono-cta" disabled={!!busy || installing} onclick={installUv}><Download size={12} /> {busy === 'uv' ? 'installing uv…' : 'Install uv for me'}</button>
+                <span class="engine-note">or run it yourself, then press refresh:</span>
+                <pre class="mono cmd">{engine.python_install}</pre>
+              </div>
+            {/if}
             <button type="button" class="cta mono-cta" disabled={!!busy || installing || !engine.can_install} onclick={install}><Download size={12} /> {installing ? 'installing…' : 'Install SearXNG'}</button>
           {/if}
           {#if installing}<p class="engine-note">Every step is reported on the Logs page as it runs. A first install clones SearXNG and builds its environment; give it a few minutes.</p>{/if}
@@ -239,6 +251,7 @@
   .engine-line { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 10px; color: var(--fg); overflow-wrap: anywhere; }
   .engine-note { margin: 0; font-size: 10.5px; line-height: 1.6; color: var(--muted); max-width: 72ch; }
   .engine-note code { font-family: var(--font-mono); font-size: 10px; color: var(--fg); }
+  .uv-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .engine .cmd { margin: 0; padding: 8px 10px; font-size: 10.5px; background: var(--surface); border: 1px solid var(--node-border); border-radius: var(--radius-control); color: var(--fg); user-select: all; }
   .engine :global(.spin) { animation: spin 1.1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }

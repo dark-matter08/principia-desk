@@ -57,6 +57,31 @@ pub fn python_prefixes() -> Vec<PathBuf> {
         if let Some(home) = home_dir() {
             dirs.push(home.join(".local").join("bin"));
         }
+    } else if cfg!(windows) {
+        // python.org installs, per user and for the machine; each folder
+        // holds python.exe rather than a python3.N name.
+        let mut roots: Vec<PathBuf> = Vec::new();
+        if let Some(local) = std::env::var_os("LOCALAPPDATA") {
+            roots.push(PathBuf::from(local).join("Programs").join("Python"));
+        }
+        roots.push(PathBuf::from("C:\\"));
+        for root in roots {
+            let Ok(entries) = std::fs::read_dir(&root) else {
+                continue;
+            };
+            let mut found: Vec<PathBuf> = entries
+                .flatten()
+                .map(|e| e.path())
+                .filter(|p| {
+                    p.file_name()
+                        .and_then(|n| n.to_str())
+                        .is_some_and(|n| n.starts_with("Python3"))
+                })
+                .collect();
+            found.sort();
+            found.reverse();
+            dirs.extend(found);
+        }
     }
     dirs
 }
@@ -120,6 +145,9 @@ pub fn python_candidates() -> Vec<PathBuf> {
     }
     for dir in &prefixes {
         add(dir.join("python3"));
+        if cfg!(windows) {
+            add(dir.join("python.exe"));
+        }
     }
     out
 }
@@ -373,4 +401,59 @@ pub async fn imports(python: &Path, module: &str) -> bool {
     process::capture(command, None, Duration::from_secs(10))
         .await
         .is_ok()
+}
+
+/// Install uv with its official installer, into `~/.local/bin`, where the
+/// desk looks; then anything that needs a Python can fetch its own.
+pub async fn install_uv(installer: &mut Installer<'_>) -> bool {
+    if process::resolve("uv").is_some() {
+        installer.push(
+            "uv is already here",
+            true,
+            process::resolve("uv").unwrap_or_default(),
+        );
+        return true;
+    }
+    let ok = if cfg!(windows) {
+        installer
+            .run(
+                Path::new("powershell"),
+                &[
+                    "-NoProfile",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-Command",
+                    "irm https://astral.sh/uv/install.ps1 | iex",
+                ],
+                "Installing uv",
+                None,
+            )
+            .await
+    } else {
+        installer
+            .run(
+                Path::new("sh"),
+                &["-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"],
+                "Installing uv",
+                None,
+            )
+            .await
+    };
+    if !ok {
+        return false;
+    }
+    match process::resolve("uv") {
+        Some(found) => {
+            installer.push("uv ready", true, found);
+            true
+        }
+        None => {
+            installer.push(
+                "Finding uv",
+                false,
+                "the installer finished but uv is not in a folder the desk looks in; open a new terminal, run `uv --version`, and press Refresh detection".into(),
+            );
+            false
+        }
+    }
 }

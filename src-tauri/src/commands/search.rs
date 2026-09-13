@@ -175,3 +175,13 @@ pub async fn searxng_stop(state: State<'_, AppState>) -> CmdResult<searxng::Stat
     let config = state.generator.researcher.search_config();
     Ok(searxng::status(state.generator.researcher.client(), &config.searxng_url).await)
 }
+
+/// Install uv with its official installer, for a machine with no Python
+/// the desk can use; SearXNG and the voices build on it.
+#[tauri::command]
+pub async fn install_uv(state: State<'_, AppState>) -> CmdResult<Vec<searxng::Step>> {
+    let _run = state.generator.feed.begin("searxng:uv", "desk");
+    let mut installer = crate::pyenv::Installer::new(&state.generator.feed);
+    crate::pyenv::install_uv(&mut installer).await;
+    Ok(installer.steps)
+}

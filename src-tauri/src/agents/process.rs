@@ -10,16 +10,24 @@ use tokio::{
     process::Command,
 };
 
+#[cfg(windows)]
+use std::os::windows::process::CommandExt as _;
+
 const MAX_OUTPUT: usize = 16 * 1024 * 1024;
 
 fn search_dirs() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = std::env::var_os("PATH")
         .map(|p| std::env::split_paths(&p).collect())
         .unwrap_or_default();
-    if let Some(home) = std::env::var_os("HOME") {
-        let home = PathBuf::from(home);
-        dirs.push(home.join(".local/bin"));
-        dirs.push(home.join(".cargo/bin"));
+    // The PATH a running desk carries is the one it started with; a tool
+    // installed since (uv, Python, piper) lands in one of these or in the
+    // PATH the system now holds, which Windows keeps in the registry.
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from);
+    if let Some(home) = &home {
+        dirs.push(home.join(".local").join("bin"));
+        dirs.push(home.join(".cargo").join("bin"));
         if let Ok(entries) = std::fs::read_dir(home.join(".nvm/versions/node")) {
             let mut versions: Vec<_> = entries.flatten().map(|e| e.path().join("bin")).collect();
             versions.sort();
@@ -27,8 +35,91 @@ fn search_dirs() -> Vec<PathBuf> {
             dirs.extend(versions);
         }
     }
+    #[cfg(windows)]
+    {
+        if let Some(local) = std::env::var_os("LOCALAPPDATA").map(PathBuf::from) {
+            // winget's shims, and python.org's per-user installs.
+            dirs.push(local.join("Microsoft").join("WinGet").join("Links"));
+            if let Ok(entries) = std::fs::read_dir(local.join("Programs").join("Python")) {
+                let mut versions: Vec<_> = entries.flatten().map(|e| e.path()).collect();
+                versions.sort();
+                versions.reverse();
+                for dir in versions {
+                    dirs.push(dir.join("Scripts"));
+                    dirs.push(dir);
+                }
+            }
+        }
+        dirs.extend(registry_path());
+    }
     dirs.extend(["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"].map(PathBuf::from));
     dirs
+}
+
+/// The PATH as Windows holds it now (user, then machine), read from the
+/// registry so an install made after the desk started is still found.
+#[cfg(windows)]
+fn registry_path() -> Vec<PathBuf> {
+    let mut dirs = Vec::new();
+    for (hive, key) in [
+        ("HKCU", "Environment"),
+        (
+            "HKLM",
+            r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+        ),
+    ] {
+        let Ok(output) = std::process::Command::new("reg")
+            .args(["query", &format!("{hive}\\{key}"), "/v", "Path"])
+            .creation_flags(0x08000000)
+            .output()
+        else {
+            continue;
+        };
+        let text = String::from_utf8_lossy(&output.stdout);
+        for line in text.lines() {
+            let trimmed = line.trim_start();
+            if let Some(rest) = trimmed.strip_prefix("Path") {
+                // "Path    REG_EXPAND_SZ    C:\a;C:\b"
+                let mut parts = rest.split_whitespace();
+                let _kind = parts.next();
+                let value = parts.collect::<Vec<_>>().join(" ");
+                let expanded = expand_windows_vars(&value);
+                dirs.extend(std::env::split_paths(&expanded));
+            }
+        }
+    }
+    dirs
+}
+
+/// `%VAR%` references in a registry PATH, replaced from this process's environment.
+#[cfg(windows)]
+fn expand_windows_vars(value: &str) -> String {
+    let mut out = String::new();
+    let mut rest = value;
+    while let Some(start) = rest.find('%') {
+        out.push_str(&rest[..start]);
+        let after = &rest[start + 1..];
+        match after.find('%') {
+            Some(end) => {
+                let name = &after[..end];
+                match std::env::var(name) {
+                    Ok(v) => out.push_str(&v),
+                    Err(_) => {
+                        out.push('%');
+                        out.push_str(name);
+                        out.push('%');
+                    }
+                }
+                rest = &after[end + 1..];
+            }
+            None => {
+                out.push_str(&rest[start..]);
+                rest = "";
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 pub fn resolve(name: &str) -> Option<String> {

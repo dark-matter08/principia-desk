@@ -61,6 +61,12 @@
   function choose(next: EngineId) { engine = next; query = ''; page = 0; stopAll(); }
   function stopAll() { player?.pause(); player = null; if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); playing = ''; }
 
+  async function installUv() {
+    busy = 'uv'; error = ''; steps = []; stepsFor = 'uv';
+    try { steps = await api.installUv(); await load(); }
+    catch (e) { error = String(e); }
+    finally { busy = ''; }
+  }
   async function installEngine(target: AudioEngineStatus) {
     busy = `engine:${target.id}`; error = ''; steps = []; stepsFor = target.id;
     try { steps = await api.installAudioEngine(target.id); await load(); }
@@ -177,7 +183,13 @@
         {/if}
       </div>
     </div>
-    {#if status.python_install}<pre class="mono cmd">{status.python_install}</pre>{/if}
+    {#if status.python_install}
+      <div class="uv-row">
+        <button type="button" class="cta mono-cta" disabled={!!busy} onclick={installUv}><Download size={12} /> {busy === 'uv' ? 'installing uv…' : 'Install uv for me'}</button>
+        <span class="fine">No Python the desk can use was found. uv fetches its own; or run this yourself, then refresh:</span>
+        <pre class="mono cmd">{status.python_install}</pre>
+      </div>
+    {/if}
   {/if}
   {#if error}<p class="error mono" role="alert">{error}</p>{/if}
 </NodeCard>
@@ -231,6 +243,8 @@
   .steps li { display: flex; gap: 8px; font-size: 10.5px; color: var(--muted); } .steps li.failed { color: var(--led-err); }
   .steps .mark { width: 16px; height: 16px; border: 0; background: color-mix(in srgb, var(--led-ok) 18%, transparent); color: var(--led-ok); } .steps li.failed .mark { background: color-mix(in srgb, var(--led-err) 18%, transparent); color: var(--led-err); }
   .steps pre { margin: 4px 0 0; font-size: 9.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .uv-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .uv-row .cmd { margin: 0; }
   .cmd { margin: 12px 0 0; padding: 8px 10px; font-size: 10.5px; background: var(--surface); border: 1px solid var(--node-border); border-radius: var(--radius-control); color: var(--fg); user-select: all; }
   .line.mono { font-size: 10.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; justify-content: flex-start; }
   :global(.spin) { animation: spin 1.1s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } }

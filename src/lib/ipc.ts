@@ -1151,6 +1151,7 @@ const realApi = {
   searxngInstall: () => invoke<SearxngStep[]>('searxng_install'),
   searxngStart: () => invoke<SearxngStatus>('searxng_start'),
   searxngStop: () => invoke<SearxngStatus>('searxng_stop'),
+  installUv: () => invoke<SearxngStep[]>('install_uv'),
   getAudioStatus: () => invoke<AudioStatus>('get_audio_status'),
   installAudioEngine: (engine: string) => invoke<SearxngStep[]>('install_audio_engine', { engine }),
   removeAudioEngine: (engine: string) => invoke<void>('remove_audio_engine', { engine }),
