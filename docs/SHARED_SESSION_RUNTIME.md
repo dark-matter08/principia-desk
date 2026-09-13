@@ -1,6 +1,6 @@
 # Shared study runtime
 
-The native foundation lives in `src-tauri/src/domain/sessions.rs`, with schema v6 in `006_study_sessions.sql`. Existing lesson IPC and the three legacy engines still own their current records. The primary engine must switch its writer, due/consumed decisions, active-session reads and history together before this runtime becomes the user-facing study engine. Engineering classroom and language adapters follow that cutover. This document records an implementation boundary, not completion of P4–P6.
+Every lesson in Principia Desk runs on one runtime: `src-tauri/src/domain/sessions.rs`, with schema v6 in `006_study_sessions.sql` and the engineering and language subject adapters under `src-tauri/src/subjects/`. It plans a session on the class's accepted path, prepares the lesson under a lease ahead of the study time, publishes one immutable lesson version, saves every step as the learner goes, and finishes in one transaction that records evidence, mastery and the appointment. The daily routine that came before it is retired; its finished days were imported once (the last section). The sections below are the contracts, written as they were built; where a passage says what came next, it has since been done.
 
 ## Identity and planning
 
@@ -28,19 +28,19 @@ Completion calls a native subject adapter inside one transaction. That adapter v
 
 Terminal results freeze the submitted checkpoint. Original lesson content, ownership, submitted work and result rows are immutable. Follow-up practice must create a later session/artifact revision rather than changing the original evidence.
 
-## Verification and next integration
+## Verification
 
 `tests/study_sessions.rs` exercises real SQLite connections and process-style reopenings: concurrent planning, competing preparation claims, expiry/recovery, stale worker rejection, save conflicts, foreground handoff, midnight resume, revised-path/tutor isolation, atomic grade/progress failure, result retries, terminal immutability and independent placement. Migration tests retain original assessment records and verify the v5 backup and unchanged v1–v5 ledger entries.
 
-The next integration needs primary session import/crosswalks, compatibility IPC keyed to the stable session, native preparation worker calls, captured timer ownership and simultaneous due/consumed/history reader cutover. The same runtime then supports the classroom and CEFR adapters. Occurrences/timezones, OS enforcement coordination, shared lesson UI and evidence-based curriculum completion remain separate unfinished gates in `PRODUCT_EVOLUTION_PLAN.md`.
+What this list once called the next integration is in place: the primary session import and crosswalks, IPC keyed to the stable session, the native preparation worker (`readiness.rs`), captured timer ownership, the due/consumed/history readers on this runtime, the engineering and language adapters, durable appointments with time zones (`domain/schedule.rs`, schema v9), the focus coordinator (`enforcement.rs`), the shared lesson shell and evidence-based curriculum completion.
 
 ## Primary identity boundary
 
 Schema v7 backfills stable IDs for every existing primary row and assigns them
 atomically to subsequent rows. `primary_session_ids` and the `sessions` crosswalk
 retain that mapping; the eventual shared-runtime import must reuse these IDs.
-The compatibility table still permits one primary record per service date. This
-is not yet the full primary FSM/storage cutover.
+The compatibility table permitted one primary record per service date; the
+cutover that followed moved the routine's records into this runtime.
 
 Primary lesson IPC now receives a captured `session_id`: recall and review,
 lesson selection, reader preparation, reading start/completion, audio, exit
@@ -69,10 +69,10 @@ pending with zero reading time. Debug mode also now exempts native window/quit
 handling and webview shortcuts from its simulated UI lock. Real enforcement
 keeps its existing protections.
 
-Still required: migrate primary state and content into `study_sessions` and
-`lesson_versions`, bind the preparation worker and assessment ownership to that
-runtime, cut over due/consumed/history projections together, and support legacy
-assignment and multiple voluntary sessions without using a date as identity.
+All of that followed: primary state and content live in `study_sessions` and
+`lesson_versions` (the import below), the preparation worker and assessment
+ownership are bound to this runtime, and the due/consumed/history projections
+read from it; a date is no longer an identity anywhere.
 ## Primary import preflight
 
 `storage/primary_import.rs` now inspects schema-v7 primary learning records in one
@@ -90,8 +90,7 @@ answers or credentials.
 
 Nine regressions cover exact-byte retention, ambiguous ownership, schema/ledger
 validation, concurrent snapshots, legacy main/PR upgrades and stale-plan detection.
-This is preparation for the migration: it neither registers a migration nor
-switches production writers/readers to the shared runtime.
+The preflight became the import described below, which the app runs at startup.
 
 ## Engineering adapter
 
@@ -112,8 +111,8 @@ without credit. Exercise drafts and completion are checkpoint work.
 Readers that must move together with this writer now include shared-runtime
 sessions: `slot_state`, `has_active_session`, `delete_slot`, `active_sessions`,
 `completed_lesson_count`, the Progress history/archive and the dossier's
-misconception feed. Legacy in-progress classroom rows remain resumable through
-the compatibility commands until they finish. The `study_fixture` example
+misconception feed. Classroom rows from before the runtime stayed resumable through the
+compatibility commands until they finished. The `study_fixture` example
 publishes a bundled reference lesson into a planned session (or fails the
 preparation with `--fail`) for desktop QA without a provider.
 

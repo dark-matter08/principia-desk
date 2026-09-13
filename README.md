@@ -241,6 +241,8 @@ Numbered migrations still run after a pre-upgrade backup, and finished daily-rou
 │  enforcement.rs         focus coordinator; kiosk.rs the lock, per platform │
 │  storage/               numbered migrations, backups, legacy import        │
 │  generator.rs           strict lesson generation and bundled references    │
+│  audio.rs · searxng.rs  listening mode (four engines); the local search    │
+│  updater.rs · keychain  updates from inside the desk; keys per platform    │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -281,6 +283,9 @@ Useful flags and env vars:
 | `--debug-day` | No OS lock (the focus coordinator only records the lock), schedule ignored |
 | `--triggered` | What the scheduler passes; goes straight to the appointment check |
 | `PRINCIPIA_DATE=2026-06-12` | Override "today" for multi-day flows |
+| `PRINCIPIA_NO_UPDATE_CHECK=1` | Never read the release manifest (a managed machine) |
+| `PRINCIPIA_PIPER_VOICES=/dir` | One more folder of Piper voices to find |
+| `PRINCIPIA_PYTHON_DIRS=/a:/b` | More folders to look for a Python in, for SearXNG and the voices |
 | `PRINCIPIA_CLAUDE_BIN=/path` | Override the Claude binary (`/usr/bin/false` makes preparation fail deliberately) |
 | `PRINCIPIA_CODEX_BIN=none` | Disable the Codex runner |
 | `DEEPSEEK_API_KEY=...` | Authenticate DeepSeek for the whole process |
@@ -295,9 +300,11 @@ The generation layer is a persistent teaching agent; see [docs/TEACHER.md](docs/
 
 ## Roadmap
 
-- [ ] Windows and Linux wake-up and enforcement verification
+- [ ] Windows and Linux: the study times, the alarm and the tray are built for them and not yet walked through on real machines
+- [ ] Strict enforcement's system-level blocks on Windows and Linux (macOS has them; the platforms do not hand them to an application yet)
 - [ ] Rescheduling a single appointment
-- [ ] Notarized builds and installers
+- [ ] Notarized builds and signed installers (the updater's own signature exists; the operating systems' do not)
+- [ ] VibeVoice on Windows and Linux (Apple Silicon only today, through mlx-audio) and the long-form 1.5B model once it is converted
 
 ## License
 

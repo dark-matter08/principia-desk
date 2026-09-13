@@ -140,7 +140,7 @@
         "Onboarding teaches the recovery console with a walkthrough that plays the four commands through. Settings keeps the same guide, with the keys as they read on this machine and whether the system took the combination.",
         "The README documents every route, including the ones for a build so broken it cannot draw a window."
       ],
-      "figure": { "src": "/shots/recovery.png", "alt": "The Recovery section of Principia Desk settings: the key combination as keycaps, the four-command ladder, a replayable walkthrough console and the exits that need no console", "caption": "settings · 03 recovery" },
+      "figure": { "src": "/shots/recovery.png", "alt": "The Recovery section of Principia Desk settings: the key combination as keycaps, the four-command ladder, a replayable walkthrough console and the exits that need no console", "caption": "settings · recovery" },
       "flip": false,
       "links": [{ "label": "Every way out, in full", "href": "/docs/ways-out" }]
     },

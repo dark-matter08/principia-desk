@@ -14,7 +14,10 @@ appointments; the duplicate Schedule destination and daily routine are retired.
 
 Use `main`'s `SetupWizard`, `Idle`, `NodeCard`, `MetaBadge`, `StatusLED`,
 `TimePicker` and the screenshots under `docs/screenshots/` as references. The
-new `FlowStage` extracts the numbered rail from that setup design. Course and
+`FlowStage` extracts the numbered rail from that setup design (the setup wizard
+still uses it; Settings is tabs, one per service, in the class page's rail
+style, and the runner setup's shape of a list beside an editor is reused by
+the voices page). Course and
 class terminology may become more consistent while the original visual
 character remains intact. Diagrams and status indicators should represent
 actual relationships and state.

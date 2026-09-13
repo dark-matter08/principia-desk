@@ -13,9 +13,9 @@ npm run check
 
 Engineering curriculum briefs live in `src-tauri/seed/concepts.json`. Every topic needs a concrete outcome, mechanisms, scenario, misconception, observable evidence, artifact and primary references. Prerequisites must exist in the same course, have no later tier and form an acyclic graph. `related_concepts` names cross-course connections; these are teaching context, not automatic placement credit. IDs and historical learning fields are preserved when authored metadata refreshes.
 
-The initial catalog has seven engineering courses and two CEFR language courses. System Design retains 72 topics; Linux Bash and Bash Scripting each start with 18. Course length follows its scope. Do not pad a course to match the old 30-session frontend framing.
+The bundled catalog has seven engineering courses and two CEFR language courses; a learner's own classes (`docs/CUSTOM_CLASSES.md`) join it at runtime. System Design has 72 topics; Linux Bash and Bash Scripting each start with 18. Course length follows its scope; a course is not padded to a fixed number of sessions.
 
-Keep entry-stage labels aligned with authored core work. These labels currently describe the curriculum structure. They do not yet implement a chosen starting point, assess prior knowledge or alter native eligibility; that requires the shared entry-profile and path runtime in the product plan.
+Keep entry-stage labels aligned with authored core work. The labels describe the curriculum structure; a learner's chosen starting point, the placement check and the accepted path that decides what is eligible live in `domain/enrollment.rs`, `domain/placement.rs` and `domain/classes.rs`, and read these stages as their map.
 
 `reference_lessons` names JSON files under `seed/fallback_courses`. Their role is browser preview content and auxiliary assessment material. They are never silently substituted for a requested generated engineering lesson. Keep examples executable and questions grounded in the accompanying explanation. The two initial shell examples also live under `labs/`; update the corresponding script and bundled example together.
 
