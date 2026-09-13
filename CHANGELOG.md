@@ -4,6 +4,11 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [0.2.6] · 2026-09-13
+
+### Fixed
+- **SearXNG on Windows.** Its repository carries four deployment templates named `searxng.conf:socket`, and a colon in a file name is something Windows cannot write, so every clone there ended with "Clone succeeded, but checkout failed" and a hollow folder. The desk now checks out only the `searx` package and the root files (a sparse, shallow clone of about 26 MB), which is all the runtime needs, on every platform; the archive route skips those names too.
+
 ## [0.2.5] · 2026-09-13
 
 ### Fixed

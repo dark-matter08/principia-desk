@@ -326,7 +326,7 @@ async fn fetch_archive(installer: &mut Installer<'_>, home: &Path, src: &Path) -
     if !installer
         .run(
             Path::new("tar"),
-            &["-xf", &archive_text, "-C", &home_text],
+            &["-xf", &archive_text, "-C", &home_text, "--exclude=*:*"],
             "Unpacking SearXNG",
             None,
         )
@@ -343,6 +343,48 @@ async fn fetch_archive(installer: &mut Installer<'_>, home: &Path, src: &Path) -
     true
 }
 
+/// A shallow clone of only what the runtime needs: the `searx` package and
+/// the root files. The repository's `utils/` carries deployment templates
+/// whose names hold a colon (`searxng.conf:socket`), which Windows cannot
+/// write, and a full checkout there fails after the clone succeeded.
+async fn clone_sparse(installer: &mut Installer<'_>, git: &Path, src: &Path, step: &str) -> bool {
+    let target = src.to_string_lossy().into_owned();
+    if !installer
+        .run(
+            git,
+            &[
+                "clone",
+                "--depth",
+                "1",
+                "--no-checkout",
+                "--filter=blob:none",
+                REPO,
+                &target,
+            ],
+            step,
+            None,
+        )
+        .await
+    {
+        return false;
+    }
+    if !installer
+        .run(
+            git,
+            &["sparse-checkout", "set", "--cone", "searx"],
+            "Keeping only the runtime's files",
+            Some(src),
+        )
+        .await
+    {
+        return false;
+    }
+    installer
+        .run(git, &["checkout"], "Checking the files out", Some(src))
+        .await
+        && src.join("requirements.txt").exists()
+}
+
 /// Clone, build an isolated environment, write settings. uv when present
 /// (it fetches the pinned interpreter itself), plain venv and pip otherwise.
 pub async fn install(feed: &Feed, port: u16) -> Result<Vec<Step>, String> {
@@ -354,19 +396,20 @@ pub async fn install(feed: &Feed, port: u16) -> Result<Vec<Step>, String> {
         Some(git) => {
             let git = PathBuf::from(git);
             if !src.join(".git").exists() {
-                let target = src.to_string_lossy().into_owned();
-                if !installer
-                    .run(
-                        &git,
-                        &["clone", "--depth", "1", REPO, &target],
-                        "Cloning SearXNG",
-                        None,
-                    )
-                    .await
-                {
+                if !clone_sparse(&mut installer, &git, &src, "Cloning SearXNG").await {
                     return Ok(installer.steps);
                 }
             } else {
+                // An older checkout may carry the whole tree; the sparse set
+                // is idempotent and drops what the runtime does not need.
+                installer
+                    .run(
+                        &git,
+                        &["sparse-checkout", "set", "--cone", "searx"],
+                        "Keeping only the runtime's files",
+                        Some(&src),
+                    )
+                    .await;
                 installer
                     .run(
                         &git,
@@ -375,32 +418,13 @@ pub async fn install(feed: &Feed, port: u16) -> Result<Vec<Step>, String> {
                         Some(&src),
                     )
                     .await;
-                // A clone cut short (the desk closed mid-way) leaves `.git`
-                // and no files; a pull is happy with that. Put the tree back,
-                // and if that fails, clone again from nothing.
+                // A clone cut short (the desk closed mid-way, or a checkout
+                // Windows refused) leaves `.git` and no files; a pull is happy
+                // with that. Clone again from nothing.
                 if !src.join("requirements.txt").exists() {
-                    let restored = installer
-                        .run(
-                            &git,
-                            &["checkout", "--", "."],
-                            "Restoring the checkout",
-                            Some(&src),
-                        )
-                        .await;
-                    if !restored || !src.join("requirements.txt").exists() {
-                        let _ = std::fs::remove_dir_all(&src);
-                        let target = src.to_string_lossy().into_owned();
-                        if !installer
-                            .run(
-                                &git,
-                                &["clone", "--depth", "1", REPO, &target],
-                                "Cloning SearXNG again",
-                                None,
-                            )
-                            .await
-                        {
-                            return Ok(installer.steps);
-                        }
+                    let _ = std::fs::remove_dir_all(&src);
+                    if !clone_sparse(&mut installer, &git, &src, "Cloning SearXNG again").await {
+                        return Ok(installer.steps);
                     }
                 }
             }
