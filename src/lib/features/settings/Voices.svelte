@@ -151,7 +151,7 @@
               {:else if current.ready && current.installable}
                 <button type="button" class="ghost mono-ghost small" disabled={!!busy} onclick={() => installEngine(current)} title="A copy under the profile, independent of the environment it was found in"><Download size={11} /> {busy === `engine:${current.id}` ? 'installing…' : "install the desk's own copy"}</button>
               {/if}
-              {#if engine === 'kokoro' || engine === 'vibevoice'}<span class="fine">The first render fetches the model ({engine === 'kokoro' ? 'about 330 MB' : 'about 700 MB'}); a first "hear" does that too.</span>{/if}
+              {#if engine === 'kokoro' || engine === 'vibevoice'}<span class="fine">The first render fetches the model ({engine === 'kokoro' ? 'about 330 MB' : status.apple_silicon ? 'about 700 MB' : 'about 2 GB'}); a first "hear" does that too.</span>{/if}
             </div>
             {#if stepsFor === current.id && steps.length}
               <ol class="steps">{#each steps as step, index (index)}<li class:failed={!step.ok}><span class="mark" aria-hidden="true">{#if step.ok}<Check size={11} />{:else}<X size={11} />{/if}</span><span>{step.step}{#if !step.ok && step.output}<pre class="mono">{step.output}</pre>{/if}</span></li>{/each}</ol>

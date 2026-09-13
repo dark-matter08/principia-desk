@@ -62,7 +62,7 @@ The lesson shell is the same for every course: identity, stage rail (Learn · Pr
 
 A class can ask for its lessons as audio. Once a lesson is ready, the tutor writes it a second time as a conversation between a teacher and a sharp student, in a spoken register that follows the lesson's own sections (the check questions stay a check), and the desk voices every line with the engine and the two voices the class chose; the audio never delays the lesson, and a voice that fails leaves the transcript for the desk to read itself. The lesson's **listen** key opens a dock with play, pause, a line at a time, the speed, and the transcript with the spoken line lit; a lesson whose class has listening off can still be voiced from that dock, one at a time.
 
-Settings › Voices sets the engines up and finds the ones already on the machine (a `piper` on the PATH, a Python that imports `kokoro` or `mlx_audio`, an activated virtual environment included): the **system voice** (nothing to install), **Piper** (a neural voice on any processor, the `piper-tts` package in an isolated Python under the profile, voices of about 60 MB downloaded one at a time), **Kokoro** (an 82M model, through mlx-audio on Apple Silicon and the `kokoro` package elsewhere) and **VibeVoice** (Microsoft's two-host model as the realtime 0.5B converted for mlx-audio, Apple Silicon only, named voices in English, German and Italian). Each class picks an engine and a voice per host in its Settings › Listening; the first render of Kokoro or VibeVoice fetches the model. `docs/TEACHER.md` §5a is where the idea came from.
+Settings › Voices sets the engines up and finds the ones already on the machine (a `piper` on the PATH, a Python that imports `kokoro` or `mlx_audio`, an activated virtual environment included): the **system voice** (nothing to install), **Piper** (a neural voice on any processor, the `piper-tts` package in an isolated Python under the profile, voices of about 60 MB downloaded one at a time), **Kokoro** (an 82M model, through mlx-audio on Apple Silicon and the `kokoro` package elsewhere) and **VibeVoice** (Microsoft's two-host model, the realtime 0.5B: through mlx-audio on Apple Silicon, through the official PyTorch package everywhere else, on an NVIDIA GPU when there is one and on the processor otherwise, where it renders slower than it plays and the desk absorbs that by writing ahead of the study time; named voices in English, German and Italian). Each class picks an engine and a voice per host in its Settings › Listening; the first render of Kokoro or VibeVoice fetches the model. `docs/TEACHER.md` §5a is where the idea came from.
 
 ### Retrieval, bridges and unit challenges
 
@@ -304,7 +304,7 @@ The generation layer is a persistent teaching agent; see [docs/TEACHER.md](docs/
 - [ ] Strict enforcement's system-level blocks on Windows and Linux (macOS has them; the platforms do not hand them to an application yet)
 - [ ] Rescheduling a single appointment
 - [ ] Notarized builds and signed installers (the updater's own signature exists; the operating systems' do not)
-- [ ] VibeVoice on Windows and Linux (Apple Silicon only today, through mlx-audio) and the long-form 1.5B model once it is converted
+- [ ] VibeVoice's long-form 1.5B model (the desk runs the realtime 0.5B everywhere; the 1.5B wants a GPU and is not converted for mlx yet)
 
 ## License
 

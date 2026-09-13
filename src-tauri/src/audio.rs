@@ -377,11 +377,32 @@ fn kokoro_venv(data_dir: &Path) -> PathBuf {
 fn mlx_venv(data_dir: &Path) -> PathBuf {
     data_dir.join("mlx-venv")
 }
+fn vibevoice_venv(data_dir: &Path) -> PathBuf {
+    data_dir.join("vibevoice-venv")
+}
+/// The realtime model's voice presets (`.pt`, a few MB each), fetched from
+/// the official repository with the engine; the mlx model carries its own.
+fn vibevoice_voices_dir(data_dir: &Path) -> PathBuf {
+    voices_dir(data_dir).join("vibevoice")
+}
+fn vibevoice_preset(data_dir: &Path, id: &str) -> PathBuf {
+    vibevoice_voices_dir(data_dir).join(format!("{id}.pt"))
+}
+const VIBEVOICE_TORCH_MODEL: &str = "microsoft/VibeVoice-Realtime-0.5B";
+const VIBEVOICE_PACKAGE: &str =
+    "https://github.com/microsoft/VibeVoice/archive/refs/heads/main.zip";
+const VIBEVOICE_PRESETS: &str =
+    "https://raw.githubusercontent.com/microsoft/VibeVoice/main/demo/voices/streaming_model";
 fn audio_dir(data_dir: &Path, session_id: &str) -> PathBuf {
     data_dir.join("audio").join(session_id)
 }
 fn apple_silicon() -> bool {
     cfg!(all(target_os = "macos", target_arch = "aarch64"))
+}
+/// An NVIDIA driver on the PATH is the cheap sign of a CUDA GPU to build
+/// PyTorch for; without it the processor build is the honest choice.
+fn nvidia_gpu() -> bool {
+    !cfg!(target_os = "macos") && process::resolve("nvidia-smi").is_some()
 }
 fn voice_file(data_dir: &Path, id: &str) -> PathBuf {
     voices_dir(data_dir).join(format!("{id}.onnx"))
@@ -402,23 +423,22 @@ pub enum Backend {
     KokoroTorch(PathBuf),
     /// mlx-audio in an interpreter: Kokoro and VibeVoice on Apple Silicon.
     Mlx(PathBuf),
+    /// Microsoft's `vibevoice` package (PyTorch) in an interpreter: VibeVoice
+    /// on any processor, a CUDA GPU when there is one.
+    VibeVoiceTorch(PathBuf),
 }
 
 impl Backend {
     fn via(&self) -> String {
-        match self {
-            Backend::PiperCli(p)
-            | Backend::PiperPython(p)
-            | Backend::KokoroTorch(p)
-            | Backend::Mlx(p) => p.to_string_lossy().into_owned(),
-        }
+        self.python().to_string_lossy().into_owned()
     }
     fn python(&self) -> &Path {
         match self {
             Backend::PiperCli(p)
             | Backend::PiperPython(p)
             | Backend::KokoroTorch(p)
-            | Backend::Mlx(p) => p,
+            | Backend::Mlx(p)
+            | Backend::VibeVoiceTorch(p) => p,
         }
     }
 }
@@ -450,6 +470,11 @@ pub async fn discover(data_dir: &Path) -> Found {
             found.kokoro = Some((Backend::KokoroTorch(python), "desk"));
         }
     }
+    if found.vibevoice.is_none() {
+        if let Some(python) = existing(pyenv::venv_python(&vibevoice_venv(data_dir))) {
+            found.vibevoice = Some((Backend::VibeVoiceTorch(python), "desk"));
+        }
+    }
     if found.piper.is_none() {
         if let Some(cli) = process::resolve("piper") {
             found.piper = Some((Backend::PiperCli(PathBuf::from(cli)), "found"));
@@ -476,10 +501,10 @@ pub async fn discover(data_dir: &Path) -> Found {
         if found.kokoro.is_none() && pyenv::imports(&python, "kokoro").await {
             found.kokoro = Some((Backend::KokoroTorch(python.clone()), "found"));
         }
-        if found.piper.is_some()
-            && found.kokoro.is_some()
-            && (found.vibevoice.is_some() || !apple_silicon())
-        {
+        if found.vibevoice.is_none() && pyenv::imports(&python, "vibevoice").await {
+            found.vibevoice = Some((Backend::VibeVoiceTorch(python.clone()), "found"));
+        }
+        if found.piper.is_some() && found.kokoro.is_some() && found.vibevoice.is_some() {
             break;
         }
     }
@@ -517,7 +542,11 @@ fn voice_installed(data_dir: &Path, found: &Found, spec: &VoiceSpec) -> bool {
     match spec.engine {
         PIPER => piper_voice_path(data_dir, spec.id).is_some(),
         KOKORO => found.kokoro.is_some(),
-        VIBEVOICE => found.vibevoice.is_some(),
+        VIBEVOICE => match &found.vibevoice {
+            Some((Backend::VibeVoiceTorch(_), _)) => vibevoice_preset(data_dir, spec.id).exists(),
+            Some(_) => true,
+            None => false,
+        },
         _ => true,
     }
 }
@@ -599,15 +628,17 @@ pub async fn status(data_dir: &Path) -> AudioStatus {
         engine_status(
             VIBEVOICE,
             "VibeVoice",
-            "the podcast model, Apple Silicon",
+            "the podcast model, any platform",
             found.vibevoice.as_ref(),
-            can_build && apple_silicon(),
-            if !apple_silicon() {
-                "Microsoft's VibeVoice runs here through mlx-audio, which needs Apple Silicon. On this machine, Piper and Kokoro are the voices.".into()
-            } else if can_build {
-                "Microsoft's VibeVoice, the model built for long two-host audio, as the realtime 0.5B converted for mlx-audio: about 1 GB in an isolated Python under the profile, the model (about 700 MB) fetched on the first render. Named voices in English, German and Italian.".into()
-            } else {
+            can_build,
+            if !can_build {
                 need_python.clone()
+            } else if apple_silicon() {
+                "Microsoft's VibeVoice, the model built for long two-host audio, as the realtime 0.5B converted for mlx-audio on the GPU: about 1 GB in an isolated Python under the profile, the model (about 700 MB) fetched on the first render. Named voices in English, German and Italian.".into()
+            } else if nvidia_gpu() {
+                "Microsoft's VibeVoice, the model built for long two-host audio: the official package with PyTorch for your NVIDIA GPU, about 3 GB in an isolated Python under the profile, the realtime 0.5B model (about 2 GB) fetched on the first render. Named voices in English, German and Italian.".into()
+            } else {
+                "Microsoft's VibeVoice, the model built for long two-host audio: the official package with PyTorch on the processor, about 1 GB in an isolated Python under the profile, the realtime 0.5B model (about 2 GB) fetched on the first render. On a processor it renders slower than it plays, which the desk absorbs by writing the audio ahead of the study time; a lesson takes a while, and the Logs page counts the lines. Named voices in English, German and Italian.".into()
             },
         ),
     ];
@@ -667,9 +698,7 @@ pub async fn install_engine(
             vec!["mlx-audio"],
             "import mlx_audio; print('mlx-audio ok')",
         ),
-        VIBEVOICE => {
-            return Err("VibeVoice runs through mlx-audio, which needs Apple Silicon.".into())
-        }
+        VIBEVOICE => return install_vibevoice_torch(feed, data_dir).await,
         SYSTEM => return Err("The system voice needs nothing installed.".into()),
         other => return Err(format!("unknown engine {other}")),
     };
@@ -705,7 +734,7 @@ pub fn remove_engine(data_dir: &Path, engine: &str) -> Result<(), String> {
     let venvs: Vec<PathBuf> = match engine {
         PIPER => vec![piper_venv(data_dir)],
         KOKORO => vec![kokoro_venv(data_dir), mlx_venv(data_dir)],
-        VIBEVOICE => vec![mlx_venv(data_dir)],
+        VIBEVOICE => vec![mlx_venv(data_dir), vibevoice_venv(data_dir)],
         _ => return Err("nothing to remove for that engine".into()),
     };
     for venv in venvs {
@@ -925,6 +954,9 @@ pub async fn render(
             Some((Backend::Mlx(python), _)) => {
                 render_mlx(feed, &python, VIBEVOICE_MODEL, teacher, student, lines, out).await
             }
+            Some((Backend::VibeVoiceTorch(python), _)) => {
+                render_vibevoice_torch(feed, data_dir, &python, teacher, student, lines, out).await
+            }
             _ => Err("VibeVoice is not on this machine.".into()),
         },
         SYSTEM => Err("the system voice is read by the interface, not rendered".into()),
@@ -1121,6 +1153,184 @@ for line in plan:
             plan = plan,
             out = out.to_string_lossy(),
             repo = KOKORO_TORCH_REPO,
+        ),
+    )
+    .map_err(|e| e.to_string())?;
+    run_render_script(feed, python, &script).await?;
+    check_segments(lines, out)
+}
+
+/// The official package with PyTorch: CUDA wheels when an NVIDIA driver is
+/// there, processor wheels otherwise, then the ten voice presets the desk
+/// lists, fetched from the repository beside the model code.
+async fn install_vibevoice_torch(feed: &Feed, data_dir: &Path) -> Result<Vec<pyenv::Step>, String> {
+    let mut installer = Installer::new(feed);
+    let venv = vibevoice_venv(data_dir);
+    std::fs::create_dir_all(data_dir).map_err(|e| e.to_string())?;
+    let python = match pyenv::create_venv(&mut installer, &venv).await {
+        Ok(python) => python,
+        Err(_) => return Ok(installer.steps),
+    };
+    // PyPI's torch is CUDA-built on Linux (large) and processor-only on
+    // Windows; the index picks the right one for what the machine has.
+    let torch: Vec<&str> = if nvidia_gpu() {
+        if cfg!(windows) {
+            vec![
+                "torch",
+                "--index-url",
+                "https://download.pytorch.org/whl/cu124",
+            ]
+        } else {
+            vec!["torch"]
+        }
+    } else if cfg!(target_os = "linux") {
+        vec![
+            "torch",
+            "--index-url",
+            "https://download.pytorch.org/whl/cpu",
+        ]
+    } else {
+        vec!["torch"]
+    };
+    let step = if nvidia_gpu() {
+        "Installing PyTorch for the NVIDIA GPU"
+    } else {
+        "Installing PyTorch for the processor"
+    };
+    if !pyenv::pip_install(&mut installer, &python, &torch, step, None).await {
+        return Ok(installer.steps);
+    }
+    if !pyenv::pip_install(
+        &mut installer,
+        &python,
+        &[VIBEVOICE_PACKAGE, "soundfile"],
+        "Installing VibeVoice",
+        None,
+    )
+    .await
+    {
+        return Ok(installer.steps);
+    }
+    if !installer
+        .run(
+            &python,
+            &["-c", "import vibevoice, transformers, torch, soundfile; print('vibevoice ok', torch.__version__)"],
+            "Checking it imports",
+            None,
+        )
+        .await
+    {
+        return Ok(installer.steps);
+    }
+    let dir = vibevoice_voices_dir(data_dir);
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let client = reqwest::Client::new();
+    for voice in VOICES.iter().filter(|v| v.engine == VIBEVOICE) {
+        let target = vibevoice_preset(data_dir, voice.id);
+        if target.exists() {
+            continue;
+        }
+        let url = format!("{VIBEVOICE_PRESETS}/{}.pt", voice.id);
+        feed.say(format!("fetching the voice {}", voice.label));
+        let bytes = match client
+            .get(&url)
+            .timeout(Duration::from_secs(600))
+            .send()
+            .await
+        {
+            Ok(r) if r.status().is_success() => r.bytes().await.map_err(|e| e.to_string())?,
+            Ok(r) => {
+                installer.push(
+                    "Fetching the voices",
+                    false,
+                    format!("{url} answered {}", r.status()),
+                );
+                return Ok(installer.steps);
+            }
+            Err(e) => {
+                installer.push("Fetching the voices", false, e.to_string());
+                return Ok(installer.steps);
+            }
+        };
+        std::fs::write(&target, &bytes).map_err(|e| e.to_string())?;
+    }
+    installer.push(
+        "Fetching the voices",
+        true,
+        dir.to_string_lossy().into_owned(),
+    );
+    installer.push("Installed", true, venv.to_string_lossy().into_owned());
+    Ok(installer.steps)
+}
+
+/// VibeVoice through the official package: the realtime 0.5B model with a
+/// cached voice prompt per host, a segment per line; the model is fetched
+/// from Hugging Face on the first run and loaded once per render.
+async fn render_vibevoice_torch(
+    feed: &Feed,
+    data_dir: &Path,
+    python: &Path,
+    teacher: &str,
+    student: &str,
+    lines: &[ScriptLine],
+    out: &Path,
+) -> Result<(), String> {
+    for voice in [teacher, student] {
+        if !voice.is_empty() && !vibevoice_preset(data_dir, voice).exists() {
+            return Err(format!("the VibeVoice voice {voice} is not on this machine; install VibeVoice again to fetch the presets"));
+        }
+    }
+    let script = out.join("render.py");
+    let plan = plan_json(lines, teacher, student)?;
+    std::fs::write(
+        &script,
+        format!(
+            r#"import copy, json, os, time
+import torch
+from vibevoice.modular.modeling_vibevoice_streaming_inference import VibeVoiceStreamingForConditionalGenerationInference
+from vibevoice.processor.vibevoice_streaming_processor import VibeVoiceStreamingProcessor
+from transformers.cache_utils import DynamicCache
+from transformers.modeling_outputs import BaseModelOutputWithPast
+
+plan = json.loads({plan:?})
+out = {out:?}
+presets = {presets:?}
+model_id = {model:?}
+device = "cuda" if torch.cuda.is_available() else "cpu"
+dtype = torch.bfloat16 if device == "cuda" else torch.float32
+print("loading", model_id, "on", device, flush=True)
+processor = VibeVoiceStreamingProcessor.from_pretrained(model_id)
+model = VibeVoiceStreamingForConditionalGenerationInference.from_pretrained(
+    model_id, torch_dtype=dtype, device_map=device, attn_implementation="sdpa")
+model.eval()
+model.set_ddpm_inference_steps(num_steps=5)
+prompts = {{}}
+def prompt_for(voice):
+    if voice not in prompts:
+        with torch.serialization.safe_globals([BaseModelOutputWithPast, DynamicCache]):
+            prompts[voice] = torch.load(os.path.join(presets, voice + ".pt"), map_location=device, weights_only=True)
+    return prompts[voice]
+for line in plan:
+    started = time.time()
+    voice = line["voice"] or "en-Carter_man"
+    cached = prompt_for(voice)
+    inputs = processor.process_input_with_cached_prompt(
+        text=line["text"].replace("’", "'").replace("“", '"').replace("”", '"'),
+        cached_prompt=cached, padding=True, return_tensors="pt", return_attention_mask=True)
+    for k, v in inputs.items():
+        if torch.is_tensor(v):
+            inputs[k] = v.to(device)
+    outputs = model.generate(**inputs, max_new_tokens=None, cfg_scale=1.5, tokenizer=processor.tokenizer,
+        generation_config={{"do_sample": False}}, verbose=False, all_prefilled_outputs=copy.deepcopy(cached))
+    if not outputs.speech_outputs or outputs.speech_outputs[0] is None:
+        raise SystemExit("no audio for line %d" % (line["index"] + 1))
+    processor.save_audio(outputs.speech_outputs[0], output_path=os.path.join(out, "seg_%03d.wav" % line["index"]))
+    print("voiced", line["index"] + 1, "of", len(plan), "in %.0fs" % (time.time() - started), flush=True)
+"#,
+            plan = plan,
+            out = out.to_string_lossy(),
+            presets = vibevoice_voices_dir(data_dir).to_string_lossy(),
+            model = VIBEVOICE_TORCH_MODEL,
         ),
     )
     .map_err(|e| e.to_string())?;

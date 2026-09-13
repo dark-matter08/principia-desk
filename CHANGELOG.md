@@ -4,6 +4,11 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [0.2.3] · 2026-09-13
+
+### Added
+- **VibeVoice on every platform.** Beside the mlx-audio route on Apple Silicon, the desk installs Microsoft's official package with PyTorch under the profile: CUDA wheels when an NVIDIA driver is on the machine, processor wheels otherwise, the realtime 0.5B model fetched on the first render and the ten voice presets fetched with the engine. A machine that already has the `vibevoice` package in a Python is found as it is. On a processor it renders slower than it plays; the desk writes the audio ahead of the study time and the Logs page counts the lines.
+
 ## [0.2.2] · 2026-09-13
 
 The first version a desk installs itself: a 0.2.1 desk sees it in Settings › Updates, checks the pipeline's signature and swaps itself for it. The desk is otherwise the same as 0.2.1.
@@ -20,7 +25,7 @@ The first version an installed desk can update itself to the next one from. Keys
 - **Updates from inside the desk**: the release's `latest.json` is read after boot and every six hours; Settings › Updates shows a newer version with its notes and installs it on request, verifying the pipeline's signature first, then relaunches. The app bundle is replaced on macOS, the installer runs on Windows, the AppImage is swapped in place, a deb or rpm goes through the package manager. A dot on the Settings tile says one is waiting.
 - **SearXNG from the desk**: the search setup finds an instance already answering (Remote Ledger's is shared), starts one that is installed but stopped, or installs its own under `~/.principia-desk/searxng` (a shallow clone, an isolated Python through uv or a found interpreter, the JSON API turned on), every step on the Logs page. Start and Stop keys, the log's tail when it will not start.
 - **Export and import of the profile** in Settings › Your data: one JSON archive with everything the desk knows, a checksum, a preview of what a file holds before it replaces the profile, and a backup of the record it replaces.
-- **Listening**: a class can ask for its lessons as a conversation between a teacher and a student, written by the tutor once the lesson is ready and voiced with the engine and voices the class chose (Settings › Listening on the class). The lesson's **listen** key opens a dock with the transport and the transcript, and can voice a lesson on its own. Settings › Voices sets the engines up and finds the ones already on the machine: the system voice, Piper (any processor, voices downloaded one at a time), Kokoro (mlx-audio on Apple Silicon, the kokoro package elsewhere) and VibeVoice (the realtime 0.5B through mlx-audio, Apple Silicon). Migration v17 keeps a lesson's dialogue and where its segments are.
+- **Listening**: a class can ask for its lessons as a conversation between a teacher and a student, written by the tutor once the lesson is ready and voiced with the engine and voices the class chose (Settings › Listening on the class). The lesson's **listen** key opens a dock with the transport and the transcript, and can voice a lesson on its own. Settings › Voices sets the engines up and finds the ones already on the machine: the system voice, Piper (any processor, voices downloaded one at a time), Kokoro (mlx-audio on Apple Silicon, the kokoro package elsewhere) and VibeVoice (the realtime 0.5B through mlx-audio on Apple Silicon, the official PyTorch package elsewhere). Migration v17 keeps a lesson's dialogue and where its segments are.
 
 ### Changed
 - The desk describes itself as what it is, a desktop app for macOS, Windows and Linux, in the interface, the README, the contributing and security notes and the site. The enforcement picker says what each policy does on the platform it runs on: strict holds the desk the way focused does where the system does not let an application block switching, Force Quit, logout or shutdown.
