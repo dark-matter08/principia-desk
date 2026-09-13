@@ -16,7 +16,9 @@ COPY landing/ ./
 # The build asks GitHub for the latest release; a cached layer would keep
 # naming the release it saw last time, so every run gets its own stamp.
 ARG BUILD_STAMP=dev
-RUN echo "build $BUILD_STAMP" && npm run build
+# The runner's token, for the release lookup; only the build stage sees it.
+ARG GITHUB_TOKEN=
+RUN echo "build $BUILD_STAMP" && GITHUB_TOKEN="$GITHUB_TOKEN" npm run build
 
 FROM nginx:alpine
 COPY --from=build /repo/landing/dist /usr/share/nginx/html

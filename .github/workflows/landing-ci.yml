@@ -86,5 +86,6 @@ jobs:
           tags: ${{ steps.tags.outputs.tags }}
           build-args: |
             BUILD_STAMP=${{ github.run_id }}
+            GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
           cache-from: type=gha,scope=landing
           cache-to: type=gha,mode=max,scope=landing

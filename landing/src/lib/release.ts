@@ -40,7 +40,13 @@ export function apiLatest(): string {
 export async function latestRelease(): Promise<Release | null> {
   try {
     const response = await fetch(apiLatest(), {
-      headers: { accept: "application/vnd.github+json", "user-agent": "principia-landing" },
+      // A token, when the build has one (the CI runner's), keeps the shared
+      // runner addresses clear of the anonymous rate limit.
+      headers: {
+        accept: "application/vnd.github+json",
+        "user-agent": "principia-landing",
+        ...(process.env.GITHUB_TOKEN ? { authorization: `Bearer ${process.env.GITHUB_TOKEN}` } : {}),
+      },
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) return null;
