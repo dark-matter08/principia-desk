@@ -4,6 +4,13 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [0.2.2] · 2026-09-13
+
+The first version a desk installs itself: a 0.2.1 desk sees it in Settings › Updates, checks the pipeline's signature and swaps itself for it. The desk is otherwise the same as 0.2.1.
+
+### Changed
+- The site's image build always runs the site build and reads the release with the runner's token, so the install section names the latest release instead of the one it saw last time.
+
 ## [0.2.1] · 2026-09-13
 
 The first version an installed desk can update itself to the next one from. Keys save on every platform, SearXNG installs from the desk, and the profile travels.
