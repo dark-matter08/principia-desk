@@ -294,7 +294,7 @@ fn an_unanswered_language_check_cannot_be_submitted_and_skipping_keeps_the_lesso
     )
     .unwrap_err();
     assert!(error.contains("Answer every"), "{error}");
-    let skipped = adapter::skip(&conn, &session.id).unwrap();
+    let skipped = adapter::skip(&conn, &session.id, chrono::Utc::now()).unwrap();
     assert_eq!(skipped.status, Status::Skipped);
     let view = adapter::view(&conn, &session.id).unwrap().unwrap();
     assert_eq!(view.status, "skipped");

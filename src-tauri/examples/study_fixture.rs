@@ -40,7 +40,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
             return Ok(());
         };
-        engineering::skip(&conn, &session.id)?;
+        engineering::skip(&conn, &session.id, chrono::Utc::now())?;
         println!(
             "{}",
             serde_json::json!({"skipped": session.id.0, "status": "skipped"})

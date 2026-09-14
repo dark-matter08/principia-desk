@@ -316,7 +316,7 @@ fn the_alarm_waits_for_the_lesson_and_rings_once_it_is_ready() {
         let conn = state.db.0.lock().unwrap();
         let program = principia_desk_lib::classroom::program_row(&conn, "typescript").unwrap();
         // Skip the ready lesson so a fresh one can be planned and then fail.
-        engineering::skip(&conn, &planned.id).unwrap();
+        engineering::skip(&conn, &planned.id, chrono::Utc::now()).unwrap();
         // Skipping resolved the appointment; reopen the test with a new day's appointment.
         conn.execute("UPDATE schedule_occurrences SET disposition='due', session_ref=NULL, resolved_at=NULL WHERE id=?1", [&due.occurrence_id]).unwrap();
         let session = engineering::plan(

@@ -1078,7 +1078,7 @@ pub fn skip_class_lesson(
 ) -> CmdResult<()> {
     {
         let conn = state.db.0.lock().unwrap();
-        crate::subjects::engineering::skip(&conn, &session_id)?;
+        crate::subjects::engineering::skip(&conn, &session_id, chrono::Utc::now())?;
     }
     crate::enforcement::release(&app, &state, &session_id.0);
     state.clear_chat_threads();

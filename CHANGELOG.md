@@ -4,6 +4,15 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [0.2.7] · 2026-09-14
+
+### Fixed
+- **Windows tray popover cut off at the bottom of the screen.** The popover always opened downward from the icon, which is right under macOS's menu bar but ran off the bottom edge under Windows' and most Linux desktops' taskbar. It now checks the icon's monitor and opens upward when there isn't room below, and keeps clear of the left and right edges as well.
+- **Skipping a lesson could end a whole block appointment early.** A multi-lesson block (say, a four-hour slot) measures its remaining time from when it started; skipping one lesson inside it read the real clock instead of the moment the block was claimed, so on a machine whose day had already moved past the block's window, that skip closed the entire appointment instead of leaving it open for the next lesson.
+
+### Added
+- Every tray icon event is logged, to track down a Windows report that a click does nothing once the icon is dragged out of the hidden-icons overflow onto the visible taskbar.
+
 ## [0.2.6] · 2026-09-13
 
 ### Fixed

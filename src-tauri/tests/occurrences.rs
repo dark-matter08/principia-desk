@@ -420,7 +420,7 @@ fn a_class_lesson_started_from_an_appointment_resolves_it_on_completion() {
     )
     .unwrap();
     assert!(classroom::slot_views(&conn, "2026-09-14", false).unwrap()[0].in_progress);
-    let skipped = engineering::skip(&conn, &planned.id).unwrap();
+    let skipped = engineering::skip(&conn, &planned.id, utc("2026-09-14T07:32:00Z")).unwrap();
     assert_eq!(
         skipped.status,
         principia_desk_lib::domain::sessions::Status::Skipped
@@ -657,20 +657,21 @@ fn a_long_appointment_is_a_block_of_whole_topics_then_retrieval_then_done() {
 
     // Skipping the first lesson does not end the block: time remains for
     // another topic, and the day's work is not written off.
-    engineering::skip(&conn, &first.id).unwrap();
+    engineering::skip(&conn, &first.id, started + chrono::Duration::minutes(1)).unwrap();
     assert_eq!(
         schedule::get(&conn, &due.id).unwrap().disposition,
         "started"
     );
 
     // The next lesson continues the block, and is planned with its own minutes.
-    let second = engineering::plan(
+    let second = engineering::plan_at(
         &conn,
         &program,
         None,
         Some(due.id.clone()),
         "2026-09-14",
         false,
+        started + chrono::Duration::minutes(1),
     )
     .unwrap();
     assert_eq!(

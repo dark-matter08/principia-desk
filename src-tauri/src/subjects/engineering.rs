@@ -21,7 +21,7 @@ use crate::{
     mastery, selection,
     state::AppState,
 };
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -112,6 +112,30 @@ pub fn plan(
     today: &str,
     revisit: bool,
 ) -> Result<Session> {
+    plan_at(
+        conn,
+        program,
+        slot_id,
+        occurrence_id,
+        today,
+        revisit,
+        Utc::now(),
+    )
+}
+
+/// As `plan`, but a block continuation's remaining minutes (see
+/// `schedule::block_progress`) are measured against `now` instead of a fresh
+/// clock read: a caller simulating a fixed timeline needs this plan to agree
+/// with it, not with the real one.
+pub fn plan_at(
+    conn: &Connection,
+    program: &ProgramRow,
+    slot_id: Option<i64>,
+    occurrence_id: Option<String>,
+    today: &str,
+    revisit: bool,
+    now: DateTime<Utc>,
+) -> Result<Session> {
     let subject_id = program.subject_id.as_str();
     if !program.enabled {
         return Err(format!("{} is not enabled", program.label));
@@ -146,7 +170,7 @@ pub fn plan(
         }
     })?;
     let minutes = occurrence_id.as_deref().and_then(|occurrence| {
-        crate::domain::schedule::block_progress(conn, occurrence, Utc::now())
+        crate::domain::schedule::block_progress(conn, occurrence, now)
             .ok()
             .flatten()
             .map(|block| block.next_minutes)
@@ -184,7 +208,7 @@ pub fn plan(
             stages: STAGES.to_vec(),
             selection: serde_json::to_value(&selection).map_err(e)?,
         },
-        Utc::now(),
+        now,
     )
     .map_err(e)
 }
@@ -1179,7 +1203,12 @@ pub fn submit(
 
 /// Discard a lesson without credit. Saved work and any prepared content remain
 /// readable as history; an active class placement is untouched.
-pub fn skip(conn: &Connection, id: &SessionId) -> Result<Session> {
+///
+/// `now` decides whether a block appointment's remaining time still allows
+/// another step (see `schedule::finish_step`), so it comes from the caller
+/// rather than a fresh clock read here: a caller simulating a fixed timeline
+/// needs this skip to land on that same timeline, not on the real one.
+pub fn skip(conn: &Connection, id: &SessionId, now: DateTime<Utc>) -> Result<Session> {
     let session = sessions::get(conn, id).map_err(e)?;
     if session.status.terminal() {
         return Ok(session);
@@ -1190,14 +1219,9 @@ pub fn skip(conn: &Connection, id: &SessionId) -> Result<Session> {
         session.revision,
         session.checkpoint.revision,
         Disposition::Skipped,
-        Utc::now(),
+        now,
         |tx, _| {
-            crate::domain::schedule::finish_step(
-                tx,
-                &format!("study:{}", id.0),
-                false,
-                Utc::now(),
-            )?;
+            crate::domain::schedule::finish_step(tx, &format!("study:{}", id.0), false, now)?;
             Ok(json!({"kind": "skipped"}))
         },
     )

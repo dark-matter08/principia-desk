@@ -3237,7 +3237,7 @@ dependencies = [
 
 [[package]]
 name = "principia-desk"
-version = "0.2.6"
+version = "0.2.7"
 dependencies = [
  "chrono",
  "env_logger",

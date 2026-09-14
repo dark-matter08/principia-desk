@@ -447,7 +447,7 @@ fn unanswered_checks_cannot_be_submitted_and_skipping_keeps_work_readable() {
         sessions::get(&conn, &session.id).unwrap().status,
         Status::Active
     );
-    let skipped = engineering::skip(&conn, &session.id).unwrap();
+    let skipped = engineering::skip(&conn, &session.id, chrono::Utc::now()).unwrap();
     assert_eq!(skipped.status, Status::Skipped);
     assert!(engineering::submit(
         &conn,
@@ -614,7 +614,7 @@ fn a_due_topic_gets_a_retrieval_session_from_fresh_or_repeated_material() {
     let view = engineering::view(&conn, &fresh.id).unwrap().unwrap();
     assert!(view.fresh_sample && view.kind == "retrieval" && !view.questions.is_empty());
     assert!(view.title.contains(&title));
-    engineering::skip(&conn, &fresh.id).unwrap();
+    engineering::skip(&conn, &fresh.id, chrono::Utc::now()).unwrap();
     // A skipped review leaves the topic due; the next plan is a new session.
     let again = engineering::plan_review(&conn, &program, &due).unwrap();
     assert_ne!(again.id, fresh.id);

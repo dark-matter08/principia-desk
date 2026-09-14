@@ -133,7 +133,7 @@ fn a_class_focus_policy_is_snapshotted_into_future_sessions_only() {
         FocusPolicy::Advisory
     );
     engineering::activate(&conn, &advisory.id).unwrap();
-    engineering::skip(&conn, &advisory.id).unwrap();
+    engineering::skip(&conn, &advisory.id, chrono::Utc::now()).unwrap();
     let strict = published(&conn, "typescript");
     assert_eq!(strict.context.focus_policy, FocusPolicy::Strict);
     assert!(engineering::activate(&conn, &strict.id)
