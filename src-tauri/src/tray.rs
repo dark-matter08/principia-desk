@@ -22,6 +22,13 @@ static LEAVING: AtomicBool = AtomicBool::new(false);
 const LEAVE_MS: u64 = 170;
 /// Where the panel's top-left corner sits, so a resize keeps it under the icon.
 static ORIGIN: std::sync::Mutex<(f64, f64)> = std::sync::Mutex::new((0.0, 0.0));
+/// Non-macOS anchor for the panel: (x, the icon's top y, the y a below-icon
+/// panel starts at, whether it currently opens upward). A resize reads this
+/// back so whichever edge is anchored to the icon stays fixed instead of the
+/// panel drifting off-screen as it grows or shrinks.
+#[cfg(not(target_os = "macos"))]
+static ANCHOR: std::sync::Mutex<(f64, f64, f64, bool)> =
+    std::sync::Mutex::new((0.0, 0.0, 0.0, false));
 
 pub const TRAY_ID: &str = "desk";
 /// The popover under the icon. A left click toggles it; the native menu stays
@@ -284,6 +291,35 @@ fn toggle_panel(app: &AppHandle, rect: tauri::Rect) {
     let height = *app.state::<AppState>().panel_height.lock().unwrap();
     let x = (position.x + size.width / 2.0 - PANEL_WIDTH / 2.0).max(8.0);
     let y = position.y + size.height + 4.0;
+
+    // Flip above the icon, and keep the panel on-screen sideways, using the
+    // monitor's work area (the screen minus its taskbar). On Windows and most
+    // Linux desktops that bar sits at the bottom, so the plain drop-down
+    // above runs off the bottom edge; macOS's menu bar is always the top, so
+    // the drop-down there never needs this.
+    #[cfg(not(target_os = "macos"))]
+    let (x, y) = {
+        let mut x = x;
+        let mut y = y;
+        let mut opens_above = false;
+        let physical = rect.position.to_physical::<f64>(scale);
+        if let Ok(Some(monitor)) = app.monitor_from_point(physical.x, physical.y) {
+            let wa = monitor.work_area();
+            let ws = monitor.scale_factor();
+            let wx = wa.position.x as f64 / ws;
+            let wy = wa.position.y as f64 / ws;
+            let ww = wa.size.width as f64 / ws;
+            let wh = wa.size.height as f64 / ws;
+            x = x.min(wx + ww - PANEL_WIDTH - 8.0).max(wx + 8.0);
+            if y + height > wy + wh {
+                opens_above = true;
+                y = position.y - height - 4.0;
+            }
+        }
+        *ANCHOR.lock().unwrap() = (x, position.y, position.y + size.height + 4.0, opens_above);
+        (x, y)
+    };
+
     *ORIGIN.lock().unwrap() = (x, y);
     // The card starts its entrance before the window is on screen, so the
     // first frame is already in motion.
@@ -339,6 +375,16 @@ pub fn size_panel(app: &AppHandle, height: f64) {
             return;
         }
     }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let (x, icon_top_y, below_y, opens_above) = *ANCHOR.lock().unwrap();
+        let y = if opens_above {
+            icon_top_y - bounded - 4.0
+        } else {
+            below_y
+        };
+        let _ = window.set_position(tauri::LogicalPosition::new(x, y));
+    }
     let _ = window.set_size(LogicalSize::new(PANEL_WIDTH, bounded));
 }
 
@@ -370,6 +416,10 @@ pub fn install(app: &AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| handle(app, event.id().as_ref()))
         .on_tray_icon_event(|tray, event| {
+            // Temporary: prove whether Windows delivers the click at all when
+            // the icon sits in the always-visible tray instead of the hidden
+            // overflow, before chasing a fix blind. Remove once that's known.
+            log::info!("tray icon event: {event:?}");
             if let TrayIconEvent::Click {
                 button: MouseButton::Left,
                 button_state: MouseButtonState::Up,
