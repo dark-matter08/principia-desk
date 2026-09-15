@@ -4,6 +4,15 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
+## [0.2.8] · 2026-09-15
+
+### Added
+- **A native startup splash.** Principia Desk now opens with a lightweight branded splash while the desktop window and saved state initialize, then hands off to the main window once the interface is ready.
+
+### Fixed
+- **Reliable desktop development startup.** Vite no longer pre-bundles `lucide-svelte`, avoiding the mixed Svelte runtime failure that could leave the Tauri window blank during development.
+- Startup failures now include their full stack traces in the desktop log, making initialization problems easier to diagnose.
+
 ## [0.2.7] · 2026-09-14
 
 ### Fixed
