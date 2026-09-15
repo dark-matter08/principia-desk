@@ -224,9 +224,10 @@ class AppStore {
   }
 
   async init() {
-    // Tell Rust the webview booted — the kiosk refuses to lock before this.
-    await api.markFrontendReady().catch(() => {});
     await this.refresh();
+    // The authoritative first screen now exists. Hand off from the native
+    // splash and only then permit focus enforcement to recover.
+    await api.markFrontendReady().catch(() => {});
     await onEvent('classroom:owed', () => this.refresh());
     await onEvent('alarm:state', () => this.refresh());
     await onEvent<{ phase: 'started' | 'ready' | 'failed'; course_id: ClassroomSubjectId; error?: string | null }>('preparation:state', (event) => {

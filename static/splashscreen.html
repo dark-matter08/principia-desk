@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Principia Desk</title>
+    <style>
+      @font-face { font-family: 'Fraunces'; font-display: swap; font-weight: 100 900; src: url('/fonts/fraunces-latin-standard-normal.woff2') format('woff2-variations'); }
+      @font-face { font-family: 'Inter'; font-display: swap; font-weight: 100 900; src: url('/fonts/inter-latin-wght-normal.woff2') format('woff2-variations'); }
+      @font-face { font-family: 'JetBrains Mono'; font-display: swap; font-weight: 100 800; src: url('/fonts/jetbrains-mono-latin-wght-normal.woff2') format('woff2-variations'); }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #141118; }
+      body { font-family: 'Inter', system-ui, sans-serif; color: #eeeaf1; }
+      .splash { position: relative; display: grid; grid-template-columns: 118px 1fr; align-items: center; gap: 30px; width: 100%; height: 100%; padding: 52px 54px 58px; overflow: hidden; border: 1px solid #3a3344; background: radial-gradient(circle at 18% 42%, rgba(83, 74, 183, 0.14), transparent 34%), #17131c; }
+      .grid { position: absolute; inset: 0; opacity: 0.52; background-image: radial-gradient(circle, #30283a 1.15px, transparent 1.15px); background-size: 24px 24px; mask-image: linear-gradient(90deg, #000, transparent 72%); }
+      .mark { position: relative; width: 112px; height: 112px; filter: drop-shadow(0 0 22px rgba(83, 74, 183, 0.2)); }
+      section { position: relative; min-width: 0; }
+      .eyebrow { margin: 0 0 12px; color: #8f8797; font: 600 9px/1 'JetBrains Mono', monospace; letter-spacing: 2.1px; }
+      h1 { margin: 0; color: #eeeaf1; font: 520 36px/1.08 'Fraunces', Georgia, serif; letter-spacing: -0.65px; }
+      .status { margin: 17px 0 0; color: #aca3b2; font: 11px/1.4 'JetBrains Mono', monospace; letter-spacing: 0.35px; }
+      .signal { position: absolute; top: 18px; right: 20px; display: flex; gap: 5px; }
+      .signal span { width: 5px; height: 5px; border-radius: 50%; background: #3a3344; animation: signal 1.4s ease-in-out infinite; }
+      .signal span:nth-child(2) { animation-delay: 0.18s; }
+      .signal span:nth-child(3) { animation-delay: 0.36s; }
+      .boot-line { position: absolute; right: 54px; bottom: 39px; left: 54px; height: 1px; overflow: hidden; background: #30283a; }
+      .boot-line i { display: block; width: 38%; height: 100%; background: linear-gradient(90deg, transparent, #ef9f27 55%, transparent); animation: scan 1.6s cubic-bezier(.4, 0, .2, 1) infinite; }
+      @keyframes signal { 0%, 75%, 100% { background: #3a3344; box-shadow: none; } 35% { background: #9fe1cb; box-shadow: 0 0 9px rgba(159, 225, 203, 0.55); } }
+      @keyframes scan { from { transform: translateX(-110%); } to { transform: translateX(365%); } }
+      @media (prefers-reduced-motion: reduce) { .signal span, .boot-line i { animation: none; } .signal span:first-child { background: #9fe1cb; } .boot-line i { transform: translateX(80%); } }
+    </style>
+  </head>
+  <body>
+    <main class="splash" aria-label="Principia Desk is starting">
+      <div class="grid" aria-hidden="true"></div>
+      <div class="signal" aria-hidden="true"><span></span><span></span><span></span></div>
+      <svg class="mark" aria-hidden="true" viewBox="-6 -6 212 212">
+        <circle cx="100" cy="100" r="93" fill="none" stroke="#534ab7" stroke-width="2.4" stroke-dasharray="7 6" opacity=".85"/>
+        <line x1="100" y1="-2" x2="100" y2="14" stroke="#ef9f27" stroke-width="3.4" stroke-dasharray="5 4" stroke-linecap="round"/>
+        <path d="M104.88 20.15A80 80 0 01153.01 40.08L126.5 70.04A40 40 0 00102.44 60.07Z" fill="#ef9f27"/>
+        <path d="M159.92 46.99A80 80 0 01179.85 95.12L139.93 97.56A40 40 0 00129.96 73.5ZM179.85 104.88A80 80 0 01159.92 153.01L129.96 126.5A40 40 0 00139.93 102.44ZM153.01 159.92A80 80 0 01104.88 179.85L102.44 139.93A40 40 0 00126.5 129.96ZM95.12 179.85A80 80 0 0146.99 159.92L73.5 129.96A40 40 0 0097.56 139.93ZM40.08 153.01A80 80 0 0120.15 104.88L60.07 102.44A40 40 0 0070.04 126.5ZM20.15 95.12A80 80 0 0140.08 46.99L70.04 73.5A40 40 0 0060.07 97.56ZM46.99 40.08A80 80 0 0195.12 20.15L97.56 60.07A40 40 0 0073.5 70.04Z" fill="#262030" stroke="#3a3344" stroke-width="1.6"/>
+        <circle cx="122.96" cy="44.57" r="5.5" fill="#141118"/><circle cx="122.96" cy="44.57" r="3.4" fill="#9fe1cb"/>
+        <circle cx="100" cy="100" r="26" fill="#1b1721" stroke="#534ab7" stroke-width="2" stroke-dasharray="4.5 3.5"/><circle cx="100" cy="100" r="5" fill="#ef9f27"/>
+      </svg>
+      <section><p class="eyebrow">PERSONAL LEARNING SYSTEM</p><h1>Principia Desk</h1><p class="status">Preparing your desk<span aria-hidden="true">…</span></p></section>
+      <div class="boot-line" aria-hidden="true"><i></i></div>
+    </main>
+  </body>
+</html>

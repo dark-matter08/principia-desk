@@ -8,7 +8,7 @@ use crate::domain::assessments::RoundId;
 use crate::state::AppState;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::Ordering;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State};
 
 type CmdResult<T> = Result<T, String>;
 pub mod placement;
@@ -208,7 +208,18 @@ pub fn set_kiosk_level(state: State<'_, AppState>, level: String) -> CmdResult<(
 #[tauri::command]
 pub fn mark_frontend_ready(app: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
     log::info!("frontend ready");
+    let main = app
+        .get_webview_window("main")
+        .ok_or("main window is unavailable")?;
+    main.show().map_err(err)?;
+    if let Err(error) = main.set_focus() {
+        log::warn!("could not focus the main window after startup: {error}");
+    }
+    if let Some(splash) = app.get_webview_window("splashscreen") {
+        splash.close().map_err(err)?;
+    }
     state.frontend_ready.store(true, Ordering::SeqCst);
+    log::info!("splash handoff complete");
     // An active focused class session recovers its enforcement only now.
     crate::enforcement::restore(&app, &state);
     Ok(())

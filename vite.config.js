@@ -7,6 +7,15 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [sveltekit()],
 
+  // Lucide ships Svelte source. Prebundling it makes Vite discover a second
+  // Svelte graph after the Tauri webview has already loaded the first one;
+  // the optimizer then removes the old chunks while WebKit still references
+  // them. Serve the package through the Svelte plugin so one runtime owns the
+  // component DOM from the first render onward.
+  optimizeDeps: {
+    exclude: ["lucide-svelte"],
+  },
+
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
   // 1. prevent Vite from obscuring rust errors

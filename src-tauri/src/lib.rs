@@ -93,11 +93,16 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             // A second launch (e.g. launchd firing while we run) just surfaces the window.
-            if let Some(w) = app.get_webview_window("main") {
+            let state = app.state::<AppState>();
+            if state.frontend_ready.load(Ordering::SeqCst) {
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
+                }
+            } else if let Some(w) = app.get_webview_window("splashscreen") {
                 let _ = w.show();
                 let _ = w.set_focus();
             }
-            let state = app.state::<AppState>();
             let classroom_slots = {
                 let conn = state.db.0.lock().unwrap();
                 let _ = classroom::refresh_appointments(&conn, &state.today());
@@ -324,6 +329,9 @@ pub fn run() {
             tauri::WindowEvent::CloseRequested { api, .. } => {
                 // The desk stays resident: closing the window hides it behind
                 // the menu bar icon, and a lock keeps it in front.
+                if window.label() == "splashscreen" {
+                    return;
+                }
                 api.prevent_close();
                 if window.label() == tray::PANEL_LABEL {
                     let _ = window.hide();

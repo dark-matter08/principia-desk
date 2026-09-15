@@ -30,7 +30,7 @@
     void api.reportFrontendError(message).catch(() => {});
   }
   $effect(() => {
-    const onError = (event: ErrorEvent) => surface(`Something broke in the desk: ${event.message}`);
+    const onError = (event: ErrorEvent) => surface(`Something broke in the desk: ${event.error?.stack ?? event.message}`);
     const onRejection = (event: PromiseRejectionEvent) => surface(`Something broke in the desk: ${event.reason instanceof Error ? event.reason.message : String(event.reason)}`);
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
