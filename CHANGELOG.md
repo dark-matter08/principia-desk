@@ -4,12 +4,14 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 
 ## [Unreleased]
 
-## [0.2.8] · 2026-09-15
+## [0.2.8] · 2026-09-22
 
 ### Added
 - **A native startup splash.** Principia Desk now opens with a lightweight branded splash while the desktop window and saved state initialize, then hands off to the main window once the interface is ready.
 
 ### Fixed
+- **The lesson player never appeared.** The **listen** key at the top of a lesson switched to **close player** and nothing else happened: the player was placed at the very end of the reading, under the knowledge check, inside a wrapper exactly its own size, so it could not stick to the bottom of the window and stayed out of sight. It now docks at the foot of the window, under the scrolling reading, the moment the key is pressed, and its meta line names VibeVoice when that is the engine.
+- The **listen** and **ask about this course** keys had their glyph on the text's baseline instead of its middle.
 - **Reliable desktop development startup.** Vite no longer pre-bundles `lucide-svelte`, avoiding the mixed Svelte runtime failure that could leave the Tauri window blank during development.
 - Startup failures now include their full stack traces in the desktop log, making initialization problems easier to diagnose.
 

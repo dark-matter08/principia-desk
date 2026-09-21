@@ -193,9 +193,9 @@
     {#snippet actions()}
       <span class="quality mono"><Sparkles size={11} /> {retrieval ? 'delayed retrieval' : 'isolated teacher'}</span>
       <DownloadMenu source={lesson.runtime === 'study' ? 'study' : 'classroom'} ownerId={lesson.session_id} compact />
-      {#if !retrieval && listenable}<button type="button" class:active={listenOpen} onclick={() => (listenOpen = !listenOpen)} aria-pressed={listenOpen} aria-controls="lesson-listen"><AudioLines size={12} /> {listenOpen ? 'close player' : 'listen'}</button>{/if}
+      {#if !retrieval && listenable}<button type="button" class="key" class:active={listenOpen} onclick={() => (listenOpen = !listenOpen)} aria-pressed={listenOpen} aria-controls="lesson-listen"><AudioLines size={12} /> {listenOpen ? 'close player' : 'listen'}</button>{/if}
       {#if !retrieval}<button
-        class="chat-button"
+        class="key"
         class:active={chatOpen}
         type="button"
         onclick={() => (chatOpen = !chatOpen)}
@@ -293,11 +293,14 @@
           onreturn={() => app.finishClass()}
         />
       </aside>
-      {#if listenOpen && listenable}<div id="lesson-listen"><Listen sessionId={lesson.session_id} onclose={() => (listenOpen = false)} /></div>{/if}
     </article>
     </div>
 
     {#if !retrieval}<CourseChat classroomSessionId={session.study ? undefined : Number(lesson.session_id)} studySessionId={session.study ? lesson.session_id : undefined} bind:open={chatOpen} />{/if}
+
+    {#snippet dock()}
+      {#if listenOpen && listenable}<div id="lesson-listen"><Listen sessionId={lesson.session_id} onclose={() => (listenOpen = false)} /></div>{/if}
+    {/snippet}
   </LessonShell>
 {:else}
   <div class="empty">
@@ -315,7 +318,8 @@
   .review-notes .why { margin: 0 0 8px; font-size: 12px; color: var(--muted); line-height: 1.55; }
   .review-notes ul { margin: 0; padding-left: 18px; } .review-notes li { margin: 4px 0; line-height: 1.55; font-size: 12px; }
   .quality { display: flex; align-items: center; gap: 5px; color: var(--faint); font-size: 8px; }
-  .chat-button { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-family: var(--font-mono); white-space: nowrap; }
+  /* The toolbar keys with a glyph and a word: the glyph sits on the text's middle, not its baseline. */
+  .key { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-family: var(--font-mono); white-space: nowrap; }
   /* The reading measure: wide enough to use a large window without the lines running long, centred in what the rail leaves. */
   .reading-pane { width: min(100%, 1080px); margin: 0 auto; padding: 28px clamp(24px, 4vw, 56px) 64px; min-width: 0; }
   /* The section map keeps the reader company: a rail beside the reading on a

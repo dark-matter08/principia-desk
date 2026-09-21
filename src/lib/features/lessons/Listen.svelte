@@ -1,10 +1,11 @@
 <script lang="ts">
   /**
    * The lesson as a conversation you hear: a dock at the foot of the
-   * reading with play, pause, a line at a time, the speed, and the
-   * transcript with the line being spoken lit. Rendered segments play from
-   * their files; when the class chose the system voice, or a render failed,
-   * the desk reads the lines itself with the voices the class named.
+   * window (the lesson shell's dock slot, under the scrolling reading) with
+   * play, pause, a line at a time, the speed, and the transcript with the
+   * line being spoken lit. Rendered segments play from their files; when the
+   * class chose the system voice, or a render failed, the desk reads the
+   * lines itself with the voices the class named.
    */
   import { onMount } from 'svelte';
   import { Play, Pause, SkipBack, SkipForward, X, Loader, AudioLines, ListMusic, PenLine } from 'lucide-svelte';
@@ -118,7 +119,7 @@
 <div class="listen" role="region" aria-label="Listen to this lesson">
   <header class="listen-head">
     <span class="mono kicker"><AudioLines size={11} /> LISTENING</span>
-    {#if audio?.status === 'ready' && total}<span class="mono meta">{audio.engine === 'system' || audio.speak ? 'read by the desk' : audio.engine === 'piper' ? 'Piper' : 'Kokoro'} · about {minutes} min · {remaining} left</span>{/if}
+    {#if audio?.status === 'ready' && total}<span class="mono meta">{audio.engine === 'system' || audio.speak ? 'read by the desk' : audio.engine === 'piper' ? 'Piper' : audio.engine === 'kokoro' ? 'Kokoro' : 'VibeVoice'} · about {minutes} min · {remaining} left</span>{/if}
     <button type="button" class="icon" onclick={close} aria-label="Close the player"><X size={13} /></button>
   </header>
 
@@ -161,7 +162,7 @@
 </div>
 
 <style>
-  .listen { position: sticky; bottom: 12px; z-index: 5; margin: 18px 0 0; padding: 12px 14px; background: color-mix(in srgb, var(--node-bg) 94%, transparent); backdrop-filter: blur(10px); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--node-border)); border-radius: var(--radius-panel); box-shadow: 0 14px 40px -18px color-mix(in srgb, var(--accent) 60%, transparent); }
+  .listen { padding: 12px 14px; background: var(--node-bg); border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--node-border)); border-radius: var(--radius-panel); box-shadow: 0 14px 40px -18px color-mix(in srgb, var(--accent) 60%, transparent); }
   .listen-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
   .kicker { display: inline-flex; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 1.3px; color: var(--accent); }
   .meta { font-size: 9px; color: var(--faint); letter-spacing: 0.4px; }
