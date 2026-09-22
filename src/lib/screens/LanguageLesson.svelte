@@ -58,7 +58,7 @@
     }));
   });
   $effect(() => () => {
-    if (session && scroller && !result) void session.savePosition(scroller, anchors());
+    if (session && scroller && !result && !archived) void session.savePosition(scroller, anchors());
     session?.dispose();
     stopSpeaking();
   });
@@ -78,15 +78,17 @@
   }
 
   function track() {
-    if (session && scroller) session.trackPosition(scroller, anchors(), !!result);
+    if (session && scroller) session.trackPosition(scroller, anchors(), !!result || archived);
   }
 
   /** A Focused/Strict session that engaged the kiosk cannot be paused here. */
   const lockedHere = $derived(app.isFocusLocked(lesson?.session_id));
+  /** A finished lesson opened again from its class or the ledger: nothing is saved or graded. */
+  const archived = $derived(!!lesson && lesson.status !== 'in_progress');
 
   async function leave() {
     stopSpeaking();
-    if (result) {
+    if (result || archived) {
       await app.finishLanguage();
       return;
     }
@@ -160,11 +162,11 @@
     subtitle={`${lesson.phase_label} · about ${lesson.estimated_minutes} minutes`}
     {stages}
     stage={result ? 'feedback' : session.stage}
-    saveMessage={session.saveMessage}
+    saveMessage={archived ? 'opened again to read; nothing changes' : session.saveMessage}
     saveError={session.answerStatus === 'error'}
     minutes={lesson.estimated_minutes}
     locked={lockedHere && !result}
-    returnLabel={result ? 'return to learning programs' : 'pause and return'}
+    returnLabel={archived ? 'close lesson' : result ? 'return to learning programs' : 'pause and return'}
     onreturn={leave}
     onstage={goto}
     bind:scroller
@@ -219,7 +221,7 @@
           <p>{lesson.writing_prompt}</p>
           <textarea
             bind:value={writingResponse}
-            disabled={!!result}
+            disabled={!!result || archived}
             rows="6"
             aria-label="Writing response in the language you are learning"
             placeholder={`Write in ${lesson.native_label}. Aim for at least 12 words; clear, level-appropriate language is enough.`}
@@ -234,10 +236,10 @@
           </div>
           <p>{lesson.speaking_prompt}</p>
           <label class="speaking-check">
-            <input type="checkbox" bind:checked={speakingCompleted} disabled={!!result} onchange={() => session?.saveWork(work())} />
+            <input type="checkbox" bind:checked={speakingCompleted} disabled={!!result || archived} onchange={() => session?.saveWork(work())} />
             <span>I said this aloud without reading every line</span>
           </label>
-          <div class="confidence"><Dropdown label="How understandable did it feel?" bind:value={confidence} options={confidenceOptions} disabled={!!result} /></div>
+          <div class="confidence"><Dropdown label="How understandable did it feel?" bind:value={confidence} options={confidenceOptions} disabled={!!result || archived} /></div>
         </section>
       </section>
 
@@ -253,7 +255,7 @@
           questions={lesson.questions.map((question) => ({ id: question.id, prompt: question.prompt, choices: question.choices, meta: question.strand.replaceAll('_', ' ') }))}
           answers={session.answers}
           corrections={result?.corrections ?? null}
-          disabled={!!result}
+          disabled={!!result || archived}
           onchoose={(index, choice) => session?.choose(index, choice)}
         />
 
@@ -270,11 +272,11 @@
             extra: result.level_advanced_to ? `Level gate passed; now entering ${result.level_advanced_to}.` : null,
           } : null}
           busy={submitting}
-          disabled={!session.complete}
+          disabled={!session.complete || archived}
           submitLabel="check answers and record practice"
           busyLabel="recording evidence…"
-          hint={`Answer all ${lesson.questions.length} checks to submit. Writing and speaking can be added now or strengthened in a later pass.`}
-          returnLabel="return to learning programs"
+          hint={archived ? 'This lesson was skipped, so its checks were never taken; nothing can be recorded for it now.' : `Answer all ${lesson.questions.length} checks to submit. Writing and speaking can be added now or strengthened in a later pass.`}
+          returnLabel={archived ? 'close lesson' : 'return to learning programs'}
           onsubmit={submit}
           onreturn={() => app.finishLanguage()}
         />

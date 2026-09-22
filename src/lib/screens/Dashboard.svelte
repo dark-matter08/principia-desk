@@ -45,6 +45,14 @@
     }, search ? 180 : 0);
     return () => { disposed=true; clearTimeout(timer); };
   });
+  /** A class page sent one of its earlier-store lessons here to read. */
+  $effect(() => {
+    const ask = app.progressRequest;
+    if (!ask) return;
+    app.progressRequest = null;
+    selected = ask.subject_id; page = 0;
+    void openLesson(ask);
+  });
   function chooseClass(id: string) { selected=id; page=0; }
   function changeSearch(value: string) { search=value; page=0; }
   function dateLabel(date: string, year = false) {
@@ -52,11 +60,14 @@
   }
   function statusLabel(value: string) { return value==='in_progress' ? 'In progress' : value==='completed' ? 'Completed' : value==='skipped' ? 'Skipped' : value; }
   function classLabel(id: string) { return data?.classes.find(c=>c.subject_id===id)?.label ?? 'Earlier study'; }
-  async function openLesson(entry: ProgressEntry, button: HTMLButtonElement) {
+  /** A lesson from the shared runtime opens again on its own screen, with its
+   *  player and downloads; the earlier stores open in the reader below. */
+  async function openLesson(entry: ProgressEntry, button: HTMLButtonElement | null = null) {
     if (opening) return;
     opener=button;
     opening=`${entry.source}:${entry.owner_id}`;
     try {
+      if (entry.source==='study') { await app.revisitLesson(entry.owner_id); return; }
       const lesson=await api.getProgressLesson(entry.source,entry.owner_id);
       if (!lesson) throw new Error('This session has no saved lesson to read.');
       viewing=lesson; viewingEntry=entry; archiveTab='read';

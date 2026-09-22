@@ -1250,6 +1250,15 @@ export const mockApi = {
   reportFrontendError: async (message: string) => { console.error(message); },
   getExecutionLog: async (runId: string) => previewLogLines().filter((line) => line.run_id === runId),
   getRecentExecutionLog: async () => previewLogLines(),
+  openPastLesson: async (sessionId: string): Promise<ClassroomSessionStart | null> => {
+    // The preview keeps one finished lesson per class: the bundled reference
+    // lesson with its check answered, so the revisit screen can be seen.
+    const subject = (params.get('class') ?? 'system-design') as FocusArea;
+    const lesson = mockEngineeringLesson(subject);
+    const reference = referenceFor(subject).questions.filter((question) => question.kind === 'mcq');
+    const corrections = lesson.questions.map((question, index) => ({ question_id: question.id, prompt: question.prompt, selected_answer: reference[index]?.correct_answer ?? question.choices[0], correct_answer: reference[index]?.correct_answer ?? question.choices[0], correct: true, explanation: reference[index]?.explanation ?? '' }));
+    return { kind: 'engineering', lesson: { ...lesson, session_id: sessionId, runtime: 'study', lifecycle: 'completed', status: 'completed', outcome: { session_id: sessionId, subject_id: subject, passed: true, score: 1, corrections, kind: 'lesson', fresh_sample: true } } };
+  },
   resumeClassroomSession: async (
     subjectId: ClassroomSubjectId,
   ): Promise<ClassroomSessionStart | null> => {
@@ -1489,7 +1498,8 @@ export const mockApi = {
     const dateAt = (ago: number) => { const d = new Date(); d.setDate(d.getDate()-ago); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
     const history: ProgressEntry[] = Array.from({length: 48}, (_, i) => {
       const program = programs[i % programs.length];
-      return { source: program.kind === 'language' ? 'language' : 'classroom', owner_id: String(i+1), date: dateAt(Math.floor(i/2)), subject_id: program.subject_id, title: `${program.label}: ${['Foundations and first principles','Practice and retrieval','Applying the next concept'][i%3]}`, status: i===0 ? 'in_progress' : i%11===0 ? 'skipped' : 'completed', score: i===0 || i%11===0 ? null : 0.7+(i%4)/10, can_read: true };
+      // The engineering rows alternate between the shared runtime (opened again on the lesson screen) and the earlier store (the reader).
+      return { source: program.kind === 'language' ? 'language' : i % 2 === 1 ? 'study' : 'classroom', owner_id: i % 2 === 1 && program.kind !== 'language' ? `study-preview-${i+1}` : String(i+1), date: dateAt(Math.floor(i/2)), subject_id: program.subject_id, title: `${program.label}: ${['Foundations and first principles','Practice and retrieval','Applying the next concept'][i%3]}`, status: i===0 ? 'in_progress' : i%11===0 ? 'skipped' : 'completed', score: i===0 || i%11===0 ? null : 0.7+(i%4)/10, can_read: true };
     });
     const scoped = history.filter(h => !query.subject_id || h.subject_id===query.subject_id);
     const completed = scoped.filter(h => h.status==='completed');

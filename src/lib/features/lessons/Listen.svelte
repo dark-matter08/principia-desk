@@ -1,9 +1,9 @@
 <script lang="ts">
   /**
-   * The lesson as a conversation you hear: a dock at the foot of the
-   * window (the lesson shell's dock slot, under the scrolling reading) with
-   * play, pause, a line at a time, the speed, and the transcript with the
-   * line being spoken lit. Rendered segments play from their files; when the
+   * The lesson as a conversation you hear: a dock under the lesson header
+   * (the lesson shell's dock slot, above the scrolling reading, right by the
+   * key that opens it) with play, pause, a line at a time, the speed, and
+   * the transcript with the line being spoken lit. Rendered segments play from their files; when the
    * class chose the system voice, or a render failed, the desk reads the
    * lines itself with the voices the class named.
    */

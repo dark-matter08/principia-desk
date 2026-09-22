@@ -1212,6 +1212,34 @@ pub fn resume_classroom_session(
     }
 }
 
+/// A finished shared-runtime lesson opened again to read, hear or download:
+/// the view a running lesson gets, without a lease, the alarm or the focus
+/// lock. The course's kind picks the screen, as `resume_classroom_session`
+/// does for an open one.
+#[tauri::command]
+pub fn open_past_lesson(
+    state: State<'_, AppState>,
+    session_id: String,
+) -> CmdResult<Option<serde_json::Value>> {
+    let conn = state.db.0.lock().unwrap();
+    let id = crate::domain::sessions::SessionId(session_id.trim().to_string());
+    let Some(session) = crate::subjects::engineering::get(&conn, &id)? else {
+        return Ok(None);
+    };
+    if !session.status.terminal() {
+        return Err("This lesson is still open; resume it from its class.".into());
+    }
+    let spec = crate::classroom::subject(&session.context.course.course_id).map_err(err)?;
+    Ok(match spec.kind {
+        crate::classroom::SubjectKind::Language => crate::subjects::language::view(&conn, &id)?
+            .map(|lesson| serde_json::json!({ "kind": "language", "lesson": lesson })),
+        crate::classroom::SubjectKind::Engineering => {
+            crate::subjects::engineering::view(&conn, &id)?
+                .map(|lesson| serde_json::json!({ "kind": "engineering", "lesson": lesson }))
+        }
+    })
+}
+
 #[tauri::command]
 pub fn submit_classroom_engineering_session(
     app: AppHandle,

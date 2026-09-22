@@ -1,8 +1,9 @@
 <script lang="ts">
   /** Stable frame for every class lesson: cluster bar, identity with its
    *  progress ring, the stage stepper, save state, the session clock, reading
-   *  preferences, the return action, a reading-progress line, and a dock at
-   *  the foot of the window that stays in view while the reading scrolls. */
+   *  preferences, the return action, a reading-progress line, and a dock
+   *  under the header, beside the key that opens it, that stays in view
+   *  while the reading scrolls. */
   import type { Snippet } from 'svelte';
   import type { LessonStage } from '../../ipc';
   import type { StageLink } from './types';
@@ -55,7 +56,7 @@
     scroller?: HTMLElement | undefined;
     onscroll?: () => void;
     actions?: Snippet;
-    /** Rendered under the scrolling reading, outside it: a player, a tray. */
+    /** Rendered between the header and the scrolling reading, outside it: a player, a tray. */
     dock?: Snippet;
     children: Snippet;
   } = $props();
@@ -170,10 +171,10 @@
     </div>
     <div class="reading-line" aria-hidden="true"><i style:transform={`scaleX(${readingProgress})`}></i></div>
   </header>
+  {#if dock}<div class="dock">{@render dock()}</div>{/if}
   <main class="reading-layout" bind:this={scroller} onscroll={scrolled} style={`--reading-font: ${fontSize}px`}>
     {@render children()}
   </main>
-  {#if dock}<div class="dock">{@render dock()}</div>{/if}
 </div>
 
 <style>
@@ -261,7 +262,7 @@
   .reading-line i { display: block; height: 100%; width: 100%; transform-origin: left; background: linear-gradient(90deg, var(--accent), var(--ok-fg)); transform: scaleX(0); transition: transform 120ms linear; }
   .reading-layout { position: relative; flex: 1; min-height: 0; overflow-y: auto; }
   /* The dock keeps the reading measure and never scrolls away with it. */
-  .dock { flex: none; padding: 8px clamp(16px, 3vw, 40px) 12px; border-top: 1px solid var(--node-border); background: var(--bg); }
+  .dock { flex: none; padding: 10px clamp(16px, 3vw, 40px) 8px; border-bottom: 1px solid var(--node-border); background: var(--bg); }
   .dock > :global(*) { max-width: 1080px; margin: 0 auto; }
   .return-button:focus-visible, .step:focus-visible, .reading-prefs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) { .glyph-arc, .step-mark, .step-track, .reading-line i, .return-button { transition: none; } }

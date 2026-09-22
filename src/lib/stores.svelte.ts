@@ -6,6 +6,7 @@ import {
   type ClassroomSubjectId,
   type EngineeringLessonView,
   type LanguageLessonView,
+  type ProgressEntry,
   type UpdateInfo,
 } from './ipc';
 import type { ClassTab } from './features/classes/class-navigation';
@@ -55,6 +56,8 @@ class AppStore {
   }
   /** The last class and tab asked for by name, with when, so the same ask twice still lands. */
   classRequest = $state<{ id: ClassroomSubjectId; tab: ClassTab; at: number } | null>(null);
+  /** A lesson from one of the earlier stores to open in the ledger's reader on arrival. */
+  progressRequest = $state<ProgressEntry | null>(null);
   /** The class builder in the Classes workspace: a new class, or a draft or published class by id. */
   builder = $state<string | 'new' | null>(null);
   openBuilder(id: string | 'new' = 'new') {
@@ -199,6 +202,20 @@ class AppStore {
     }
   }
 
+  /** A finished lesson opened again on its own screen: read it, hear it,
+   *  download it, see the check as it was answered. Closing it returns to
+   *  the page it was opened from. */
+  async revisitLesson(sessionId: string) {
+    this.error = '';
+    try {
+      const session = await api.openPastLesson(sessionId);
+      if (!session) throw new Error('This lesson is no longer in the desk.');
+      this.showLesson(session);
+    } catch (e) {
+      this.error = String(e);
+    }
+  }
+
   /** Put an opened lesson on screen, then reload the authoritative state:
    *  activation may have engaged focus, which the lesson header reflects. */
   private showLesson(session: ClassroomSessionStart) {
@@ -212,10 +229,11 @@ class AppStore {
     void this.refresh();
   }
 
+  /** Back to the page the lesson was opened from: Progress keeps its own screen. */
   async finishClass() {
     this.languageLesson = null;
     this.engineeringLesson = null;
-    this.screen = 'idle';
+    this.screen = this.destination === 'progress' ? 'dashboard' : 'idle';
     await this.refresh();
   }
 

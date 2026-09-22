@@ -69,7 +69,7 @@
 <div class="download" class:compact bind:this={root}>
   <button
     type="button"
-    class={compact ? 'chat-button' : 'ghost mono-ghost'}
+    class={compact ? 'key' : 'ghost mono-ghost'}
     aria-haspopup="menu"
     aria-expanded={open}
     disabled={!!busy}

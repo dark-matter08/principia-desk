@@ -1,7 +1,7 @@
 import { courseDefinition } from '../../catalog';
 import type { ClassroomProgramView } from '../../ipc';
 
-export type ClassTab = 'overview' | 'settings' | 'entry' | 'curriculum' | 'schedule';
+export type ClassTab = 'overview' | 'lessons' | 'settings' | 'entry' | 'curriculum' | 'schedule';
 export type ClassFilter = 'all' | 'active' | 'paused' | 'completed';
 
 export function filterClasses(programs: ClassroomProgramView[], query: string, filter: ClassFilter, hasSavedWork: (id: ClassroomProgramView['subject_id']) => boolean) {

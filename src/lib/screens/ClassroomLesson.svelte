@@ -27,6 +27,9 @@
   let listenOpen = $state(false);
   /** Audio is keyed by a study-runtime session; the browser preview has a stand-in. */
   const listenable = $derived(lesson?.runtime === 'study' || !isTauri);
+  /** A finished lesson opened again from its class or the ledger: read, hear
+   *  and download it; the check stays as it was answered, nothing is saved. */
+  const archived = $derived(!!lesson && lesson.status !== 'in_progress');
   let scroller = $state<HTMLElement | undefined>(undefined);
   let exerciseSection = $state<HTMLElement | undefined>(undefined);
   let checkSection = $state<HTMLElement | undefined>(undefined);
@@ -63,7 +66,7 @@
     }));
   });
   $effect(() => () => {
-    if (session && scroller && !result) void session.savePosition(scroller, anchors());
+    if (session && scroller && !result && !archived) void session.savePosition(scroller, anchors());
     session?.dispose();
   });
 
@@ -90,7 +93,7 @@
   }
 
   function track() {
-    if (session && scroller) session.trackPosition(scroller, anchors(), !!result);
+    if (session && scroller) session.trackPosition(scroller, anchors(), !!result || archived);
     placeInSections();
   }
 
@@ -118,7 +121,7 @@
 
 
   async function leave() {
-    if (result) {
+    if (result || archived) {
       await app.finishClass();
       return;
     }
@@ -172,6 +175,7 @@
     code={lesson.short_code}
     eyebrow={retrieval ? `${lesson.label} · REVIEW · ${lesson.fresh_sample ? 'fresh sample' : 'repeated sample'}` : `${lesson.label} · ${lesson.estimated_minutes} MIN`}
     chips={[
+      ...(archived ? [{ label: lesson.status === 'skipped' ? 'skipped lesson' : 'finished lesson', tone: 'muted' as const }] : []),
       ...(lesson.level === 'beginner' ? [{ label: 'beginner', tone: 'good' as const }] : []),
       ...(lesson.research_note ? [{ label: 'unverified sources', tone: 'accent' as const }] : []),
     ]}
@@ -180,11 +184,11 @@
     {stages}
     stageMinutes={retrieval ? {} : { learn: readingMinutes(sections) || lesson.plan.learn_minutes, practice: lesson.plan.practice_minutes, check: lesson.plan.check_minutes }}
     stage={result ? 'feedback' : retrieval && session.stage === 'learn' ? 'recall' : session.stage}
-    saveMessage={session.saveMessage}
+    saveMessage={archived ? 'opened again to read; nothing changes' : session.saveMessage}
     saveError={session.answerStatus === 'error'}
     minutes={lesson.estimated_minutes}
     locked={lockedHere && !result}
-    returnLabel={result ? 'return to classroom' : 'pause class'}
+    returnLabel={archived ? 'close lesson' : result ? 'return to classroom' : 'pause class'}
     onreturn={leave}
     onstage={goto}
     bind:scroller
@@ -267,7 +271,7 @@
           questions={lesson.questions.map((question) => ({ id: question.id, prompt: question.prompt, choices: question.choices, meta: question.learning_objective }))}
           answers={session.answers}
           corrections={result?.corrections ?? null}
-          disabled={!!result}
+          disabled={!!result || archived}
           onchoose={(index, choice) => session?.choose(index, choice)}
         />
 
@@ -275,7 +279,7 @@
           <span>Implementation reflection <small>(optional)</small></span>
           <textarea
             bind:value={reflection}
-            disabled={!!result}
+            disabled={!!result || archived}
             onblur={() => session?.saveWork({ reflection })}
             placeholder="What will you test, change, or measure in a real frontend?"
           ></textarea>
@@ -284,11 +288,11 @@
         <LessonOutcome
           result={result ? { passed: result.passed, score: result.score, headline: result.passed ? (retrieval ? 'retention confirmed' : 'evidence recorded') : (retrieval ? 'back to practice' : 'review due'), message: retrieval ? (result.fresh_sample ? 'A passed review lengthens this topic’s interval; a failed one returns it to practice.' : 'Recorded as a repeated sample: the interval is unchanged by this pass alone.') : 'Corrections remain visible above; the class never locks the app.' } : null}
           busy={submitting}
-          disabled={!session.complete}
+          disabled={!session.complete || archived}
           submitLabel={retrieval ? 'check retention' : 'check and record evidence'}
           busyLabel="recording…"
-          hint={`Answer all ${lesson.questions.length} questions to record evidence.`}
-          returnLabel="return to classroom"
+          hint={archived ? 'This lesson was skipped, so its check was never taken; nothing can be recorded for it now.' : `Answer all ${lesson.questions.length} questions to record evidence.`}
+          returnLabel={archived ? 'close lesson' : 'return to classroom'}
           onsubmit={submit}
           onreturn={() => app.finishClass()}
         />

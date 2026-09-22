@@ -1256,6 +1256,8 @@ const realApi = {
   getClassAppointments: (subjectId: ClassroomSubjectId) => invoke<AppointmentView[]>('get_class_appointments', { subjectId }),
   resumeClassroomSession: (subjectId: ClassroomSubjectId) =>
     invoke<ClassroomSessionStart | null>('resume_classroom_session', { subjectId }),
+  /** A finished shared-runtime lesson opened again, to read, hear or download; nothing is graded or locked. */
+  openPastLesson: (sessionId: string) => invoke<ClassroomSessionStart | null>('open_past_lesson', { sessionId }),
   /** Start or resume a delayed-retrieval session for the class's most overdue topic. */
   startClassReview: (subjectId: ClassroomSubjectId, occurrenceId?: string | null) => invoke<ClassroomSessionStart>('start_class_review', { subjectId, occurrenceId: occurrenceId ?? null }),
   endBlock: (occurrenceId: string) => invoke<{ id: string; disposition: string }>('end_block', { occurrenceId }),
