@@ -10,7 +10,6 @@ All notable changes to Principia Desk. The format follows [Keep a Changelog](htt
 - **Lessons come back.** A finished lesson can be opened again: the class's new **Lessons** tab lists every lesson it has held, newest first, with the date, how it ended and the score, searchable and filtered by result, and the Progress ledger's rows open the same way. The lesson returns on its own screen, the check as it was answered and its feedback with it, with the **download** and **listen** keys; nothing is saved or graded, and **close lesson** goes back to the page it was opened from. A skipped lesson opens too, its check marked as never taken. Each card saves the lesson as a PDF or its questions as a CSV without opening it. Lessons from the retired daily routine and the earlier classroom store open in the ledger's reader as before.
 
 ### Changed
-- **The lesson player sits under the header**, beside the **listen** key that opens it, instead of at the foot of the window, so pressing the key shows the change wherever the reading is scrolled to.
 - Finishing a lesson opened from the Progress ledger returns to the ledger rather than to Today.
 
 ## [0.2.8] · 2026-09-22
