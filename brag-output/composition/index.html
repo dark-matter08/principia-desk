@@ -1,0 +1,847 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Principia Desk — brag</title>
+    <script src="vendor/gsap.min.js"></script>
+    <script src="assets/music/audio-data.js"></script>
+    <style>
+      @font-face {
+        font-family: 'Fraunces';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url(assets/fonts/fraunces-latin-standard-normal.woff2) format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url(assets/fonts/inter-latin-wght-normal.woff2) format('woff2');
+      }
+      @font-face {
+        font-family: 'JetBrains Mono';
+        font-style: normal;
+        font-weight: 100 900;
+        src: url(assets/fonts/jetbrains-mono-latin-wght-normal.woff2) format('woff2');
+      }
+
+      :root {
+        --bg: #141118;
+        --grid-dot: #2a2333;
+        --node-bg: #1b1721;
+        --node-border: #3a3344;
+        --node-divider: #2b2434;
+        --fg: #f2ede4;
+        --muted: #a89f92;
+        --accent: #ef9f27;
+        --accent-fg: #412402;
+        --violet: #534ab7;
+        --violet-fg: #cecbf6;
+        --violet-bg: #26215c;
+        --led-ok: #9fe1cb;
+        --led-warn: #fac775;
+        --led-err: #f09595;
+        --ok-bg: #04342c;
+        --warn-bg: #412402;
+        --bad-bg: #501313;
+        --font-body: 'Inter', sans-serif;
+        --font-display: 'Fraunces', serif;
+        --font-mono: 'JetBrains Mono', monospace;
+        --bass: 0;
+        --rms: 0;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: var(--font-body);
+        -webkit-font-smoothing: antialiased;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+      }
+
+      /* ---- persistent layers ------------------------------------------ */
+      .grid {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle, var(--grid-dot) 1.6px, transparent 1.6px);
+        background-size: 34px 34px;
+        background-position: 17px 17px;
+      }
+      .warmth {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 60% 55% at 50% 40%, rgba(239, 159, 39, 0.34), transparent 70%);
+        opacity: calc(0.22 + 0.5 * var(--rms));
+      }
+      .vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse 80% 75% at 50% 50%, transparent 55%, rgba(8, 6, 10, 0.75) 100%);
+      }
+
+      .clip {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+      }
+      .scene {
+        position: absolute;
+        inset: 0;
+      }
+
+      .mono { font-family: var(--font-mono); }
+      .meta {
+        font-family: var(--font-mono);
+        font-size: 20px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      /* ---- cluster bar ------------------------------------------------ */
+      .bar {
+        position: absolute;
+        top: 34px;
+        left: 72px;
+        right: 72px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: var(--font-mono);
+        font-size: 22px;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+      }
+      .bar .dim { color: var(--muted); opacity: 0.7; }
+      .bar .status { color: var(--led-ok); display: flex; align-items: center; gap: 12px; }
+      .led {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--led-ok);
+        box-shadow: 0 0 10px rgba(159, 225, 203, 0.7);
+      }
+      .bar-rule {
+        position: absolute;
+        top: 80px;
+        left: 72px;
+        right: 72px;
+        height: 2px;
+        background: var(--node-divider);
+        transform-origin: left center;
+      }
+
+      /* ---- scene 1: the bell ----------------------------------------- */
+      .ring-wrap {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 520px;
+        height: 520px;
+        margin-left: -260px;
+        margin-top: -300px;
+      }
+      .pipe-in {
+        position: absolute;
+        left: 50%;
+        top: -92px;
+        width: 4px;
+        height: 76px;
+        margin-left: -2px;
+        background: repeating-linear-gradient(to bottom, var(--accent) 0 10px, transparent 10px 20px);
+        border-radius: 2px;
+        transform-origin: top center;
+        opacity: 0.9;
+      }
+      .ring-glow {
+        position: absolute;
+        inset: 24px;
+        border-radius: 50%;
+        box-shadow: 0 0 calc(30px + 70px * var(--bass)) rgba(239, 159, 39, calc(0.22 + 0.4 * var(--bass)));
+      }
+      .ring-svg {
+        position: absolute;
+        inset: 0;
+        width: 520px;
+        height: 520px;
+      }
+      .ring-track { fill: none; stroke: var(--node-divider); stroke-width: 12; }
+      .ring-progress {
+        fill: none;
+        stroke: var(--accent);
+        stroke-width: 12;
+        stroke-linecap: round;
+        stroke-dasharray: 1507.96;
+        stroke-dashoffset: 211.1;
+      }
+      .ring-flash {
+        position: absolute;
+        inset: 8px;
+        border-radius: 50%;
+        border: 14px solid var(--led-ok);
+        opacity: 0;
+      }
+      .ring-face {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .ring-face .meta { font-size: 20px; }
+      .digits {
+        position: relative;
+        width: 380px;
+        height: 100px;
+        font-family: var(--font-mono);
+        font-size: 84px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: var(--fg);
+        text-align: center;
+        line-height: 100px;
+      }
+      .digits span {
+        position: absolute;
+        inset: 0;
+        display: block;
+        opacity: 0;
+      }
+      .digits .d03 { opacity: 1; }
+      .digits .d00 { color: var(--led-ok); }
+      .ring-course { font-size: 30px; font-weight: 500; color: var(--fg); margin-top: 6px; }
+      .ring-when { font-family: var(--font-mono); font-size: 20px; color: var(--muted); letter-spacing: 0.06em; }
+
+      .node {
+        background: #1b1721;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+        border: 2px solid var(--node-border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .node-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        border-bottom: 2px solid var(--node-divider);
+        font-family: var(--font-mono);
+        font-size: 20px;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+      }
+      .node-head .name { display: flex; align-items: center; gap: 12px; color: var(--fg); }
+      .badge {
+        font-family: var(--font-mono);
+        font-size: 18px;
+        letter-spacing: 0.06em;
+        padding: 6px 14px;
+        border-radius: 6px;
+        border: 1.5px solid transparent;
+      }
+      .badge.teal { color: var(--led-ok); background: var(--ok-bg); border-color: rgba(159, 225, 203, 0.35); }
+      .badge.amber { color: var(--led-warn); background: var(--warn-bg); border-color: rgba(250, 199, 117, 0.35); }
+      .badge.violet { color: var(--violet-fg); background: var(--violet-bg); border-color: rgba(206, 203, 246, 0.35); }
+      .badge.muted { color: var(--muted); background: var(--node-divider); border-color: var(--node-border); }
+
+      .notif {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 640px;
+        margin-left: -320px;
+        margin-top: 250px;
+        opacity: 0;
+      }
+      .notif-body {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+      }
+      .notif-title { font-size: 30px; font-weight: 600; color: var(--fg); }
+      .notif-sub { font-family: var(--font-mono); font-size: 20px; color: var(--muted); margin-top: 4px; letter-spacing: 0.04em; }
+      .notif-ready { display: flex; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 22px; color: var(--led-ok); }
+
+      /* ---- scene 2: today -------------------------------------------- */
+      .shot-wrap {
+        position: absolute;
+        left: 200px;
+        top: 64px;
+        width: 1660px;
+        height: 1037px;
+        opacity: 0;
+      }
+      .shot-frame {
+        position: absolute;
+        inset: 0;
+        border-radius: 14px;
+        border: 2px solid var(--node-border);
+        overflow: hidden;
+        box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(239, 159, 39, 0.08);
+        background: var(--bg);
+      }
+      .shot-frame img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+      .caption-panel {
+        position: absolute;
+        left: 90px;
+        bottom: 88px;
+        width: 1040px;
+        padding: 40px 48px 44px;
+        background: #1b1721;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+        opacity: 0;
+      }
+      .caption-panel .meta { display: block; margin-bottom: 18px; }
+      .headline {
+        font-family: var(--font-display);
+        font-weight: 500;
+        font-size: 78px;
+        line-height: 1.08;
+        letter-spacing: -0.01em;
+        color: var(--fg);
+        margin: 0;
+      }
+      .caption-panel .rule {
+        margin-top: 26px;
+        height: 3px;
+        width: 160px;
+        background: var(--accent);
+        transform-origin: left center;
+      }
+
+      /* ---- scene 3: the lesson --------------------------------------- */
+      .lesson-wrap {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1200px;
+        opacity: 0;
+        transform-origin: top center;
+      }
+      .lesson-wrap img { display: block; width: 1920px; height: 1200px; }
+      .lesson-shade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(20, 17, 24, 0.92) 0%, rgba(20, 17, 24, 0.55) 34%, rgba(20, 17, 24, 0) 60%);
+      }
+      .session-panel {
+        position: absolute;
+        left: 90px;
+        bottom: 84px;
+        width: 1300px;
+        padding: 34px 44px 40px;
+        opacity: 0;
+      }
+      .session-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 26px;
+      }
+      .session-top .meta { color: var(--accent); }
+      .session-top .tail { font-family: var(--font-mono); font-size: 20px; color: var(--muted); letter-spacing: 0.04em; }
+      .rail {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        margin-bottom: 32px;
+      }
+      .chip {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        opacity: 0;
+      }
+      .chip .num {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        border: 2px solid var(--node-border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-mono);
+        font-size: 20px;
+        color: var(--muted);
+        background: transparent;
+      }
+      .chip .txt { display: flex; flex-direction: column; gap: 2px; }
+      .chip .lbl {
+        font-family: var(--font-mono);
+        font-size: 22px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .chip .min { font-family: var(--font-mono); font-size: 18px; color: var(--muted); letter-spacing: 0.04em; }
+      .pipe {
+        flex: 1 1 auto;
+        height: 0;
+        border-top: 2px dashed var(--node-border);
+        transform-origin: left center;
+        opacity: 0;
+      }
+      .session-panel .headline { font-size: 64px; opacity: 0; }
+
+      /* ---- scene 4: enforcement -------------------------------------- */
+      .enf-panel {
+        position: absolute;
+        left: 120px;
+        top: 150px;
+        width: 1560px;
+        opacity: 0;
+      }
+      .enf-body { padding: 30px 30px 34px; }
+      .tiles { display: flex; gap: 22px; }
+      .tile {
+        flex: 1 1 0;
+        padding: 24px 26px 26px;
+        border-radius: 10px;
+        border: 2px solid var(--node-border);
+        background: rgba(34, 29, 41, 0.9);
+        opacity: 0;
+      }
+      .tile .name { font-family: var(--font-mono); font-size: 32px; font-weight: 600; letter-spacing: 0.1em; }
+      .tile .tag { font-family: var(--font-mono); font-size: 20px; color: var(--muted); margin-top: 8px; letter-spacing: 0.04em; }
+      .tile.t-teal .name { color: var(--led-ok); }
+      .tile.t-amber .name { color: var(--led-warn); }
+      .tile.t-red .name { color: var(--led-err); }
+      .tile.t-amber { border-color: var(--accent); background: rgba(65, 36, 2, 0.55); box-shadow: 0 0 0 1px rgba(239, 159, 39, 0.25), 0 0 40px rgba(239, 159, 39, 0.12); }
+      .tile.t-amber .tag { color: var(--led-warn); }
+      .tile .blocks { font-family: var(--font-mono); font-size: 18px; color: var(--muted); margin-top: 16px; letter-spacing: 0.03em; }
+
+      .ways {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 2px dashed var(--node-divider);
+        opacity: 0;
+      }
+      .keys { display: flex; align-items: center; gap: 12px; }
+      .key {
+        width: 92px;
+        height: 92px;
+        border-radius: 12px;
+        border: 2px solid #4a4256;
+        background: linear-gradient(to bottom, #2b2434, #1b1721);
+        box-shadow: 0 6px 0 #0d0b10, 0 10px 24px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+      }
+      .key .glyph { font-family: var(--font-mono); font-size: 30px; color: var(--fg); line-height: 1; }
+      .key .kl { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.1em; color: var(--muted); }
+      .key.u .glyph { font-size: 36px; }
+      .plus { font-family: var(--font-mono); font-size: 26px; color: var(--muted); }
+      .ways-text { display: flex; flex-direction: column; gap: 10px; }
+      .ways-text .combo {
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: 22px;
+        color: var(--fg);
+        background: var(--node-divider);
+        border: 1.5px solid var(--node-border);
+        padding: 6px 14px;
+        border-radius: 6px;
+        width: fit-content;
+      }
+      .ways-text .line { font-size: 26px; color: var(--fg); }
+      .ways-text .line em { color: var(--accent); font-style: normal; }
+      .ways-text .reg { display: flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: 18px; color: var(--led-ok); letter-spacing: 0.04em; }
+
+      .enf-headline {
+        position: absolute;
+        left: 120px;
+        top: 760px;
+        width: 1500px;
+        opacity: 0;
+      }
+      .enf-headline .headline { font-size: 80px; }
+      .enf-foot {
+        position: absolute;
+        left: 120px;
+        top: 890px;
+        display: flex;
+        gap: 14px;
+        opacity: 0;
+      }
+
+      /* ---- scene 5: outro -------------------------------------------- */
+      .outro {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+      }
+      .logo-wrap {
+        position: relative;
+        width: 236px;
+        height: 236px;
+        margin-bottom: 30px;
+        opacity: 0;
+      }
+      .logo-wrap img { display: block; width: 236px; height: 236px; }
+      .logo-orbit {
+        position: absolute;
+        inset: -30px;
+        border-radius: 50%;
+        border: 2px dashed rgba(83, 74, 183, 0.55);
+      }
+      .logo-led {
+        position: absolute;
+        left: 143.6px;
+        top: 56.3px;
+        width: 10px;
+        height: 10px;
+        margin-left: -5px;
+        margin-top: -5px;
+        border-radius: 50%;
+        background: var(--led-ok);
+        box-shadow: 0 0 16px 6px rgba(159, 225, 203, 0.8);
+        opacity: 0;
+      }
+      .brand { font-family: var(--font-display); font-weight: 500; font-size: 108px; line-height: 1.05; letter-spacing: -0.012em; color: var(--fg); opacity: 0; margin: 0; }
+      .tagline { font-size: 34px; color: var(--muted); margin-top: 18px; opacity: 0; letter-spacing: 0.01em; }
+      .facts { display: flex; gap: 14px; margin-top: 44px; }
+      .facts .badge { font-size: 19px; padding: 10px 18px; opacity: 0; }
+      .url { font-family: var(--font-mono); font-size: 26px; color: var(--accent); letter-spacing: 0.06em; margin-top: 36px; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="24" data-fps="30">
+      <div class="grid" id="grid"></div>
+      <div class="warmth" id="warmth"></div>
+      <div class="vignette"></div>
+
+      <!-- ===== Scene 1 — the bell ===== -->
+      <section id="s1" class="clip" data-start="0" data-duration="4.5" data-track-index="1">
+        <div class="scene" id="s1-scene">
+          <div class="bar" id="s1-bar">
+            <span>principia://today <span class="dim">·</span> cluster: local <span class="dim">·</span> region: home-1</span>
+            <span class="status"><span class="led"></span>all systems nominal</span>
+          </div>
+          <div class="bar-rule" id="s1-rule"></div>
+
+          <div class="ring-wrap" id="ring-wrap">
+            <div class="pipe-in" id="pipe-in"></div>
+            <div class="ring-glow"></div>
+            <svg class="ring-svg" viewBox="0 0 520 520" aria-hidden="true">
+              <circle class="ring-track" cx="260" cy="260" r="240"></circle>
+              <circle class="ring-progress" id="ring-progress" cx="260" cy="260" r="240" transform="rotate(-90 260 260)"></circle>
+            </svg>
+            <div class="ring-flash" id="ring-flash"></div>
+            <div class="ring-face">
+              <span class="meta">next class</span>
+              <div class="digits">
+                <span class="d03" id="d03">00:00:03</span>
+                <span class="d02" id="d02">00:00:02</span>
+                <span class="d01" id="d01">00:00:01</span>
+                <span class="d00" id="d00">00:00:00</span>
+              </div>
+              <div class="ring-course">System Design</div>
+              <div class="ring-when">today · 14:58</div>
+            </div>
+          </div>
+
+          <div class="notif node" id="notif">
+            <div class="node-head">
+              <span class="name"><span class="led"></span>class-agenda</span>
+              <span class="badge amber">due now</span>
+            </div>
+            <div class="notif-body">
+              <div>
+                <div class="notif-title">System Design</div>
+                <div class="notif-sub">today · 14:58 · 30 min</div>
+              </div>
+              <div class="notif-ready"><span class="led"></span>lesson ready</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 2 — Today ===== -->
+      <section id="s2" class="clip" data-start="4.1" data-duration="4.8" data-track-index="2">
+        <div class="scene" id="s2-scene">
+          <div class="shot-wrap" id="shot-wrap" data-layout-allow-overflow>
+            <div class="shot-frame"><img src="assets/img/today.png" alt="The Today page of Principia Desk" /></div>
+          </div>
+          <div class="caption-panel node" id="caption-panel">
+            <span class="meta">free · open source · macOS, Windows, Linux</span>
+            <h1 class="headline" id="s2-headline">A study desk that keeps its appointments.</h1>
+            <div class="rule" id="s2-rule"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 3 — the lesson ===== -->
+      <section id="s3" class="clip" data-start="8.5" data-duration="5.85" data-track-index="3">
+        <div class="scene" id="s3-scene">
+          <div class="lesson-wrap" id="lesson-wrap">
+            <img src="assets/img/lesson.png" alt="A Principia Desk lesson on the CAP theorem" />
+          </div>
+          <div class="lesson-shade"></div>
+          <div class="session-panel node" id="session-panel">
+            <div class="session-top">
+              <span class="meta">this session · system design · 30 min</span>
+              <span class="tail">answers kept until you submit</span>
+            </div>
+            <div class="rail">
+              <div class="chip" id="chip1"><span class="num" id="num1">01</span><span class="txt"><span class="lbl" id="lbl1">Learn</span><span class="min">~14 min</span></span></div>
+              <div class="pipe" id="pipe1"></div>
+              <div class="chip" id="chip2"><span class="num" id="num2">02</span><span class="txt"><span class="lbl" id="lbl2">Practice</span><span class="min">10 min</span></span></div>
+              <div class="pipe" id="pipe2"></div>
+              <div class="chip" id="chip3"><span class="num" id="num3">03</span><span class="txt"><span class="lbl" id="lbl3">Check</span><span class="min">6 min</span></span></div>
+              <div class="pipe" id="pipe3"></div>
+              <div class="chip" id="chip4"><span class="num" id="num4">04</span><span class="txt"><span class="lbl" id="lbl4">Feedback</span><span class="min">what stuck</span></span></div>
+            </div>
+            <h1 class="headline" id="s3-headline">The lesson is written before the bell.</h1>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 4 — enforcement ===== -->
+      <section id="s4" class="clip" data-start="13.95" data-duration="5.85" data-track-index="4">
+        <div class="scene" id="s4-scene">
+          <div class="bar" id="s4-bar">
+            <span>principia://classes/system-design <span class="dim">·</span> cluster: local <span class="dim">·</span> region: home-1</span>
+            <span class="status"><span class="led"></span>all systems nominal</span>
+          </div>
+          <div class="bar-rule" id="s4-rule"></div>
+
+          <div class="enf-panel node" id="enf-panel">
+            <div class="node-head">
+              <span class="name"><span class="led"></span>enforcement-service</span>
+              <span class="badge violet">kiosk · per class</span>
+            </div>
+            <div class="enf-body">
+              <div class="tiles">
+                <div class="tile t-teal" id="tile1">
+                  <div class="name">ADVISORY</div>
+                  <div class="tag">honor system</div>
+                  <div class="blocks">blocks: nothing</div>
+                </div>
+                <div class="tile t-amber" id="tile2">
+                  <div class="name">FIRM</div>
+                  <div class="tag">level 1000 · escapable</div>
+                  <div class="blocks">blocks: Dock, menu bar · keeps: Force Quit</div>
+                </div>
+                <div class="tile t-red" id="tile3">
+                  <div class="name">HARD</div>
+                  <div class="tag">no mercy</div>
+                  <div class="blocks">blocks: ⌘Tab, Force Quit, logout, shutdown</div>
+                </div>
+              </div>
+              <div class="ways" id="ways">
+                <div class="keys">
+                  <div class="key"><span class="glyph">^</span><span class="kl">CONTROL</span></div>
+                  <span class="plus">+</span>
+                  <div class="key"><span class="glyph">⌥</span><span class="kl">OPTION</span></div>
+                  <span class="plus">+</span>
+                  <div class="key"><span class="glyph">⇧</span><span class="kl">SHIFT</span></div>
+                  <span class="plus">+</span>
+                  <div class="key u"><span class="glyph">U</span></div>
+                </div>
+                <div class="ways-text">
+                  <span class="line">opens the recovery console <em>above every window</em>, a locked desk included.</span>
+                  <span class="reg"><span class="led"></span>registered with macOS · nothing changes until you type release</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="enf-headline" id="enf-headline">
+            <h1 class="headline">Every lock has five ways out.</h1>
+          </div>
+          <div class="enf-foot" id="enf-foot">
+            <span class="badge muted">finish the check</span>
+            <span class="badge muted">break glass</span>
+            <span class="badge muted">recovery console</span>
+            <span class="badge muted">principia-unlock</span>
+            <span class="badge muted">three hours, then it lets go</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Scene 5 — outro ===== -->
+      <section id="s5" class="clip" data-start="19.4" data-duration="4.6" data-track-index="5">
+        <div class="scene" id="s5-scene">
+          <div class="outro">
+            <div class="logo-wrap" id="logo-wrap">
+              <div class="logo-orbit" id="logo-orbit"></div>
+              <img src="assets/img/logo-mark.svg" alt="Principia Desk mark" />
+              <div class="logo-led" id="logo-led"></div>
+            </div>
+            <h1 class="brand" id="brand">Principia Desk</h1>
+            <div class="tagline" id="tagline">Understand deeply. Practice daily.</div>
+            <div class="facts">
+              <span class="badge teal fact">MIT licence</span>
+              <span class="badge violet fact">your keys stay on your machine</span>
+              <span class="badge amber fact">nine classes, and your own</span>
+              <span class="badge teal fact">every lock has five ways out</span>
+            </div>
+            <div class="url" id="url">principia.ndelucien.com</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== audio ===== -->
+      <audio id="bgm" data-start="0" data-duration="24" data-track-index="10" data-volume="0.3" src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"></audio>
+
+      <audio id="vo1" data-start="0.35" data-duration="2.33" data-track-index="11" data-volume="1" src="assets/vo/vo-1.wav"></audio>
+      <audio id="vo2" data-start="4.7" data-duration="3.39" data-track-index="11" data-volume="1" src="assets/vo/vo-2.wav"></audio>
+      <audio id="vo3" data-start="9.0" data-duration="4.35" data-track-index="11" data-volume="1" src="assets/vo/vo-3.wav"></audio>
+      <audio id="vo4" data-start="14.4" data-duration="4.2" data-track-index="11" data-volume="1" src="assets/vo/vo-4.wav"></audio>
+      <audio id="vo5" data-start="19.9" data-duration="3.61" data-track-index="11" data-volume="1" src="assets/vo/vo-5.wav"></audio>
+
+      <!-- scene 1: ticks (beat-grid 1.09 / 2.19 / 3.27), bell, notification -->
+      <audio id="sfx-tick1" data-start="1.09" data-duration="0.11" data-track-index="12" data-volume="0.4" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-tick2" data-start="2.19" data-duration="0.11" data-track-index="12" data-volume="0.4" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-bell" data-start="3.27" data-duration="1.48" data-track-index="13" data-volume="0.45" src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+      <audio id="sfx-notif" data-start="3.55" data-duration="0.19" data-track-index="14" data-volume="0.5" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <!-- scene 2: page lands -->
+      <audio id="sfx-land" data-start="4.75" data-duration="0.18" data-track-index="12" data-volume="0.55" src="assets/sfx/impact/impactSoft_medium_001.ogg"></audio>
+      <!-- scene 3: chips on the beat grid 9.83 / 10.37 / 10.93 / 11.46 -->
+      <audio id="sfx-chip1" data-start="9.83" data-duration="0.11" data-track-index="12" data-volume="0.35" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-chip2" data-start="10.37" data-duration="0.11" data-track-index="12" data-volume="0.35" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-chip3" data-start="10.93" data-duration="0.11" data-track-index="12" data-volume="0.35" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-chip4" data-start="11.46" data-duration="0.11" data-track-index="12" data-volume="0.35" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <!-- scene 4: tiles on the beat grid 14.73 / 15.29 / 15.84, keycaps on the strong cue 17.47 -->
+      <audio id="sfx-tile1" data-start="14.73" data-duration="0.6" data-track-index="12" data-volume="0.4" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+      <audio id="sfx-tile2" data-start="15.29" data-duration="0.6" data-track-index="13" data-volume="0.4" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+      <audio id="sfx-tile3" data-start="15.84" data-duration="0.6" data-track-index="14" data-volume="0.4" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+      <audio id="sfx-keys" data-start="17.47" data-duration="0.65" data-track-index="12" data-volume="0.45" src="assets/sfx/impact/impactPlate_light_001.ogg"></audio>
+      <!-- scene 5: logo -->
+      <audio id="sfx-logo" data-start="20.15" data-duration="0.12" data-track-index="12" data-volume="0.5" src="assets/sfx/interface/bong_001.ogg"></audio>
+    </div>
+
+    <script>
+      (function () {
+        const tl = gsap.timeline({ paused: true });
+        const OUT = "power3.out";
+        const IN_OUT = "power2.inOut";
+
+        // ---------- audio-reactive: smoothed bass / rms → CSS custom properties (seek-safe sets)
+        const A = window.AUDIO_DATA;
+        if (A && A.bass) {
+          const bMax = 0.38, rMax = 0.33;
+          for (let f = 0; f < A.totalFrames; f += 1) {
+            const b = Math.min(1, A.bass[f] / bMax);
+            const r = Math.min(1, A.rms[f] / rMax);
+            tl.set("#root", { "--bass": b, "--rms": r }, f / A.fps);
+          }
+        }
+
+        // ---------- music ducking under each narration line
+        const bed = 0.3, duck = 0.13;
+        tl.fromTo("#bgm", { volume: 0 }, { volume: bed, duration: 0.8, ease: "none" }, 0);
+        const lines = [
+          [0.35, 2.33],
+          [4.7, 3.39],
+          [9.0, 4.35],
+          [14.4, 4.2],
+          [19.9, 3.61],
+        ];
+        lines.forEach(([start, len], i) => {
+          tl.to("#bgm", { volume: duck, duration: 0.3, ease: "none" }, Math.max(0.8, start - 0.3));
+          if (i < lines.length - 1) {
+            tl.to("#bgm", { volume: bed, duration: 0.5, ease: "none" }, start + len + 0.05);
+          }
+        });
+        tl.to("#bgm", { volume: 0, duration: 1.4, ease: "none" }, 22.6);
+
+        // ---------- scene 1 — the bell (0 → 4.5)
+        tl.fromTo("#s1-scene", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "none" }, 0);
+        tl.fromTo("#s1-bar", { y: -14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: OUT }, 0.05);
+        tl.fromTo("#s1-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: IN_OUT }, 0.1);
+        tl.fromTo("#ring-wrap", { scale: 0.92, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, ease: OUT }, 0.15);
+        tl.fromTo("#pipe-in", { scaleY: 0 }, { scaleY: 1, duration: 0.5, ease: OUT }, 0.35);
+        // the arc closes over the three ticks (beat-grid 1.09 / 2.19 / 3.27)
+        tl.fromTo("#ring-progress", { strokeDashoffset: 211.1 }, { strokeDashoffset: 0, duration: 3.07, ease: "none" }, 0.2);
+        const tick = (from, to, at) => {
+          tl.to(from, { opacity: 0, duration: 0.12, ease: "none" }, at);
+          tl.fromTo(to, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.24, ease: OUT }, at);
+        };
+        tick("#d03", "#d02", 1.09);
+        tick("#d02", "#d01", 2.19);
+        tick("#d01", "#d00", 3.27);
+        // the bell: a teal flash on the ring, then the notification lands
+        tl.fromTo("#ring-flash", { opacity: 0, scale: 0.96 }, { opacity: 0.8, scale: 1.0, duration: 0.12, ease: "none" }, 3.27);
+        tl.to("#ring-flash", { opacity: 0, scale: 1.06, duration: 0.6, ease: OUT }, 3.39);
+        tl.fromTo("#notif", { opacity: 0, y: 44 }, { opacity: 1, y: 0, duration: 0.55, ease: OUT }, 3.55);
+
+        // ---------- scene 2 — Today (4.1 → 8.9); page lands near beat 4.91
+        tl.fromTo("#s2-scene", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 4.1);
+        tl.fromTo("#shot-wrap", { opacity: 0, y: 70, scale: 0.965 }, { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: OUT }, 4.15);
+        tl.to("#shot-wrap", { scale: 1.04, x: -12, y: -14, duration: 3.9, ease: "none" }, 4.95); // slow drift toward the ring
+        tl.fromTo("#caption-panel", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: OUT }, 5.34); // beat
+        tl.fromTo("#s2-headline", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: OUT }, 5.5);
+        tl.fromTo("#s2-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.6, ease: IN_OUT }, 5.85);
+
+        // ---------- scene 3 — the lesson (8.5 → 14.35); punch-in lands on the strong cue 8.74
+        tl.fromTo("#s3-scene", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 8.5);
+        tl.fromTo("#lesson-wrap", { opacity: 0, scale: 1.08, y: 0 }, { opacity: 1, scale: 1.0, duration: 0.9, ease: OUT }, 8.5); // beat-locked: 8.74s
+        tl.to("#lesson-wrap", { y: -44, duration: 4.9, ease: "none" }, 9.4); // slow pan down the reading
+        tl.fromTo("#session-panel", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.6, ease: OUT }, 9.29); // beat
+        // stage chips light one by one — beat-grid: 9.83 / 10.37 / 10.93 / 11.46
+        const chipAt = [9.83, 10.37, 10.93, 11.46];
+        chipAt.forEach((at, i) => {
+          const n = i + 1;
+          tl.fromTo("#chip" + n, { opacity: 0, x: -14 }, { opacity: 1, x: 0, duration: 0.35, ease: OUT }, at);
+          tl.to("#num" + n, { backgroundColor: "#ef9f27", borderColor: "#ef9f27", color: "#412402", duration: 0.25, ease: "none" }, at + 0.05);
+          tl.to("#lbl" + n, { color: "#f2ede4", duration: 0.25, ease: "none" }, at + 0.05);
+          if (n < 4) {
+            tl.fromTo("#pipe" + n, { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.4, ease: IN_OUT }, at + 0.18);
+          }
+        });
+        tl.fromTo("#s3-headline", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.55, ease: OUT }, 12.02); // beat
+
+        // ---------- scene 4 — enforcement (13.95 → 19.8)
+        tl.fromTo("#s4-scene", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 13.95);
+        tl.fromTo("#s4-bar", { y: -14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: OUT }, 14.0);
+        tl.fromTo("#s4-rule", { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: IN_OUT }, 14.05);
+        tl.fromTo("#enf-panel", { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.6, ease: OUT }, 14.2); // beat
+        // tiles arrive one by one — beat-grid: 14.73 / 15.29 / 15.84
+        [14.73, 15.29, 15.84].forEach((at, i) => {
+          tl.fromTo("#tile" + (i + 1), { opacity: 0, y: 26, scale: 0.97 }, { opacity: 1, y: 0, scale: 1, duration: 0.45, ease: OUT }, at);
+        });
+        // the ways out — beat-locked: 17.47s (strong cue)
+        tl.fromTo("#ways", { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.55, ease: OUT }, 17.3);
+        tl.fromTo("#enf-headline", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55, ease: OUT }, 17.75);
+        tl.fromTo("#enf-foot", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.5, ease: OUT }, 18.3);
+
+        // ---------- scene 5 — outro (19.4 → 24.0)
+        tl.fromTo("#s5-scene", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "none" }, 19.4);
+        tl.fromTo("#logo-wrap", { opacity: 0, scale: 0.72, rotation: -14 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.8, ease: "back.out(1.4)" }, 19.66); // beat
+        tl.fromTo("#logo-orbit", { rotation: 0 }, { rotation: 40, duration: 4.3, ease: "none" }, 19.66);
+        tl.fromTo("#logo-led", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.3, ease: OUT }, 20.15); // beat 20.19 · bong
+        tl.fromTo("#brand", { opacity: 0, y: 22 }, { opacity: 1, y: 0, duration: 0.6, ease: OUT }, 20.4);
+        tl.fromTo("#tagline", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.55, ease: OUT }, 20.8);
+        tl.fromTo(".fact", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.45, ease: OUT, stagger: 0.12 }, 21.28); // beat
+        tl.fromTo("#url", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "none" }, 21.84); // beat
+
+        window.__timelines["main"] = tl;
+      })();
+    </script>
+  </body>
+</html>

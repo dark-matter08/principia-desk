@@ -1,0 +1,2 @@
+Introducing Principia Desk: a study desk that keeps its appointments. Your own AI tutor writes the lesson before the bell, from primary sources; you choose how hard the desk holds you, and every lock has five ways out.
+Free, open source, macOS / Windows / Linux — principia.ndelucien.com
